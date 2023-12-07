@@ -1,0 +1,54 @@
+#
+# This is the configuration file.
+#
+# This file will be used to generate header-files and other configuration files
+# for the system during compile time. Therefore, change only values located here
+# and not in the config files scattered around in the project or those who were
+# created as a product of this file
+
+
+# Antenna
+COLUMNS: 8
+ROWS: 8
+DISTANCE: 0.02 # Distance between each element to the next
+
+# Beamforming 
+X_RES: 10 
+Y_RES: 10
+
+
+# FPGA 
+N_ARRAYS: 1 # TODO during handshake
+SAMPLE_RATE: 48828.0 
+PROTOCOL_VERSION: 1 # This must match the version located on the FPGA
+N_SENSORS: ROWS * COLUMNS * N_ARRAYS # TODO this should be determined during handshake
+
+# Beamforming 
+N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
+N_SAMPLES: 256 # Each frame, must be a power of 2 
+BUFFER_LENGTH: N_FRAMES * N_SAMPLES
+
+# Camera
+FOV: 100.0 # How far we should look to the side
+CAMERA_PATH: "/dev/video0"
+
+
+# Networking 
+#UDP_ADDRESS: "192.168.1.2"
+UDP_ADDRESS: "127.0.0.1"
+UDP_PORT: 21844
+
+INTERFACE: "'enp14s0u1u2'" # You should probably change this
+
+# Multiprocess 
+N_THREADS: 8
+SHM_PATH: "/shared_memory_bf"
+
+
+# Physics speficic constants 
+
+PROPAGATION_SPEED: 340.0 # Speed of sound in air 
+
+  
+
+
