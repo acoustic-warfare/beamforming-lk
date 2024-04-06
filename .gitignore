@@ -16,6 +16,7 @@ doc/*
 __pycache__/
 *.py[cod]
 *$py.class
+env/
 
 *.so
 *.o
