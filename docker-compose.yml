@@ -1,0 +1,12 @@
+version: '3'
+services:
+  lysonar:
+    container_name: lysonar_dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src  # Sync the src/ directory
+    stdin_open: true
+    tty: true
+
