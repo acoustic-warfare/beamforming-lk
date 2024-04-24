@@ -39,7 +39,7 @@ UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
 UDP_PORT: 21844
 
-
+TEST: 4
 # Multiprocess 
 N_THREADS: 8
 SHM_PATH: "/shared_memory_bf"
@@ -47,7 +47,13 @@ MAX_VALUE_FLOAT: "(float)(1 << 23)"
 
 # Physics speficic constants 
 
-PROPAGATION_SPEED: 340.0 # Speed of sound in air 
+PROPAGATION_SPEED: 340.0 # Speed of sound in air
+
+
+TEST_PLOT: true
+CYTHON_ANNOTATE: false # If should annotate code
+CYTHON_CACHE: true
+CYTHON_BOUNDS_CHECK: false # Check list slicing
 
   
 

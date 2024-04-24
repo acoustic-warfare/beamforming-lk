@@ -15,6 +15,106 @@ ENDIF()
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 
+# ---- Configuration ----
+set(CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml)
+set(CONFIG_MAKER "${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py")
+
+
+add_custom_command(
+  DEPENDS ${CONFIG_FILE} 
+  
+  # Generate Cython module/src/config.pxd
+  COMMAND ${PYTHON} ${CONFIG_MAKER} ${CONFIG_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/module/src --cython
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/module/src/config.pxd
+  
+  # Generate Python build/config.py
+  COMMAND ${PYTHON} ${CONFIG_MAKER} ${CONFIG_FILE} ${CMAKE_CURRENT_BINARY_DIR} --python
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/config.py
+  # cp ${CMAKE_CURRENT_BINARY_DIR}/config.py ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
+  #
+
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
+  COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_BINARY_DIR}/config.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py 
+
+  #DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${MY_RESOURCE_FILE}
+  # OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
+  COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/__init__.py
+
+  # Generate C/C++ config.h
+  COMMAND ${PYTHON} ${CONFIG_MAKER} ${CONFIG_FILE} ${CMAKE_CURRENT_SOURCE_DIR}/src --c
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+)
+
+set(CONFIGURATIONS 
+  ${CONFIG_FILE}
+  ${CMAKE_CURRENT_BINARY_DIR}/config.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/module/src/config.pxd
+)
+
+add_custom_target(config DEPENDS ${CONFIGURATIONS})
+
+
+# ---- Cython module ----
+set(CMAKE_MODULE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/module")
+set(SETUP_PY_IN "${CMAKE_MODULE_DIR}/setup.py.in")
+set(SETUP_PY "${CMAKE_MODULE_DIR}/setup.py")
+set(PY_OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/build/pytimestamp")
+
+
+configure_file(
+    ${SETUP_PY_IN}
+    ${SETUP_PY}
+)
+
+# Define the Python virtual environment directory
+set(PYTHON_VENV_DIR "${CMAKE_MODULE_DIR}/venv")
+
+# Define the command to create the virtual environment
+set(CREATE_VENV_COMMAND "${PYTHON}" -m venv "${PYTHON_VENV_DIR}")
+
+# Define the commands to install dependencies inside the virtual environment
+set(INSTALL_DEPENDENCIES_COMMAND
+    "${PYTHON_VENV_DIR}/bin/pip" install -r ${CMAKE_MODULE_DIR}/requirements.txt
+)
+
+# Define a custom target to create the virtual environment and install dependencies
+add_custom_command(
+    OUTPUT ${PYTHON_VENV_DIR}
+    COMMAND ${CREATE_VENV_COMMAND}
+    COMMAND ${INSTALL_DEPENDENCIES_COMMAND}
+    COMMENT "Creating Python virtual environment and installing dependencies"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+)
+
+set(MODULE_SOURCES
+  ${CMAKE_MODULE_DIR}/src/config.pxd
+  ${CMAKE_MODULE_DIR}/src/antenna.pyx
+  ${CMAKE_MODULE_DIR}/src/antenna.pxd  
+  ${CMAKE_MODULE_DIR}/src/eigen.pxd  
+  ${CMAKE_MODULE_DIR}/src/pipeline.pyx
+  ${CMAKE_MODULE_DIR}/src/pipeline.pxd
+)
+
+
+add_custom_command(DEPENDS ${PYTHON_VENV_DIR} ${MODULE_SOURCES}
+  OUTPUT "${PY_OUTPUT}"
+
+  # Build modules 
+  COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext
+  #--build-lib=lib --build-temp=build
+
+  # Generate timestamp
+  COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
+)
+
+add_custom_target(module ALL DEPENDS ${PY_OUTPUT})
+
+
+
+# ---- Program ----
 # Find packages
 
 
@@ -31,16 +131,16 @@ pkg_check_modules(RtAudio REQUIRED IMPORTED_TARGET rtaudio)
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-# Configuration maker
-add_custom_target(config #ALL DEPENDS
-  
-  # Generate C/C++ config.h
-  COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_SOURCE_DIR}/src --c
-
-  # Python 
-  COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_BINARY_DIR} --python
-
-)
+# # Configuration maker
+# add_custom_target(config #ALL DEPENDS
+#   
+#   # Generate C/C++ config.h
+#   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_SOURCE_DIR}/src --c
+#
+#   # Python 
+#   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_BINARY_DIR} --python
+#
+# )
 #  add_executable(audio 
 # ${CMAKE_CURRENT_SOURCE_DIR}/src/audio.cpp
 # )
@@ -48,7 +148,7 @@ add_custom_target(config #ALL DEPENDS
 #
 # target_link_libraries(audio PkgConfig::RtAudio)
 
-set(SOURCES 
+set(SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp 
@@ -56,8 +156,16 @@ set(SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
   )
 
+# add_custom_target(beamformer DEPENDS ${CONFIGURATIONS}
+#
+#   ${SOURCES}
+# )
+
+
 # Main program
 add_executable(beamformer
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+
   ${SOURCES}
 )
 
@@ -71,14 +179,25 @@ target_link_libraries(beamformer
     ${OpenCV_LIBS}
 )
 
+
+
+add_dependencies(beamformer config)
+
 add_custom_target(test.udp
   COMMAND echo "Generating fake stream to localhost"
   COMMAND udpreplay -i lo ${CMAKE_CURRENT_SOURCE_DIR}/udp/converted/test.pcap
 )
 
-# Testbench
+# # Testbench
+# add_custom_target(test
+#   COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
+# )
+
 add_custom_target(test
-  COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
+    # COMMAND ${PYTHON} -m unittest discover -s ..
+    # COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.sh
+    COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
+
 )
 
 # Documentation
