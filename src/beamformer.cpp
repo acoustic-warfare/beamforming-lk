@@ -4,6 +4,8 @@
 #include "pipeline.h"
 #include "ring_buffer.h"
 
+#include "RtAudio.h"
+#include "config.h"
 #include <Eigen/Dense>
 #include <cmath>
 #include <cstdlib>
@@ -12,10 +14,11 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <signal.h>
+#include <thread>
 // using namespace std;
 using namespace Eigen;
 using namespace cv;
-#define CAMERA 0
+#define CAMERA 1
 
 #define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
 
@@ -114,12 +117,6 @@ float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
 }
 Mat noiseMatrix(Y_RES, X_RES, CV_8UC1);
 
-#include "RtAudio.h"
-#include "config.h"
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-#include <thread>
 RtAudio audio;
 int play = 1;
 std::thread *producer;
@@ -435,8 +432,8 @@ int main() {
   // init_audio_playback(pipeline);
 
 #if CAMERA
-  cv::VideoCapture cap(0); // Open the default camera (change the index if you
-                           // have multiple cameras)
+  cv::VideoCapture cap(CAMERA_PATH); // Open the default camera (change the
+                                     // index if you have multiple cameras)
 
   if (!cap.isOpened()) {
     std::cerr << "Error: Unable to open the camera." << std::endl;
@@ -467,7 +464,12 @@ int main() {
     // Display the resulting frame with the overlay
     cv::imshow("Real Time Beamforming", frame);
 
-    waitKey(1);
+    if (waitKey(1) == 'q') {
+      // ok = false;
+      std::cout << "Stopping" << endl;
+
+      break;
+    }
   }
 
   // Release the camera and close all OpenCV windows
