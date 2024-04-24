@@ -26,7 +26,7 @@ inline float to_radians(float degree) { return degree * (M_PI / 180.0); }
  * @param antenna Antenna object
  * @return the point in 3D space of its center
  */
-inline Vector3f find_middle(const Antenna &antenna) {
+inline Position find_middle(const Antenna &antenna) {
   return antenna.points.colwise().mean();
   // return antenna.points.rowwise().mean();
 }
@@ -163,3 +163,22 @@ int main() {
   // cout << create_antenna(position, COLUMNS, ROWS, DISTANCE) << endl;
 }
 #endif
+
+MatrixXf generate_unit_dome(const int n) {
+  MatrixXf points(n, 3); // (id, X|Y|Z)
+
+  double phi, theta;
+
+  double magic = 2.0 * M_PI / 1.618033988749;
+
+  for (int i = 0; i < n; i++) {
+    phi = acos(1.0 - (double)i / double(n));
+    theta = (double)i * magic;
+
+    points(i, X_INDEX) = (float)(cos(theta) * sin(phi));
+    points(i, Y_INDEX) = (float)(sin(theta) * sin(phi));
+    points(i, Z_INDEX) = (float)(cos(phi));
+  }
+
+  return points;
+}

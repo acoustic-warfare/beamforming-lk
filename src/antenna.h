@@ -34,7 +34,7 @@ VectorXf compute_delays(const MatrixXf &antenna);
 /**
  * Find the center of antenna
  */
-Vector3f find_middle(const Antenna &antenna);
+Position find_middle(const Antenna &antenna);
 
 /**
  * Place the antenna by positioning the center @ new position
@@ -87,5 +87,7 @@ VectorXf steering_vector(const Antenna &antenna, float phi, float theta);
  * the unitsphere, however it must have a Z value >= 0
  */
 VectorXf steering_vector(const Antenna &antenna, const Position point);
+
+MatrixXf generate_unit_dome(const int n);
 
 #endif
