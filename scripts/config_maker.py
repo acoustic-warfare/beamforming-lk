@@ -63,7 +63,7 @@ class ConfigBuilder(object):
                 else:
                     output = value
 
-                config.write(self.data(key, output))
+                config.write(self.data(key, self.convert(output)))
 
             config.write(self.footer())
 
@@ -77,6 +77,9 @@ class ConfigBuilder(object):
 
     def footer(self):
         return "#This is default footer\n"
+
+    def convert(self, item):
+        return item
 
 
 class C(ConfigBuilder):
@@ -106,6 +109,12 @@ class C(ConfigBuilder):
     def footer(self):
         return "\n#endif\n"
 
+    def convert(self, item):
+        if isinstance(item, bool):
+            return 1*item
+        else:
+            return item
+
 
 class Python(ConfigBuilder):
     def __init__(self, config, file):
@@ -127,6 +136,7 @@ class Python(ConfigBuilder):
 """
 
     def data(self, key: str, output: object) -> str:
+
         return f"{key} = {output}\n"
 
     def footer(self):
