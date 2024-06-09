@@ -30,7 +30,6 @@ import numpy
 import config
 
 
-# distutils.log.set_verbosity(-1)  # Disable logging in disutils
 distutils.log.set_verbosity(distutils.log.DEBUG)  # Set DEBUG level
 
 
@@ -45,7 +44,15 @@ compiler_directives = {
     "boundscheck": config.CYTHON_BOUNDS_CHECK,  # Assume user does not index out of bounds
 }
 
-PROJECT_SOURCE = "${CMAKE_CURRENT_SOURCE_DIR}/src"
+PROJECT_SOURCE: str = "${CMAKE_CURRENT_SOURCE_DIR}/src"
+
+PROJECT_NAME: str = "${CMAKE_PROJECT_NAME}"
+assert PROJECT_NAME != "", "Project name is empty, check CMakeLists.txt"
+
+
+PROJECT_VERSION: str = "${CMAKE_PROJECT_VERSION}"
+assert PROJECT_VERSION != "", "Project version is empty, check CMakeLists.txt"
+
 EIGEN_SOURCE = "/usr/include/eigen3"
 NUMPY_SOURCE = numpy.get_include()
 
@@ -60,12 +67,24 @@ ext_modules = [
         include_dirs=[PROJECT_SOURCE, EIGEN_SOURCE, NUMPY_SOURCE],
         language="c++",
     ),
+    Extension(
+        name="pipeline",
+        sources=[
+            "${CMAKE_CURRENT_SOURCE_DIR}/module/src/pipeline.pyx",
+            # "${CMAKE_CURRENT_SOURCE_DIR}/module/src/antenna.pyx",
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp",
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/ring_buffer.cpp",
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp",
+        ],
+        include_dirs=[PROJECT_SOURCE, EIGEN_SOURCE, NUMPY_SOURCE],
+        language="c++",
+    ),
 ]
 
 setup(
-    name="${CMAKE_PROJECT_NAME}",
-    version="${PROJECT_VERSION}",
-    cmdclass={"build_ext": build_ext},
+    name = PROJECT_NAME,
+    version = PROJECT_VERSION,
+    cmdclass = {"build_ext": build_ext},
     ext_modules=cythonize(
         ext_modules,
         annotate=config.CYTHON_ANNOTATE,

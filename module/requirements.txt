@@ -2,4 +2,4 @@ pyyaml
 cython
 numpy 
 matplotlib
-
+setuptools
