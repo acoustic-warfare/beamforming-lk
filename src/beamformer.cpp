@@ -1,11 +1,16 @@
-#include "antenna.h"
+
 #include "config.h"
+
+#include "antenna.h"
 #include "delay.h"
 #include "pipeline.h"
 #include "ring_buffer.h"
 
+
+#if AUDIO 
 #include "RtAudio.h"
-#include "config.h"
+#endif
+
 #include <Eigen/Dense>
 #include <cmath>
 #include <cstdlib>
@@ -15,15 +20,23 @@
 #include <opencv2/opencv.hpp>
 #include <signal.h>
 #include <thread>
-// using namespace std;
+
 using namespace Eigen;
 using namespace cv;
-#define CAMERA 1
 
 #define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
 
 bool canPlot = false;
 
+/**
+ * @brief Calculate delays for different angles beforehand 
+ *
+ * @param flat_delays delays to use 
+ * @param antenna antenna structure 
+ * @param fov field of view 
+ * @param resolution_x width resolution 
+ * @param resolution_y height resolution
+ */
 void compute_scanning_window(float *flat_delays, const Antenna &antenna,
                              float fov, int resolution_x, int resolution_y) {
 
@@ -90,6 +103,15 @@ void compute_scanning_window2(float *flat_delays, const Antenna &antenna,
   // return delays;
 }
 
+/**
+ * @brief Convert multiple input streams into single level by delay  
+ *
+ * @param t_id [TODO:parameter]
+ * @param task pool partition 
+ * @param flat_delays delays to use 
+ * @param rb ring buffer to use 
+ * @return power level
+ */
 float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
   float out[N_SAMPLES] = {0.0};
   for (int s = 0; s < N_SENSORS; s++) {
@@ -117,10 +139,22 @@ float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
 }
 Mat noiseMatrix(Y_RES, X_RES, CV_8UC1);
 
+
+
+// If Audio playback when streaming 
+#if AUDIO
+
 RtAudio audio;
 int play = 1;
 std::thread *producer;
 std::vector<float> audioBuffer(N_SAMPLES * 2, 0.0);
+
+
+/**
+ * @brief Producer for audio on pipeline 
+ *
+ * @param pipeline Pipeline
+ */
 void audio_producer(Pipeline &pipeline) {
 
   ring_buffer &rb = pipeline.getRingBuffer();
@@ -163,6 +197,17 @@ void audio_producer(Pipeline &pipeline) {
   }
 }
 
+/**
+ * @brief Callback for audio stream 
+ *
+ * @param outputBuffer Speaker buffer 
+ * @param inputBuffer empty (Required by RtAudio API)
+ * @param nBufferFrames number of frames to fill 
+ * @param streamTime duration 
+ * @param status status 
+ * @param userData the incoming data
+ * @return OK
+ */
 int audioCallback(void *outputBuffer, void *inputBuffer,
                   unsigned int nBufferFrames, double streamTime,
                   RtAudioStreamStatus status, void *userData) {
@@ -173,7 +218,7 @@ int audioCallback(void *outputBuffer, void *inputBuffer,
     if (!play) {
       *buffer++ = audioBuffer[i];
     } else {
-      cout << "UNderflow" << endl;
+      cout << "Underflow" << endl;
       *buffer++ = 0.0;
     }
   }
@@ -183,6 +228,12 @@ int audioCallback(void *outputBuffer, void *inputBuffer,
   return 0;
 }
 
+/**
+ * @brief Initiate Audio player for Pipeline 
+ *
+ * @param pipeline the pipeline to follow 
+ * @return status
+ */
 int init_audio_playback(Pipeline &pipeline) {
   if (audio.getDeviceCount() < 1) {
     std::cout << "No audio devices found!" << std::endl;
@@ -221,6 +272,8 @@ void stop_audio_playback() {
   audio.stopStream();
   audio.closeStream();
 }
+
+#endif
 
 void naive_seeker(Pipeline &pipeline) {
 
@@ -429,7 +482,9 @@ int main() {
 
   noiseMatrix.setTo(Scalar(0));
 
-  // init_audio_playback(pipeline);
+  #if AUDIO 
+  init_audio_playback(pipeline);
+  #endif
 
 #if CAMERA
   cv::VideoCapture cap(CAMERA_PATH); // Open the default camera (change the
@@ -523,7 +578,10 @@ int main() {
   //
 
   pipeline.disconnect();
-  // stop_audio_playback();
+
+  #if AUDIO
+  stop_audio_playback();
+  #endif
   destroyAllWindows();
-  // worker.join();
+  worker.join();
 }
