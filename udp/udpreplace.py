@@ -7,8 +7,9 @@ Date: 2023-10-20
 
 Description: Script for replacing IP destinations for .pcap files 
 """
-
-from scapy.all import *
+import os
+import glob
+from scapy.all import IP, rdpcap, wrpcap
 
 # """
 # tshark -r in.pcap -w out.pcap -Y "frame.number >= N && frame.number <= M"
@@ -30,8 +31,6 @@ parser.add_argument("port")
 parser.add_argument("-c", "--count")  # option that takes a value
 parser.add_argument("-v", "--verbose", action="store_true")
 args = parser.parse_args()
-import os
-import glob
 
 
 def choose_pcap_file(directory):
