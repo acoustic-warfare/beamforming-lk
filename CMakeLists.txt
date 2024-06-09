@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10.1)
-project(beamformer)
+project(beamformer VERSION 1.0.1)
 
 
 # Optimizations
@@ -7,9 +7,9 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-IF(NOT PYTHON)
-    find_program(PYTHON "python")
-ENDIF()
+# IF(NOT PYTHON)
+#     find_program(PYTHON "python")
+# ENDIF()
 
 
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
@@ -78,7 +78,10 @@ set(CREATE_VENV_COMMAND "${PYTHON}" -m venv "${PYTHON_VENV_DIR}")
 # Define the commands to install dependencies inside the virtual environment
 set(INSTALL_DEPENDENCIES_COMMAND
     "${PYTHON_VENV_DIR}/bin/pip" install -r ${CMAKE_MODULE_DIR}/requirements.txt
+    COMMENT "Done installing "
 )
+
+set(PYTHON "${PYTHON_VENV_DIR}/bin/python")
 
 # Define a custom target to create the virtual environment and install dependencies
 add_custom_command(
@@ -103,12 +106,16 @@ add_custom_command(DEPENDS ${PYTHON_VENV_DIR} ${MODULE_SOURCES}
   OUTPUT "${PY_OUTPUT}"
 
   # Build modules 
-  COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext
+  COMMENT "Starting build"
+  COMMAND ${PYTHON} ${SETUP_PY} build_ext
+  # COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext
   #--build-lib=lib --build-temp=build
 
   # Generate timestamp
   COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
 )
+
+
 
 add_custom_target(module ALL DEPENDS ${PY_OUTPUT})
 

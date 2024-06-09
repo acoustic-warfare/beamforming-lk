@@ -30,7 +30,11 @@ BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 
 # Camera
 FOV: 80.0 # How far we should look to the side
+CAMERA: false
 CAMERA_PATH: "/dev/video0"
+
+# Audio 
+AUDIO: false
 
 
 # Networking 
