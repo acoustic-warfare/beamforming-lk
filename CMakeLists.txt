@@ -7,9 +7,9 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# IF(NOT PYTHON)
-#     find_program(PYTHON "python")
-# ENDIF()
+IF(NOT PYTHON)
+    find_program(PYTHON "python3")
+ENDIF()
 
 
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
