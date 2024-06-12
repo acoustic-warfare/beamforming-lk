@@ -1,3 +1,5 @@
+
+
 #include "config.h"
 
 #include "antenna.h"
@@ -23,8 +25,8 @@
 using namespace Eigen;
 using namespace cv;
 
-#define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
-
+//#define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
+#define VALID_SENSOR(i) (64 <= i) && (i < 128)
 bool canPlot = false;
 
 /**
@@ -44,6 +46,8 @@ void compute_scanning_window(float *flat_delays, const Antenna &antenna,
   int k = 0;
   for (int x = 0; x < resolution_x; x++) {
     for (int y = 0; y < resolution_y; y++) {
+
+      // Imagine dome in spherical coordinates on the XY-plane with Z being height
       float xo = (float)(x - half_x) / (resolution_x);
       float yo = (float)(y - half_y) / (resolution_y);
       float level = sqrt(xo * xo + yo * yo) / 1;
@@ -64,43 +68,7 @@ void compute_scanning_window(float *flat_delays, const Antenna &antenna,
   }
 }
 
-void compute_scanning_window2(float *flat_delays, const Antenna &antenna,
-                              float fov, int resolution_x, int resolution_y) {
-  float x, y;
 
-  // Eigen::MatrixXf antenna = create_antenna(Vector3f(0, 0, 0), COLUMNS, ROWS,
-  // DISTANCE);
-  Antenna tmp;
-  // std::vector<Eigen::VectorXf> delays;
-
-  int k = 0;
-
-  for (int yi = 0; yi < resolution_y; yi++) {
-    y = (float)atan(2.0 * (double)yi / (resolution_y - 1) - 1);
-    y = 0;
-    for (int xi = 0; xi < resolution_x; xi++) {
-      x = (float)atan(2.0 * (double)xi / (resolution_x - 1) - 1);
-      std::cout << "(" << x * 180.0 / M_PI << "," << y * 180.0 / M_PI << ")"
-                << std::endl;
-
-      // tmp = steer(antenna, (float)y, (float)x);
-
-      VectorXf tmp_delays =
-          steering_vector(antenna, y, x); // compute_delays(tmp);
-      int i = 0;
-      for (float del : tmp_delays) {
-        flat_delays[k * N_SENSORS + i] = del;
-        // flat_delays[yi * COLUMNS * N_SENSORS + xi * N_SENSORS + i] = del;
-        i++;
-      }
-
-      k++;
-      // delays.push_back(compute_delays(tmp));
-    }
-  }
-
-  // return delays;
-}
 
 /**
  * @brief Convert multiple input streams into single level by delay  
@@ -113,18 +81,20 @@ void compute_scanning_window2(float *flat_delays, const Antenna &antenna,
  */
 float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
   float out[N_SAMPLES] = {0.0};
+  int n = 0;
   for (int s = 0; s < N_SENSORS; s++) {
 
     if (VALID_SENSOR(s)) {
-      float del = flat_delays[s - 128];
+      float del = flat_delays[s - 64];
+      //float del = flat_delays[s - 128];
       // cout << s << " ";
       naive_delay(&rb, &out[0], del, s);
+      n++;
     }
   }
 
   // cout << endl;
 
-  int n = N_SENSORS;
 
   float power = 0.f;
   for (int p = 0; p < n; p++) {
@@ -134,7 +104,7 @@ float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
     power += powf(val, 2);
   }
 
-  return power / (float)N_SAMPLES;
+  return power / (float)n;
 }
 Mat noiseMatrix(Y_RES, X_RES, CV_8UC1);
 
@@ -274,6 +244,10 @@ void stop_audio_playback() {
 
 #endif
 
+
+/**
+ * Beamforming as fast as possible on top of pipeline
+ */
 void naive_seeker(Pipeline &pipeline) {
 
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
@@ -327,14 +301,16 @@ void naive_seeker(Pipeline &pipeline) {
 
   while (pipeline.isRunning()) {
 
+    // Wait for incoming data
     pipeline.barrier();
-
-    newData = pipeline.mostRecent();
-    ring_buffer &rb = pipeline.getRingBuffer();
 
     // This loop may run until new data has been produced, meaning its up to
     // the machine to run as fast as possible
-    // newData = pipeline.mostRecent();
+    newData = pipeline.mostRecent();
+    ring_buffer &rb = pipeline.getRingBuffer();
+
+
+
     int i = 0;
     float mean = 0.0;
 
@@ -348,13 +324,18 @@ void naive_seeker(Pipeline &pipeline) {
     maxVal = 0.0;
     float avgPower = 0.0;
 
+    // Repeat until new data or abort if new data arrives
     while ((pipeline.mostRecent() == newData) && (i < max)) {
       int task = pixel_index * N_SENSORS;
 
       xi = pixel_index % X_RES;
       yi = pixel_index / X_RES;
 
+      // Get power level from direction
       float val = miso(0, pixel_index, &flat_delays[task], rb);
+
+
+      // TODO normalize value :(
 
       if (val > avgPower) {
         avgPower = val;
@@ -428,6 +409,7 @@ void naive_seeker(Pipeline &pipeline) {
         // cout << "Negative value" << endl;
       }
 
+      // Paint pixel
       noiseMatrix.at<uchar>(yi, xi) = (uchar)(val * 255);
       canPlot = true;
 
@@ -467,7 +449,6 @@ Pipeline pipeline = Pipeline();
 
 void sig_handler(int sig) {
   // Set the stop_processing flag to terminate worker threads gracefully
-  // std::cout << "stopping from sig" << std::endl;
 
   pipeline.disconnect();
 }
@@ -475,10 +456,13 @@ void sig_handler(int sig) {
 int main() {
   signal(SIGINT, sig_handler);
 
+  // Connect to UDP stream
   pipeline.connect();
 
+  // Start beamforming thread
   thread worker(naive_seeker, ref(pipeline));
 
+  // Initiate background image
   noiseMatrix.setTo(Scalar(0));
 
   #if AUDIO 
@@ -576,6 +560,7 @@ int main() {
   // worker = thread /(naive_seeker, &pipeline);
   //
 
+  // Stop UDP stream
   pipeline.disconnect();
 
   #if AUDIO
