@@ -25,6 +25,8 @@
 using namespace Eigen;
 using namespace cv;
 
+// make && sudo chrt -f 98 ./beamformer
+
 //#define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
 bool canPlot = false;
@@ -84,6 +86,10 @@ float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
   int n = 0;
   for (int s = 0; s < N_SENSORS; s++) {
 
+    //if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
+    //  continue;
+    //}
+
     if (VALID_SENSOR(s)) {
       float del = flat_delays[s - 64];
       //float del = flat_delays[s - 128];
@@ -106,6 +112,51 @@ float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
 
   return power / (float)n;
 }
+
+
+
+///**
+// * @brief Convert multiple input streams into single level by delay  
+// *
+// * @param t_id [TODO:parameter]
+// * @param task pool partition 
+// * @param flat_delays delays to use 
+// * @param rb ring buffer to use 
+// * @return power level
+// */
+//float miso(int t_id, int task, float *flat_delays, float *rb) {
+//  float out[N_SAMPLES] = {0.0};
+//  int n = 0;
+//  for (int s = 0; s < N_SENSORS; s++) {
+//
+//    //if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
+//    //  continue;
+//    //}
+//
+//    if (VALID_SENSOR(s)) {
+//      float del = flat_delays[s - 64];
+//      //float del = flat_delays[s - 128];
+//      // cout << s << " ";
+//      naive_delay(&rb, &out[0], del, s);
+//      n++;
+//    }
+//  }
+//
+//  // cout << endl;
+//
+//
+//  float power = 0.f;
+//  for (int p = 0; p < n; p++) {
+//
+//    float val = out[p] / (float)n;
+//
+//    power += powf(val, 2);
+//  }
+//
+//  return power / (float)n;
+//}
+
+
 Mat noiseMatrix(Y_RES, X_RES, CV_8UC1);
 
 
@@ -248,7 +299,7 @@ void stop_audio_playback() {
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void naive_seeker(Pipeline &pipeline) {
+void naive_seeker_old(Pipeline &pipeline) {
 
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
@@ -445,6 +496,137 @@ void naive_seeker(Pipeline &pipeline) {
   }
 }
 
+
+/**
+ * Beamforming as fast as possible on top of pipeline
+ */
+void naive_seeker(Pipeline &pipeline) {
+
+  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+
+  float flat_delays[X_RES * Y_RES * N_SENSORS];
+
+  compute_scanning_window(&flat_delays[0], antenna, FOV, X_RES, Y_RES);
+
+
+
+  int max = X_RES * Y_RES;
+
+  float image[X_RES * Y_RES];
+
+  int pixel_index = 0;
+
+  // return;
+
+  int newData;
+  float power;
+  float threshold = 3e-8;
+
+  float norm = 1 / 1e-05;
+  // ring_buffer rb;
+  //
+  // Initialize random seed
+  srand(static_cast<unsigned int>(0));
+
+  float maxVal = 1.0;
+  
+
+  while (pipeline.isRunning()) {
+
+    // Wait for incoming data
+    pipeline.barrier();
+
+    // This loop may run until new data has been produced, meaning its up to
+    // the machine to run as fast as possible
+    newData = pipeline.mostRecent();
+    ring_buffer &rb = pipeline.getRingBuffer();
+    float maxVal = 0.0;
+
+
+
+    int i = 0;
+    float mean = 0.0;
+
+    int xi, yi = 0;
+    float alpha = 1.0 / (float)(X_RES * Y_RES + 4);
+    alpha = 0.02;
+
+    float heatmap_data[X_RES * Y_RES];
+
+    // maxDecay = 0.0;
+    
+    float avgPower = 0.0;
+
+    // Repeat until new data or abort if new data arrives
+  // while ((pipeline.mostRecent() == newData) && (i < max)) {
+
+  while ((i < max)) {
+      int task = pixel_index * N_SENSORS;
+
+      xi = pixel_index % X_RES;
+      yi = pixel_index / X_RES;
+
+      // Get power level from direction
+      float val = miso(0, pixel_index, &flat_delays[task], rb);
+
+      if (val > maxVal) {
+        maxVal = val;
+      }
+
+      //power = val * 1e5;
+
+      //power = val * norm * 0.9f + 1.0;
+      power = val + 1.0f;
+      power = powf(power, 15);
+      //power *= 1e9f;
+
+      power = log(power) * 0.1f;
+
+      power = power * norm * 0.9f;
+
+
+      
+
+
+      
+
+      
+
+      if (power < 0.2) {
+        power = 0.0f;
+      } else if (power > 1.0) {
+        norm *= 0.95;
+        // cout << "Bigger value" << endl;
+        power = 1.0f;
+      } else if (power < 0.0) {
+        power = 0.0f;
+        // cout << "Negative value" << endl;
+      }
+
+      // Paint pixel
+      noiseMatrix.at<uchar>(yi, xi) = (uchar)(power * 255);
+      //canPlot = true;
+
+      pixel_index++;
+      pixel_index %= X_RES * Y_RES;
+
+      i++;
+    }
+
+    canPlot = true;
+
+    norm = (1-alpha) * norm + alpha * (1/(maxVal));
+
+    //norm = (1/maxVal) * 1.1f;
+
+    //cout << maxVal << endl;
+
+    
+  }
+}
+
+
+
 Pipeline pipeline = Pipeline();
 
 void sig_handler(int sig) {
@@ -517,24 +699,30 @@ int main() {
   cv::namedWindow("Noise Matrix", WINDOW_NORMAL);
   cv::resizeWindow("Noise Matrix", 800, 800);
   int res = 10;
-  // Mat previous(Y_RES, X_RES, CV_8UC1);
-  // previous.setTo(Scalar(0));
-  // resize(previous, previous, Size(), res, res, INTER_LINEAR);
+  Mat previous(Y_RES, X_RES, CV_8UC1);
+  previous.setTo(Scalar(0));
+  applyColorMap(previous, previous, COLORMAP_JET);
+  resize(previous, previous, Size(), res, res, INTER_LINEAR);
 
   while (pipeline.isRunning()) {
     if (canPlot) {
       canPlot = false;
       Mat coloredMatrix;
+      //Blur the image with 3x3 Gaussian kernel
+      //Mat image_blurred_with_3x3_kernel;
+      GaussianBlur(noiseMatrix, coloredMatrix, Size(3, 3), 0);
+      GaussianBlur(coloredMatrix, coloredMatrix, Size(3, 3), 0);
       applyColorMap(noiseMatrix, coloredMatrix, COLORMAP_JET);
+
       cv::resize(coloredMatrix, coloredMatrix, Size(), res, res, INTER_LINEAR);
       // Initialize random seed
       // srand(static_cast<unsigned int>(time(0)));
       // Display the noise matrix with Jet colormap
-      // if (previous == NULL) {
-      //   previous = coloredMatrix;
-      // }
-      // addWeighted(coloredMatrix, 1.0, previous, 0.5, 0, coloredMatrix);
-      // previous = coloredMatrix;
+      //if (previous == NULL) {
+      //  previous = coloredMatrix;
+      //}
+      addWeighted(coloredMatrix, 0.99, previous, 0.01, 0, coloredMatrix);
+      previous = coloredMatrix;
       //
       cv::imshow("Noise Matrix", coloredMatrix);
       // cout << "Plotting" << endl;

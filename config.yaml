@@ -13,8 +13,8 @@ ROWS: 8
 DISTANCE: 0.02 # Distance between each element to the next
 
 # Beamforming 
-X_RES: 20 
-Y_RES: 20
+X_RES: 64 
+Y_RES: 64
 
 
 # FPGA 
@@ -26,6 +26,7 @@ N_SENSORS: ROWS * COLUMNS * N_ARRAYS # TODO this should be determined during han
 # Beamforming 
 N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
 N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2 
+N_OFFSET: N_SAMPLES / 2
 BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 
 # Camera
@@ -42,6 +43,8 @@ AUDIO: false
 UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
 UDP_PORT: 21844
+
+N_TAPS: 32 # Kernel size
 
 TEST: 4
 # Multiprocess 
