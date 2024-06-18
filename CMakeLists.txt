@@ -128,6 +128,14 @@ add_custom_target(module ALL DEPENDS ${PY_OUTPUT})
 # Matrix operations
 find_package(Eigen3 REQUIRED)
 
+# MQTT
+find_package(PahoMqttCpp REQUIRED)
+find_package(eclipse-paho-mqtt-c REQUIRED)
+find_package(nlohmann_json 3.2.0 REQUIRED)
+
+# Generating UUID:s
+find_package(Boost REQUIRED)
+
 
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
@@ -161,6 +169,7 @@ set(SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/mqtt_client.cpp
   )
 
 # add_custom_target(beamformer DEPENDS ${CONFIGURATIONS}
@@ -184,7 +193,12 @@ target_link_libraries(beamformer
     Eigen3::Eigen
     PkgConfig::RtAudio
     ${OpenCV_LIBS}
+    paho-mqttpp3 
+    paho-mqtt3as 
+    nlohmann_json::nlohmann_json
 )
+
+target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
 
 
 
