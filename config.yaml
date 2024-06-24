@@ -6,46 +6,6 @@
 # and not in the config files scattered around in the project or those who were
 # created as a product of this file
 
-
-# Antenna
-COLUMNS: 8
-ROWS: 8
-DISTANCE: 0.02 # Distance between each element to the next
-
-# Beamforming 
-X_RES: 64 
-Y_RES: 64
-
-
-# FPGA 
-N_ARRAYS: 4 # TODO during handshake
-SAMPLE_RATE: 48828.0 
-PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
-N_SENSORS: ROWS * COLUMNS * N_ARRAYS # TODO this should be determined during handshake
-
-# Beamforming 
-N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
-N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2 
-N_OFFSET: N_SAMPLES / 2
-BUFFER_LENGTH: N_FRAMES * N_SAMPLES
-
-# Camera
-FOV: 80.0 # How far we should look to the side
-CAMERA: false
-CAMERA_PATH: "/dev/video0"
-
-# Audio 
-AUDIO: false
-
-
-# Networking 
-# UDP_ADDRESS: "10.0.0.1"
-UDP_ADDRESS: "127.0.0.1"
-#UDP_PORT: 12345
-UDP_PORT: 21844
-
-N_TAPS: 32 # Kernel size
-
 TEST: 4
 # Multiprocess 
 N_THREADS: 8
