@@ -5,7 +5,6 @@
 #include "antenna.h"
 #include "delay.h"
 #include "pipeline.h"
-#include "ring_buffer.h"
 
 
 #if AUDIO 
@@ -13,26 +12,43 @@
 #endif
 
 #include <Eigen/Dense>
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
+
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
+
 #include <signal.h>
+
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
 #include <thread>
+#include <atomic>
 
-using namespace Eigen;
-using namespace cv;
-
-// make && sudo chrt -f 98 ./beamformer
-
-//#define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
-bool canPlot = false;
+
+
+/**
+Main application for running beamformer program
+
+You may try to use:
+
+sudo chrt -f 98 ./beamformer
+
+for better performace by altering the real-time scheduling attributes of the program.
+
+ */
+
+
+std::atomic_int canPlot = 0;
+
+Pipeline *pipeline;
+
+
 
 // Intermediate heatmap used for beamforming (8-bit)
-Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
+cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
 
 /**
  * @brief Calculate delays for different angles beforehand 
@@ -360,7 +376,7 @@ void naive_seeker(Pipeline *pipeline) {
       i++;
     }
 
-    canPlot = true;
+    canPlot = 1;
 
     norm = (1-alpha) * norm + alpha * (1/(maxVal));
 
@@ -374,27 +390,29 @@ void naive_seeker(Pipeline *pipeline) {
 
 
 
-Pipeline *pipeline;
-
 void sig_handler(int sig) {
   // Set the stop_processing flag to terminate worker threads gracefully
-
   pipeline->disconnect();
 }
 
 int main() {
+
+  // Setup sigint i.e Ctrl-C
   signal(SIGINT, sig_handler);
 
+  std::cout << "Starting pipeline..." << std::endl;
   pipeline = new Pipeline();
 
+  std::cout << "Waiting for UDP stream..." << std::endl;
   // Connect to UDP stream
   pipeline->connect();
 
+  std::cout << "Dispatching workers..." << std::endl;
   // Start beamforming thread
   thread worker(naive_seeker, pipeline);
 
   // Initiate background image
-  magnitudeHeatmap.setTo(Scalar(0));
+  magnitudeHeatmap.setTo(cv::Scalar(0));
 
   #if AUDIO 
   init_audio_playback(pipeline);
@@ -447,31 +465,36 @@ int main() {
 
 
   // Create a window to display the beamforming data
-  cv::namedWindow(APPLICATION_NAME, WINDOW_NORMAL);
+  cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
   cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
   int res = 16;
   
   // Decay image onto previous frame 
-  Mat previous(Y_RES, X_RES, CV_8UC1);
-  previous.setTo(Scalar(0)); // Set to zero
-  applyColorMap(previous, previous, COLORMAP_JET);
-  resize(previous, previous, Size(), res, res, INTER_LINEAR);
+  cv::Mat previous(Y_RES, X_RES, CV_8UC1);
+  previous.setTo(cv::Scalar(0)); // Set to zero
+  cv::applyColorMap(previous, previous, cv::COLORMAP_JET);
 
+#if RESIZE_HEATMAP
+  cv::resize(previous, previous, cv::Size(), res, res, cv::INTER_LINEAR);
+#endif 
+
+  std::cout << "Running..." << std::endl;
   while (pipeline->isRunning()) {
     if (canPlot) {
-      canPlot = false;
-      Mat coloredMatrix;
+      canPlot = 0;
+      cv::Mat coloredMatrix;
       //Blur the image with a Gaussian kernel
-      GaussianBlur(magnitudeHeatmap, magnitudeHeatmap, Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+      cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap, cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
       
       // Apply color map
-      applyColorMap(magnitudeHeatmap, coloredMatrix, COLORMAP_JET);
+      cv::applyColorMap(magnitudeHeatmap, coloredMatrix, cv::COLORMAP_JET);
 
-      // Resize to fullscreen
-      cv::resize(coloredMatrix, coloredMatrix, Size(), res, res, INTER_LINEAR);
-      
+#if RESIZE_HEATMAP
+      // Resize to smoothen
+      cv::resize(coloredMatrix, coloredMatrix, cv::Size(), res, res, cv::INTER_LINEAR);
+#endif
       // Combine previous images for more smooth image
-      addWeighted(coloredMatrix, 0.1, previous, 0.9, 0, coloredMatrix);
+      cv::addWeighted(coloredMatrix, 0.1, previous, 0.9, 0, coloredMatrix);
 
       // Update previous image
       previous = coloredMatrix;
@@ -481,8 +504,8 @@ int main() {
     }
 
     // Check for key press; if 'q' is pressed, break the loop
-    if (waitKey(1) == 'q') {
-      std::cout << "Stopping application" << std::endl;
+    if (cv::waitKey(1) == 'q') {
+      std::cout << "Stopping application..." << std::endl;
       break;
     }
   }
@@ -496,6 +519,7 @@ int main() {
   pipeline->save_pipeline("pipeline.bin");
 #endif
 
+  std::cout << "Disconnecting pipeline..." << std::endl;
   // Stop UDP stream
   pipeline->disconnect();
 
@@ -503,11 +527,15 @@ int main() {
   stop_audio_playback();
   #endif
 
+  std::cout << "Closing application..." << std::endl;
   // Close application windows
-  destroyAllWindows();
+  cv::destroyAllWindows();
 
+  std::cout << "Waiting for workers..." << std::endl;
   // Join the workers
   worker.join();
+
+  std::cout << "Exiting..." << std::endl;
 
   // Cleanup
   delete pipeline;

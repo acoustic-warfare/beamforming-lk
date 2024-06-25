@@ -14,8 +14,10 @@ ELEMENTS: COLUMNS * ROWS
 DISTANCE: 0.02 # Distance between each element to the next
 
 # Beamforming 
-X_RES: 27 
-Y_RES: 27
+X_RES: 47 
+Y_RES: 47
+
+RESIZE_HEATMAP: false
 
 APPLICATION_NAME: "Beamforming"
 APPLICATION_WIDTH: 1024
