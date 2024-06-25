@@ -117,7 +117,7 @@ add_custom_command(DEPENDS ${PYTHON_VENV_DIR} ${MODULE_SOURCES}
 
 
 
-add_custom_target(module ALL DEPENDS ${PY_OUTPUT})
+add_custom_target(module DEPENDS ${PY_OUTPUT})
 
 
 
