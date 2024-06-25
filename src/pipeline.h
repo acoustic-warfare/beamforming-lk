@@ -1,11 +1,22 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-#include "ring_buffer.h"
+//#include "ring_buffer.h"
+#include "streams.hpp"
+
+#include "pipeline.h"
+#include "receiver.h"
+//#include "ring_buffer.h"
+#include <fstream>
+#include <iostream>
+#include <string>
 
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+
+#include <cstddef>
+#include <cstdio>
 
 using namespace std;
 
@@ -17,7 +28,8 @@ using namespace std;
 class Pipeline {
 
 public:
-  Pipeline(){};
+  Pipeline();
+  ~Pipeline();
   /**
    * Connect beamformer to antenna
    */
@@ -42,12 +54,13 @@ public:
    * Wait until release
    */
   void barrier();
-
-  ring_buffer &getRingBuffer();
+  
+  Streams *getStreams();
 
   int save_pipeline(std::string path);
 
 private:
+  Streams *streams;
   int connected = 0;
   mutex pool_mutex;
   mutex barrier_mutex;
@@ -56,8 +69,11 @@ private:
 
   thread connection;
 
-  ring_buffer rb;
   int modified = 0;
+
+  int p = 0;
+
+  float buffer[N_SAMPLES * N_SENSORS * 2];
 
   /**
    * Allow the worker threads to continue

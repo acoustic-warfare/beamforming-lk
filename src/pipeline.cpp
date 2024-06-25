@@ -1,11 +1,14 @@
-
 #include "pipeline.h"
-#include "receiver.h"
-#include "ring_buffer.h"
-#include <fstream>
-#include <iostream>
 
 using namespace std;
+
+Pipeline::Pipeline() {
+  streams = new Streams();
+}
+
+Pipeline::~Pipeline() {
+  delete streams;
+}
 
 /**
  * Connect beamformer to antenna
@@ -20,6 +23,17 @@ int Pipeline::connect() {
   }
 
   connected = 1;
+
+  for (int s = 0; s < number_of_sensors(); s++) {
+    this->streams->create_stream(s);
+    std::cout << "\rAdding stream: " << s << "        ";
+  }
+
+  std::cout << std::endl;
+
+
+
+  
 
   connection = thread(&Pipeline::producer, this);
 
@@ -73,7 +87,10 @@ void Pipeline::barrier() {
   barrier_condition.wait(lock, [&] { return barrier_count == 0; });
 }
 
-ring_buffer &Pipeline::getRingBuffer() { return rb; }
+
+Streams *Pipeline::getStreams() {
+  return streams;
+}
 
 /**
  * Allow the worker threads to continue
@@ -90,16 +107,37 @@ void Pipeline::release_barrier() {
  */
 void Pipeline::producer() {
   while (isRunning()) {
-    receive_offset(&rb); // Fill buffer
+    //receive_offset(&rb); // Fill buffer
+    receive_exposure(streams);
 
     {
       unique_lock<mutex> lock(barrier_mutex);
-      offset_ring_buffer(&rb);
+      //offset_ring_buffer(&rb);
+      streams->forward();
     }
 
     release_barrier();
   }
 }
+
+///**
+// * The main distributer of data to the threads (this is also a thread)
+// */
+//void Pipeline::producer() {
+//  while (isRunning()) {
+//    //receive_offset(&rb); // Fill buffer
+//
+//    {
+//      unique_lock<mutex> lock(barrier_mutex);
+//      p = !p;
+//
+//      receive_exposure(&buffer[p * N_SENSORS * N_SAMPLES]);
+//      //offset_ring_buffer(&rb);
+//    }
+//
+//    release_barrier();
+//  }
+//}
 
 // Debugging
 int Pipeline::save_pipeline(std::string path) {
@@ -110,8 +148,8 @@ int Pipeline::save_pipeline(std::string path) {
     return 1;
   }
 
-  outfile.write(reinterpret_cast<char *>(rb.data),
-                sizeof(float) * N_SENSORS * BUFFER_LENGTH);
+  //outfile.write(reinterpret_cast<char *>(rb.data),
+  //              sizeof(float) * N_SENSORS * BUFFER_LENGTH);
 
   // Close the file
   outfile.close();
