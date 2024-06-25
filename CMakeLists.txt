@@ -161,12 +161,7 @@ set(SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
-  )
-
-# add_custom_target(beamformer DEPENDS ${CONFIGURATIONS}
-#
-#   ${SOURCES}
-# )
+)
 
 
 # Main program
@@ -175,7 +170,6 @@ add_executable(beamformer
 
   ${SOURCES}
 )
-
 
 
 
