@@ -12,7 +12,7 @@
 #endif
 
 #include <Eigen/Dense>
-#include <WaraPSClient.h>
+#include <wara_ps_client.h>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -388,21 +388,26 @@ void sig_handler(int sig) {
 }
 
 int main() {
-  WaraPSClient client = WaraPSClient("test", "mqtt://localhost:25565");
+  
   BeamformingOptions options;
 
-  client.set_command_callback("focus_bf", [&](const nlohmann::json &payload) {
+#if USE_WARAPS
+
+  WaraPSClient client = WaraPSClient("test", "mqtt://test.mosquitto.org:1883");
+
+  client.SetCommandCallback("focus_bf", [&](const nlohmann::json &payload) {
     float theta = payload["theta"];
     float phi = payload["phi"];
     float duration =
         payload.contains("duration") ? (float)payload["duration"] : 5.0f;
 
     cout << "Theta: " << theta << "\nPhi: " << phi << endl;
-    client.publish_message("exec/response", string("Focusing beamformer for " +
+    client.PublishMessage("exec/response", string("Focusing beamformer for " +
                                                    to_string(duration)));
   });
 
-  thread client_thread = client.start();
+  thread client_thread = client.Start();
+#endif
 
   // Setup sigint i.e Ctrl-C
   signal(SIGINT, sig_handler);
@@ -512,7 +517,11 @@ int main() {
     }
 
     // Check for key press; if 'q' is pressed, break the loop
+#if USE_WARAPS
     if (!client.running() || cv::waitKey(1) == 'q') {
+#else 
+    if (cv::waitKey(1) == 'q') {
+#endif
       std::cout << "Stopping application..." << std::endl;
       break;
     }
@@ -540,7 +549,10 @@ int main() {
   std::cout << "Waiting for workers..." << std::endl;
   // Join the workers
   worker.join();
+
+#if USE_WARAPS
   client_thread.join();
+#endif
 
   std::cout << "Exiting..." << std::endl;
 

@@ -25,6 +25,8 @@ APPLICATION_HEIGHT: 1024
 
 BLUR_KERNEL_SIZE: 5
 
+USE_WARAPS: false
+
 
 # FPGA 
 N_ARRAYS: 4 # TODO during handshake
