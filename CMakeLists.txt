@@ -103,20 +103,22 @@ set(MODULE_SOURCES
 
 
 add_custom_command(DEPENDS ${PYTHON_VENV_DIR} ${MODULE_SOURCES}
-        OUTPUT "${PY_OUTPUT}"
+  OUTPUT "${PY_OUTPUT}"
 
-        # Build modules
-        COMMENT "Starting build"
-        COMMAND ${PYTHON} ${SETUP_PY} build_ext
-        # COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext
-        #--build-lib=lib --build-temp=build
+  # Build modules 
+  COMMENT "Starting build"
+  COMMAND ${PYTHON} ${SETUP_PY} build_ext
+  # COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext
+  #--build-lib=lib --build-temp=build
 
-        # Generate timestamp
-        COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
+  # Generate timestamp
+  COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
 )
 
 
-add_custom_target(module ALL DEPENDS ${PY_OUTPUT})
+
+add_custom_target(module DEPENDS ${PY_OUTPUT})
+
 
 
 # ---- Program ----
@@ -161,19 +163,13 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 # target_link_libraries(audio PkgConfig::RtAudio)
 
 set(SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_buffer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
-        src/options.cpp
-        src/options.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp 
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_buffer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
 )
-
-# add_custom_target(beamformer DEPENDS ${CONFIGURATIONS}
-#
-#   ${SOURCES}
-# )
 
 
 # Main program
@@ -209,13 +205,13 @@ add_custom_target(test.udp
 # )
 
 add_custom_target(test
-        # COMMAND ${PYTHON} -m unittest discover -s ..
-        # COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.sh
-        COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
+    # COMMAND ${PYTHON} -m unittest discover -s ..
+    # COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.sh
+    COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
 
 )
 
 # Documentation
 add_custom_target(doc
-        COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+  COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
 )

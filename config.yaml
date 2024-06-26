@@ -10,22 +10,31 @@
 # Antenna
 COLUMNS: 8
 ROWS: 8
+ELEMENTS: COLUMNS * ROWS
 DISTANCE: 0.02 # Distance between each element to the next
 
-# Beamforming
-X_RES: 64
-Y_RES: 64
+# Beamforming 
+X_RES: 47
+Y_RES: 47
+
+RESIZE_HEATMAP: true
+
+APPLICATION_NAME: "Beamforming"
+APPLICATION_WIDTH: 1024
+APPLICATION_HEIGHT: 1024
+
+BLUR_KERNEL_SIZE: 5
 
 
-# FPGA
+# FPGA 
 N_ARRAYS: 4 # TODO during handshake
-SAMPLE_RATE: 48828.0
+SAMPLE_RATE: 48828.0 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
 N_SENSORS: ROWS * COLUMNS * N_ARRAYS # TODO this should be determined during handshake
 
-# Beamforming
-N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer
-N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2
+# Beamforming 
+N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
+N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2 
 N_OFFSET: N_SAMPLES / 2
 BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 
@@ -34,11 +43,11 @@ FOV: 80.0 # How far we should look to the side
 CAMERA: false
 CAMERA_PATH: "/dev/video0"
 
-# Audio
+# Audio 
 AUDIO: false
 
 
-# Networking
+# Networking 
 # UDP_ADDRESS: "10.0.0.1"
 UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
@@ -47,12 +56,12 @@ UDP_PORT: 21844
 N_TAPS: 32 # Kernel size
 
 TEST: 4
-# Multiprocess
+# Multiprocess 
 N_THREADS: 8
 SHM_PATH: "/shared_memory_bf"
 MAX_VALUE_FLOAT: "(float)(1 << 23)"
 
-# Physics speficic constants
+# Physics speficic constants 
 
 PROPAGATION_SPEED: 340.0 # Speed of sound in air
 
@@ -62,7 +71,6 @@ CYTHON_ANNOTATE: false # If should annotate code
 CYTHON_CACHE: true
 CYTHON_BOUNDS_CHECK: false # Check list slicing
 
-
-
+  
 
 
