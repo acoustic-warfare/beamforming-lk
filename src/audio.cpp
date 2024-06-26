@@ -172,3 +172,138 @@ int main() {
   //
   // return 0;
 }
+
+
+
+// If Audio playback when streaming
+#if AUDIO
+
+RtAudio audio;
+int play = 1;
+std::thread *producer;
+std::vector<float> audioBuffer(N_SAMPLES * 2, 0.0);
+
+/**
+ * @brief Producer for audio on pipeline
+ *
+ * @param pipeline Pipeline
+ */
+void audio_producer(Pipeline &pipeline) {
+
+  ring_buffer &rb = pipeline.getRingBuffer();
+
+  float out[N_SAMPLES] = {0.0};
+
+  while (pipeline.isRunning()) {
+
+    for (int i = 0; i < N_SAMPLES; i++) {
+      out[i] /= 64.f;
+
+      out[i] *= 100.f;
+      audioBuffer[i * 2] = out[i];
+      audioBuffer[i * 2 + 1] = out[i];
+      out[i] = 0.0;
+    }
+    play = 0;
+
+    pipeline.barrier();
+
+    // for (int s = 0; s < N_SENSORS; s++) {
+    //
+    //   if (VALID_SENSOR(s)) {
+    //     // cout << s << " ";
+    //     naive_delay(&rb, &out[0], 0.0, s);
+    //   }
+    // }
+
+    naive_delay(&rb, &out[0], 0.0, 140);
+
+    // for (int i = 0; i < N_SAMPLES; i++) {
+    //   audioBuffer[i * 2] = rb.data[140][rb.index + i];
+    //   audioBuffer[i * 2 + 1] = rb.data[140][rb.index + i];
+    // }
+
+    // cout << "run" << endl;
+
+    // memcpy(&yrb.data[140][rb.index], &audioBuffer[0],
+    //        N_SAMPLES * sizeof(float));
+  }
+}
+
+/**
+ * @brief Callback for audio stream
+ *
+ * @param outputBuffer Speaker buffer
+ * @param inputBuffer empty (Required by RtAudio API)
+ * @param nBufferFrames number of frames to fill
+ * @param streamTime duration
+ * @param status status
+ * @param userData the incoming data
+ * @return OK
+ */
+int audioCallback(void *outputBuffer, void *inputBuffer,
+                  unsigned int nBufferFrames, double streamTime,
+                  RtAudioStreamStatus status, void *userData) {
+  float *buffer = (float *)outputBuffer;
+
+  // Copy samples from the sineBuffer to the output buffer for playback
+  for (unsigned int i = 0; i < N_SAMPLES * 2; ++i) {
+    if (!play) {
+      *buffer++ = audioBuffer[i];
+    } else {
+      cout << "Underflow" << endl;
+      *buffer++ = 0.0;
+    }
+  }
+
+  play = 1;
+
+  return 0;
+}
+
+/**
+ * @brief Initiate Audio player for Pipeline
+ *
+ * @param pipeline the pipeline to follow
+ * @return status
+ */
+int init_audio_playback(Pipeline &pipeline) {
+  if (audio.getDeviceCount() < 1) {
+    std::cout << "No audio devices found!" << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  RtAudio::StreamParameters parameters;
+  parameters.deviceId = audio.getDefaultOutputDevice();
+  parameters.nChannels = 2; // Stereo output
+
+  try {
+    unsigned int bufferFrames = N_SAMPLES;
+    audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32, 44100.f,
+                     &bufferFrames, &audioCallback);
+    audio.startStream();
+
+    producer = new std::thread(audio_producer, ref(pipeline));
+
+  } catch (RtAudioErrorType &e) {
+    // std::cout << "Error: " << e.getMessage() << std::endl;
+    return 1;
+  }
+
+  return 0;
+}
+
+void stop_audio_playback() {
+  // Start the separate thread for sine wave generation
+
+  // Keep the program running
+
+  // Stop the sine wave generation thread
+  producer->join();
+
+  // Stop and close the RtAudio stream
+  audio.stopStream();
+  audio.closeStream();
+}
+
+#endif
