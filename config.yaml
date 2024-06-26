@@ -17,7 +17,7 @@ DISTANCE: 0.02 # Distance between each element to the next
 X_RES: 47 
 Y_RES: 47
 
-RESIZE_HEATMAP: false
+RESIZE_HEATMAP: true
 
 APPLICATION_NAME: "Beamforming"
 APPLICATION_WIDTH: 1024
