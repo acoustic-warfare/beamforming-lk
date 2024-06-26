@@ -10,6 +10,7 @@
 #include "config.h"
 #include <Eigen/Dense>
 #include <cmath>
+
 using namespace Eigen;
 
 typedef Vector3f Position;

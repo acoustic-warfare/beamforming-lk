@@ -6,8 +6,6 @@
  */
 
 #include "antenna.h"
-#include <Eigen/Dense>
-#include <cmath>
 
 using namespace Eigen;
 using namespace std;
