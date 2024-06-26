@@ -4,44 +4,64 @@
 
 #include "antenna.h"
 #include "delay.h"
+#include "options.h"
 #include "pipeline.h"
-#include "ring_buffer.h"
 
-
-#if AUDIO 
+#if AUDIO
 #include "RtAudio.h"
 #endif
 
 #include <Eigen/Dense>
+#include <WaraPSClient.h>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
+
 #include <signal.h>
+
+#include <atomic>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
 #include <thread>
 
-using namespace Eigen;
-using namespace cv;
-
-// make && sudo chrt -f 98 ./beamformer
-
-//#define VALID_SENSOR(i) ((128 <= i) && (128 + 64 > i))
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
-bool canPlot = false;
 
 /**
- * @brief Calculate delays for different angles beforehand 
+Main application for running beamformer program
+
+You may try to use:
+
+sudo chrt -f 98 ./beamformer
+
+for better performace by altering the real-time scheduling attributes of the
+program.
+
+ */
+
+std::atomic_int canPlot = 0;
+
+Pipeline *pipeline;
+
+// Intermediate heatmap used for beamforming (8-bit)
+cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
+
+/**
+ * @brief Calculate delays for different angles beforehand
  *
- * @param flat_delays delays to use 
- * @param antenna antenna structure 
- * @param fov field of view 
- * @param resolution_x width resolution 
+ * @param fractional_delays delays to use
+ * @param antenna antenna structure
+ * @param fov field of view
+ * @param resolution_x width resolution
  * @param resolution_y height resolution
  */
-void compute_scanning_window(float *flat_delays, const Antenna &antenna,
-                             float fov, int resolution_x, int resolution_y) {
+void compute_scanning_window(int *offset_delays, float *fractional_delays,
+                             const Antenna &antenna, float fov,
+                             int resolution_x, int resolution_y) {
 
   float half_x = (float)(resolution_x) / 2 - 0.5;
   float half_y = (float)(resolution_y) / 2 - 0.5;
@@ -49,7 +69,8 @@ void compute_scanning_window(float *flat_delays, const Antenna &antenna,
   for (int x = 0; x < resolution_x; x++) {
     for (int y = 0; y < resolution_y; y++) {
 
-      // Imagine dome in spherical coordinates on the XY-plane with Z being height
+      // Imagine dome in spherical coordinates on the XY-plane with Z being
+      // height
       float xo = (float)(x - half_x) / (resolution_x);
       float yo = (float)(y - half_y) / (resolution_y);
       float level = sqrt(xo * xo + yo * yo) / 1;
@@ -60,8 +81,15 @@ void compute_scanning_window(float *flat_delays, const Antenna &antenna,
       VectorXf tmp_delays = steering_vector(antenna, point);
       int i = 0;
       for (float del : tmp_delays) {
+        double _offset;
+        float fraction;
+
+        fraction = (float)modf((double)del, &_offset);
+
+        int offset = N_SAMPLES - (int)_offset;
         // cout << del << endl;
-        flat_delays[k * N_SENSORS + i] = del;
+        fractional_delays[k * N_SENSORS + i] = fraction;
+        offset_delays[k * N_SENSORS + i] = offset;
         i++;
       }
 
@@ -70,98 +98,51 @@ void compute_scanning_window(float *flat_delays, const Antenna &antenna,
   }
 }
 
-
-
 /**
- * @brief Convert multiple input streams into single level by delay  
+ * @brief Convert multiple input streams into single level by delay
  *
  * @param t_id [TODO:parameter]
- * @param task pool partition 
- * @param flat_delays delays to use 
- * @param rb ring buffer to use 
+ * @param task pool partition
+ * @param fractional_delays delays to use
+ * @param rb ring buffer to use
  * @return power level
  */
-float miso(int t_id, int task, float *flat_delays, ring_buffer &rb) {
+float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
+           Streams *streams) {
   float out[N_SAMPLES] = {0.0};
   int n = 0;
   for (int s = 0; s < N_SENSORS; s++) {
 
-    //if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
-    //  continue;
-    //}
+    // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
+    //   continue;
+    // }
 
     if (VALID_SENSOR(s)) {
-      float del = flat_delays[s - 64];
-      //float del = flat_delays[s - 128];
-      // cout << s << " ";
-      naive_delay(&rb, &out[0], del, s);
+      float fraction = fractional_delays[s - 64];
+      int offset = offset_delays[s - 64];
+
+      float *signal = (float *)((char *)streams->buffers[s] +
+                                streams->position + offset * sizeof(float));
+
+      for (int i = 0; i < N_SAMPLES; i++) {
+        out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
+      }
+
       n++;
     }
   }
 
-  // cout << endl;
-
-
   float power = 0.f;
-  for (int p = 0; p < n; p++) {
+  float norm = 1 / (float)n;
+  for (int p = 0; p < N_SAMPLES; p++) {
 
-    float val = out[p] / (float)n;
-
-    power += powf(val, 2);
+    power += powf(out[p] * norm, 2);
   }
 
-  return power / (float)n;
+  return power / (float)N_SAMPLES;
 }
 
-
-
-///**
-// * @brief Convert multiple input streams into single level by delay  
-// *
-// * @param t_id [TODO:parameter]
-// * @param task pool partition 
-// * @param flat_delays delays to use 
-// * @param rb ring buffer to use 
-// * @return power level
-// */
-//float miso(int t_id, int task, float *flat_delays, float *rb) {
-//  float out[N_SAMPLES] = {0.0};
-//  int n = 0;
-//  for (int s = 0; s < N_SENSORS; s++) {
-//
-//    //if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
-//    //  continue;
-//    //}
-//
-//    if (VALID_SENSOR(s)) {
-//      float del = flat_delays[s - 64];
-//      //float del = flat_delays[s - 128];
-//      // cout << s << " ";
-//      naive_delay(&rb, &out[0], del, s);
-//      n++;
-//    }
-//  }
-//
-//  // cout << endl;
-//
-//
-//  float power = 0.f;
-//  for (int p = 0; p < n; p++) {
-//
-//    float val = out[p] / (float)n;
-//
-//    power += powf(val, 2);
-//  }
-//
-//  return power / (float)n;
-//}
-
-
-Mat noiseMatrix(Y_RES, X_RES, CV_8UC1);
-
-
-
-// If Audio playback when streaming 
+// If Audio playback when streaming
 #if AUDIO
 
 RtAudio audio;
@@ -169,9 +150,8 @@ int play = 1;
 std::thread *producer;
 std::vector<float> audioBuffer(N_SAMPLES * 2, 0.0);
 
-
 /**
- * @brief Producer for audio on pipeline 
+ * @brief Producer for audio on pipeline
  *
  * @param pipeline Pipeline
  */
@@ -218,13 +198,13 @@ void audio_producer(Pipeline &pipeline) {
 }
 
 /**
- * @brief Callback for audio stream 
+ * @brief Callback for audio stream
  *
- * @param outputBuffer Speaker buffer 
+ * @param outputBuffer Speaker buffer
  * @param inputBuffer empty (Required by RtAudio API)
- * @param nBufferFrames number of frames to fill 
- * @param streamTime duration 
- * @param status status 
+ * @param nBufferFrames number of frames to fill
+ * @param streamTime duration
+ * @param status status
  * @param userData the incoming data
  * @return OK
  */
@@ -249,9 +229,9 @@ int audioCallback(void *outputBuffer, void *inputBuffer,
 }
 
 /**
- * @brief Initiate Audio player for Pipeline 
+ * @brief Initiate Audio player for Pipeline
  *
- * @param pipeline the pipeline to follow 
+ * @param pipeline the pipeline to follow
  * @return status
  */
 int init_audio_playback(Pipeline &pipeline) {
@@ -295,302 +275,82 @@ void stop_audio_playback() {
 
 #endif
 
-
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void naive_seeker_old(Pipeline &pipeline) {
+void naive_seeker(Pipeline *pipeline) {
 
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
-  float flat_delays[X_RES * Y_RES * N_SENSORS];
+  float fractional_delays[X_RES * Y_RES * N_SENSORS];
+  int offset_delays[X_RES * Y_RES * N_SENSORS];
 
-  compute_scanning_window(&flat_delays[0], antenna, FOV, X_RES, Y_RES);
-
-#if 0
-  int i = 0;
-  for (int y = 0; y < 8; y++) {
-    for (int x = 0; x < 8; x++) {
-      cout << flat_delays[i++] << " ";
-    }
-
-    cout << "\n";
-  }
-
-  cout << endl;
-
-  std::cout << flat_delays << std::endl;
-
-#endif
+  compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
+                          FOV, X_RES, Y_RES);
 
   int max = X_RES * Y_RES;
 
   float image[X_RES * Y_RES];
 
   int pixel_index = 0;
-
-  // return;
-
-  int newData;
-  // ring_buffer rb;
-  //
-  // Initialize random seed
-  srand(static_cast<unsigned int>(0));
-  // Create a 100x100 matrix to display noise
-  // Mat noiseMatrix(Y_RES, X_RES, CV_8UC1);
-  float decay = 2.0;
-  float avg_min = 1.0;
-
-  float maxVal = 1.0;
-  float maxDecay = 1.0, minDecay = 1.0;
-  maxDecay = 0.01;
-
-  float div = 0.07;
-  float threshold = 3e-8;
-
-  float power = threshold * 0.9;
-
-  while (pipeline.isRunning()) {
-
-    // Wait for incoming data
-    pipeline.barrier();
-
-    // This loop may run until new data has been produced, meaning its up to
-    // the machine to run as fast as possible
-    newData = pipeline.mostRecent();
-    ring_buffer &rb = pipeline.getRingBuffer();
-
-
-
-    int i = 0;
-    float mean = 0.0;
-
-    int xi, yi = 0;
-    float alpha = 1.0 / (float)(X_RES * Y_RES + 4);
-    alpha = 0.3;
-
-    float heatmap_data[X_RES * Y_RES];
-
-    // maxDecay = 0.0;
-    maxVal = 0.0;
-    float avgPower = 0.0;
-
-    // Repeat until new data or abort if new data arrives
-    while ((pipeline.mostRecent() == newData) && (i < max)) {
-      int task = pixel_index * N_SENSORS;
-
-      xi = pixel_index % X_RES;
-      yi = pixel_index / X_RES;
-
-      // Get power level from direction
-      float val = miso(0, pixel_index, &flat_delays[task], rb);
-
-
-      // TODO normalize value :(
-
-      if (val > avgPower) {
-        avgPower = val;
-      }
-
-      // minDecay = alpha * std::min(val, minDecay) + (1.0 - alpha) * minDecay;
-      // maxDecay = alpha * std::max(val, maxDecay) + (1.0 - alpha) * maxDecay;
-
-      // cout << maxDecay << endl;
-      //
-      // val /= maxDecay * 1.1;
-      // val /= maxDecay;
-      //
-
-      val *= 1e9;
-      val = log(val);
-
-      if (val > maxVal) {
-        maxVal = val;
-      }
-
-      val /= maxDecay;
-
-      val = powf(val, 13);
-
-      // val /= 20.f;
-
-      // cout << maxDecay << endl;
-
-      // //
-      // // val /= div;
-      // // val = powf(val, 10);
-      //
-      // // cout << val << endl;
-      // // val *= 3e7;
-      // //
-      //
-      // // avg_min = alpha * val + (1 - alpha) * avg_min;
-      // // cout << avg_min << endl;
-      // // val /= avg_min;
-      //
-      // // val *= 1e9;
-      // // val = log(val);
-      // // val /= 10;
-      //
-      // // val = 1 / (1 + val);
-      //
-
-      //
-      // if (decay > threshold) {
-      //   // val /= 10 * decay;
-      //   // val /= maxDecay;
-      //   ;
-      //   // cout << decay << endl;
-      // }
-      //
-      // if (val > 1.0) {
-      //   cout << "Over: " << val << endl;
-      //   val = 1;
-      // }
-      //
-      decay = alpha * val + (1 - alpha) * decay;
-
-      if (power < threshold) {
-        val = 0.0;
-      } else if (val > 1.0) {
-        // cout << val << endl;
-        val = 1;
-      } else if (val < 0.0) {
-        val = 0;
-        // cout << "Negative value" << endl;
-      }
-
-      // Paint pixel
-      noiseMatrix.at<uchar>(yi, xi) = (uchar)(val * 255);
-      canPlot = true;
-
-      pixel_index++;
-      pixel_index %= X_RES * Y_RES;
-
-      i++;
-    }
-
-    // cout << maxDecay << " " << maxVal << endl;
-    // maxDecay *= 0.98;
-    // float tp = maxDecay * 0.97;
-    // maxDecay = alpha * std::max(maxVal, tp) + (1.0 - alpha) * maxDecay;
-    //
-    if (maxVal > maxDecay) {
-      maxDecay = maxVal;
-    } else {
-      maxDecay = alpha * maxVal + (1.0 - alpha) * maxDecay;
-    }
-
-    if (avgPower > power) {
-      power = avgPower;
-    } else {
-      power = alpha * avgPower + (1.0 - alpha) * power;
-    }
-
-    // maxDecay *= 1.01;
-
-    // maxDecay /= 2.0; // 1.0 - alpha;
-    // maxDecay = alpha * std::max(maxVal, maxDecay) + (1.0 - alpha) *
-    // maxDecay; maxVal /= 2.0; cout << maxVal << endl;
-    // maxVal *= 0.99;
-  }
-}
-
-
-/**
- * Beamforming as fast as possible on top of pipeline
- */
-void naive_seeker(Pipeline &pipeline) {
-
-  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-
-  float flat_delays[X_RES * Y_RES * N_SENSORS];
-
-  compute_scanning_window(&flat_delays[0], antenna, FOV, X_RES, Y_RES);
-
-
-
-  int max = X_RES * Y_RES;
-
-  float image[X_RES * Y_RES];
-
-  int pixel_index = 0;
-
-  // return;
 
   int newData;
   float power;
   float threshold = 3e-8;
 
   float norm = 1 / 1e-05;
-  // ring_buffer rb;
-  //
-  // Initialize random seed
-  srand(static_cast<unsigned int>(0));
 
   float maxVal = 1.0;
-  
 
-  while (pipeline.isRunning()) {
+  Streams *streams = pipeline->getStreams();
+
+  while (pipeline->isRunning()) {
 
     // Wait for incoming data
-    pipeline.barrier();
+    pipeline->barrier();
 
     // This loop may run until new data has been produced, meaning its up to
     // the machine to run as fast as possible
-    newData = pipeline.mostRecent();
-    ring_buffer &rb = pipeline.getRingBuffer();
+    newData = pipeline->mostRecent();
     float maxVal = 0.0;
-
-
 
     int i = 0;
     float mean = 0.0;
 
     int xi, yi = 0;
-    float alpha = 1.0 / (float)(X_RES * Y_RES + 4);
+    float alpha = 1.0 / (float)(X_RES * Y_RES);
     alpha = 0.02;
 
     float heatmap_data[X_RES * Y_RES];
 
-    // maxDecay = 0.0;
-    
     float avgPower = 0.0;
 
     // Repeat until new data or abort if new data arrives
-  // while ((pipeline.mostRecent() == newData) && (i < max)) {
+    while ((pipeline->mostRecent() == newData) && (i < max)) {
 
-  while ((i < max)) {
       int task = pixel_index * N_SENSORS;
 
       xi = pixel_index % X_RES;
       yi = pixel_index / X_RES;
 
       // Get power level from direction
-      float val = miso(0, pixel_index, &flat_delays[task], rb);
+      float val = miso(0, pixel_index, &offset_delays[task],
+                       &fractional_delays[task], streams);
 
       if (val > maxVal) {
         maxVal = val;
       }
 
-      //power = val * 1e5;
+      // power = val * 1e5;
 
-      //power = val * norm * 0.9f + 1.0;
+      // power = val * norm * 0.9f + 1.0;
       power = val + 1.0f;
       power = powf(power, 15);
-      //power *= 1e9f;
+      // power *= 1e9f;
 
       power = log(power) * 0.1f;
 
       power = power * norm * 0.9f;
-
-
-      
-
-
-      
-
-      
 
       if (power < 0.2) {
         power = 0.0f;
@@ -604,8 +364,7 @@ void naive_seeker(Pipeline &pipeline) {
       }
 
       // Paint pixel
-      noiseMatrix.at<uchar>(yi, xi) = (uchar)(power * 255);
-      //canPlot = true;
+      magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(power * 255);
 
       pixel_index++;
       pixel_index %= X_RES * Y_RES;
@@ -613,43 +372,58 @@ void naive_seeker(Pipeline &pipeline) {
       i++;
     }
 
-    canPlot = true;
+    canPlot = 1;
 
-    norm = (1-alpha) * norm + alpha * (1/(maxVal));
+    norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
 
-    //norm = (1/maxVal) * 1.1f;
+    // norm = (1/maxVal) * 1.1f;
 
-    //cout << maxVal << endl;
-
-    
+    // cout << maxVal << endl;
   }
 }
 
-
-
-Pipeline pipeline = Pipeline();
-
 void sig_handler(int sig) {
   // Set the stop_processing flag to terminate worker threads gracefully
-
-  pipeline.disconnect();
+  pipeline->disconnect();
 }
 
 int main() {
+  WaraPSClient client = WaraPSClient("test", "mqtt://localhost:25565");
+  BeamformingOptions options;
+
+  client.set_command_callback("focus_bf", [&](const nlohmann::json &payload) {
+    float theta = payload["theta"];
+    float phi = payload["phi"];
+    float duration =
+        payload.contains("duration") ? (float)payload["duration"] : 5.0f;
+
+    cout << "Theta: " << theta << "\nPhi: " << phi << endl;
+    client.publish_message("exec/response", string("Focusing beamformer for " +
+                                                   to_string(duration)));
+  });
+
+  thread client_thread = client.start();
+
+  // Setup sigint i.e Ctrl-C
   signal(SIGINT, sig_handler);
 
-  // Connect to UDP stream
-  pipeline.connect();
+  std::cout << "Starting pipeline..." << std::endl;
+  pipeline = new Pipeline();
 
+  std::cout << "Waiting for UDP stream..." << std::endl;
+  // Connect to UDP stream
+  pipeline->connect();
+
+  std::cout << "Dispatching workers..." << std::endl;
   // Start beamforming thread
-  thread worker(naive_seeker, ref(pipeline));
+  thread worker(naive_seeker, pipeline);
 
   // Initiate background image
-  noiseMatrix.setTo(Scalar(0));
+  magnitudeHeatmap.setTo(cv::Scalar(0));
 
-  #if AUDIO 
+#if AUDIO
   init_audio_playback(pipeline);
-  #endif
+#endif
 
 #if CAMERA
   cv::VideoCapture cap(CAMERA_PATH); // Open the default camera (change the
@@ -660,7 +434,7 @@ int main() {
     return -1;
   }
 
-  while (pipeline.isRunning()) {
+  while (pipeline->isRunning()) {
     cv::Mat frame;
     cap >> frame; // Capture a frame from the camera
 
@@ -670,7 +444,7 @@ int main() {
     }
 
     Mat overlayImage;
-    applyColorMap(noiseMatrix, overlayImage, COLORMAP_JET);
+    applyColorMap(magnitudeHeatmap, overlayImage, COLORMAP_JET);
 
     // Resize the overlay image to match the dimensions of the webcam frame
     cv::resize(overlayImage, overlayImage, frame.size());
@@ -682,7 +456,7 @@ int main() {
     cv::addWeighted(imageROI, 1.0, overlayImage, 0.5, 0, imageROI);
 
     // Display the resulting frame with the overlay
-    cv::imshow("Real Time Beamforming", frame);
+    cv::imshow(APPLICATION_NAME, frame);
 
     if (waitKey(1) == 'q') {
       // ok = false;
@@ -695,65 +469,81 @@ int main() {
   // Release the camera and close all OpenCV windows
   cap.release();
 #else
-  // Create a window to display the noise matrix
-  cv::namedWindow("Noise Matrix", WINDOW_NORMAL);
-  cv::resizeWindow("Noise Matrix", 800, 800);
-  int res = 10;
-  Mat previous(Y_RES, X_RES, CV_8UC1);
-  previous.setTo(Scalar(0));
-  applyColorMap(previous, previous, COLORMAP_JET);
-  resize(previous, previous, Size(), res, res, INTER_LINEAR);
 
-  while (pipeline.isRunning()) {
+  // Create a window to display the beamforming data
+  cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+  cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
+  int res = 16;
+
+  // Decay image onto previous frame
+  cv::Mat previous(Y_RES, X_RES, CV_8UC1);
+  previous.setTo(cv::Scalar(0)); // Set to zero
+  cv::applyColorMap(previous, previous, cv::COLORMAP_JET);
+
+#if RESIZE_HEATMAP
+  cv::resize(previous, previous, cv::Size(), res, res, cv::INTER_LINEAR);
+#endif
+
+  std::cout << "Running..." << std::endl;
+  while (pipeline->isRunning()) {
     if (canPlot) {
-      canPlot = false;
-      Mat coloredMatrix;
-      //Blur the image with 3x3 Gaussian kernel
-      //Mat image_blurred_with_3x3_kernel;
-      GaussianBlur(noiseMatrix, coloredMatrix, Size(3, 3), 0);
-      GaussianBlur(coloredMatrix, coloredMatrix, Size(3, 3), 0);
-      applyColorMap(noiseMatrix, coloredMatrix, COLORMAP_JET);
+      canPlot = 0;
+      cv::Mat coloredMatrix;
+      // Blur the image with a Gaussian kernel
+      cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap,
+                       cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 
-      cv::resize(coloredMatrix, coloredMatrix, Size(), res, res, INTER_LINEAR);
-      // Initialize random seed
-      // srand(static_cast<unsigned int>(time(0)));
-      // Display the noise matrix with Jet colormap
-      //if (previous == NULL) {
-      //  previous = coloredMatrix;
-      //}
-      addWeighted(coloredMatrix, 0.99, previous, 0.01, 0, coloredMatrix);
+      // Apply color map
+      cv::applyColorMap(magnitudeHeatmap, coloredMatrix, cv::COLORMAP_JET);
+
+#if RESIZE_HEATMAP
+      // Resize to smoothen
+      cv::resize(coloredMatrix, coloredMatrix, cv::Size(), res, res,
+                 cv::INTER_LINEAR);
+#endif
+      // Combine previous images for more smooth image
+      cv::addWeighted(coloredMatrix, 0.1, previous, 0.9, 0, coloredMatrix);
+
+      // Update previous image
       previous = coloredMatrix;
-      //
-      cv::imshow("Noise Matrix", coloredMatrix);
-      // cout << "Plotting" << endl;
-    }
 
-    // Display the noise matrix
-    // imshow("Noise Matrix", noiseMatrix);
+      // Output image to screen
+      cv::imshow(APPLICATION_NAME, coloredMatrix);
+    }
 
     // Check for key press; if 'q' is pressed, break the loop
-    if (waitKey(1) == 'q') {
-      // ok = false;
-      std::cout << "Stopping" << endl;
-
+    if (!client.running() || cv::waitKey(1) == 'q') {
+      std::cout << "Stopping application..." << std::endl;
       break;
     }
-    //
-    // waitKey(1);
   }
 
-  pipeline.save_pipeline("pipeline.bin");
-
 #endif
-  // worker = thread /(naive_seeker, &pipeline);
-  //
 
+#if DEBUG_BEAMFORMER
+  // Save all data
+  pipeline->save_pipeline("pipeline.bin");
+#endif
+
+  std::cout << "Disconnecting pipeline..." << std::endl;
   // Stop UDP stream
-  pipeline.disconnect();
+  pipeline->disconnect();
 
-  #if AUDIO
+#if AUDIO
   stop_audio_playback();
-  #endif
-  destroyAllWindows();
+#endif
+
+  std::cout << "Closing application..." << std::endl;
+  // Close application windows
+  cv::destroyAllWindows();
+
+  std::cout << "Waiting for workers..." << std::endl;
+  // Join the workers
   worker.join();
+  client_thread.join();
+
+  std::cout << "Exiting..." << std::endl;
+
+  // Cleanup
+  delete pipeline;
 }

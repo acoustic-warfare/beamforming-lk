@@ -10,11 +10,20 @@
 # Antenna
 COLUMNS: 8
 ROWS: 8
+ELEMENTS: COLUMNS * ROWS
 DISTANCE: 0.02 # Distance between each element to the next
 
 # Beamforming 
-X_RES: 64 
-Y_RES: 64
+X_RES: 47
+Y_RES: 47
+
+RESIZE_HEATMAP: true
+
+APPLICATION_NAME: "Beamforming"
+APPLICATION_WIDTH: 1024
+APPLICATION_HEIGHT: 1024
+
+BLUR_KERNEL_SIZE: 5
 
 
 # FPGA 

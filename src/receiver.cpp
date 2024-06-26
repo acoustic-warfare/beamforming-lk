@@ -1,8 +1,10 @@
 #include "receiver.h"
-#include <cstddef>
-#include <cstdio>
+
 
 #define RECEIVER_DEBUG 0
+#define HEADER_SIZE 2
+
+#define PACKET_BYTES sizeof(std::uint32_t) * (HEADER_SIZE + N_SENSORS)
 
 #if RECEIVER_DEBUG
 
@@ -77,85 +79,147 @@ void stop_receiving() {
   }
 }
 
-float sine[2 * 48828];
 
-uint32_t packet[HEADER_SIZE + N_SENSORS];
 
-int i = 0;
-void pack_offset(ring_buffer *rb, uint32_t *packet, std::size_t &offset) {
+int receive_exposure(Streams *streams) {
+  float data[N_SENSORS][N_SAMPLES];
 
-  int inverted = 0;
-
-  // Array is daisy-chained, flip even columns
-  for (unsigned i = 0; i < N_SENSORS; i++) {
-    if (i % COLUMNS == 0) {
-      inverted = !inverted;
-    }
-
-    // rb->data[i][offset] =
-    //     ((float)(int32_t)packet[HEADER_SIZE + i]) / MAX_VALUE_FLOAT;
-
-    if (inverted) {
-      rb->data[i][offset] =
-          ((float)(int32_t)packet[HEADER_SIZE + i]) / MAX_VALUE_FLOAT;
-
-    } else {
-      rb->data[i][offset] =
-          ((float)(int32_t)packet[HEADER_SIZE + COLUMNS * (1 + i / COLUMNS) -
-                                  i % COLUMNS]) /
-          MAX_VALUE_FLOAT;
-    }
-  }
-
-  offset = (offset + 1) & (BUFFER_LENGTH - 1);
-}
-int receive(ring_buffer *rb) {
-  if (recv(socket_desc, &packet[0],
-           sizeof(uint32_t) * (HEADER_SIZE + N_SENSORS), 0) < 0) {
-    printf("Couldn't receive\n");
-    return -1;
-  }
-
-#if RECEIVER_DEBUG
-
-  uint32_t header, counter;
-
-  header = packet[0];
-  counter = packet[1];
-
-  int32_t version, n_arrays, frequency;
-
-  // Order as defined in FPGA
-  frequency = header & 0x0000FFFF;
-  n_arrays = (header & 0x00FF0000) >> 16;
-  version = (header & 0xFF000000) >> 24;
-
-  printf("Version: %d\nArrays: %d\nFrequency: %d\nCounter: %d\n", version,
-         n_arrays, frequency, counter);
-#endif
-
-  // write_buffer(rb, &packet[HEADER_SIZE]);
-  //
-  pack_offset(rb, &packet[0], rb->index);
-
-  return 0;
-}
-
-int receive_offset(ring_buffer *rb) {
-  std::size_t index = rb->index;
-
-  for (size_t i = 0; i < N_SAMPLES; i++) {
-    if (recv(socket_desc, &packet[0],
-             sizeof(uint32_t) * (HEADER_SIZE + N_SENSORS), 0) < 0) {
+  for (int i = 0; i < N_SAMPLES; i++) {
+    if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
       printf("Couldn't receive\n");
       return -1;
     }
 
-    pack_offset(rb, &packet[0], index);
+    int inverted = 1;
+
+    unsigned index;
+
+    for (unsigned m = 0; m < N_SENSORS; m++) {
+
+      // Array is daisy-chained, flip even columns
+      if (m % COLUMNS == 0) {
+        inverted = !inverted;
+      }
+
+      if (inverted) {
+        index = COLUMNS * (1 + m / COLUMNS) - m % COLUMNS;
+      } else {
+        index = m;
+      }
+
+      data[m][i] = (float)msg->stream[index] / (float)MAX_VALUE_FLOAT;
+    }
+  }
+
+
+
+  for (int s = 0; s < N_SENSORS; s++) {
+    streams->write_stream(s, &data[s][0]);
   }
 
   return 0;
 }
+
+
+int number_of_sensors() {
+  // gather data
+  if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
+    printf("Couldn't receive\n");
+    return -1;
+  }
+
+  return msg->n_arrays * ELEMENTS;
+}
+
+
+#if 0
+float sine[2 * 48828];
+
+
+
+void pack_buffer(float *data, message *msg2, unsigned offset) {
+  int inverted = 1;
+
+  unsigned index;
+
+  std::cout << std::endl;
+  
+  for (unsigned i = 0; i < N_SENSORS; i++) {
+
+    // Array is daisy-chained, flip even columns
+    if (i % COLUMNS == 0) {
+      inverted = !inverted;
+    }
+
+    if (inverted) {
+      index = COLUMNS * (1 + i / COLUMNS) - i % COLUMNS;
+    } else {
+      index = i;
+    }
+    //std::cout << i * N_SAMPLES + offset<<" " <<index << " " << offset << std::endl;
+
+    data[i * N_SAMPLES + offset] = (float)msg2->stream[index] / (float)MAX_VALUE_FLOAT;
+  }
+} 
+
+
+
+int main() {
+  if (init_receiver() == -1) {
+    std::cerr << "Unable to establish a connection to antenna" << std::endl;
+    return -1;
+  }
+ 
+
+  Streams *streams = new Streams();
+
+  for (int s = 0; s < number_of_sensors(); s++) {
+    streams->create_stream(s);
+  }
+
+  for (int i = 0; i < 10; i++)
+    receive_exposure(streams);
+
+
+
+  float data[N_SAMPLES];
+
+  streams->read_stream(255, &data[0]);
+
+  //memcpy(&msg, &buffer, sizeof(message_t));
+
+
+//  uint32_t header, counter;
+//
+//  header = packet[0];
+//  counter = packet[1];
+//
+//  int32_t version, n_arrays, frequency;
+//
+//  // Order as defined in FPGA
+//  frequency = header & 0x0000FFFF;
+//  n_arrays = (header & 0x00FF0000) >> 16;
+//  version = (header & 0xFF000000) >> 24;
+
+#if 1
+  for (int i = 0; i < N_SAMPLES; i++) {
+    std::cout << data[i] << std::endl;
+  }
+#endif
+  printf("Version: %d\nArrays: %d\nFrequency: %d\nCounter: %d\n", msg->version,
+         msg->n_arrays, msg->frequency, msg->counter);
+
+  //std::cout << std::endl;
+  //for (int i = 0; i < N_SENSORS; i++) {
+  //  std::cout << (float)(std::uint32_t)msg.stream[i] / MAX_VALUE_FLOAT << std::endl;
+  //}
+
+  delete streams;
+
+
+  stop_receiving();
+}
+#endif
 
 #if 0
 

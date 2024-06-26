@@ -2,8 +2,10 @@
 #define RECEIVER_H
 
 #include "config.h"
-#include "ring_buffer.h"
 
+#include <iostream>
+#include <cstring>
+#include "streams.hpp"
 #include <arpa/inet.h>
 #include <cstdint>
 #include <sys/socket.h>
@@ -11,13 +13,11 @@
 #define HEADER_SIZE 2
 
 // @brief FPGA Protocol Version 2
-typedef struct _msg {
-  // int32_t foo;
-  // int32_t bar;
-  int8_t version;
-  int8_t n_arrays;
-  int16_t frequency;
-  int32_t counter;
+typedef struct __attribute__((__packed__)) _msg {
+  uint16_t frequency;
+  uint8_t n_arrays;
+  uint8_t version;
+  uint32_t counter;
   int32_t stream[N_SENSORS];
 } message;
 
@@ -34,11 +34,13 @@ int init_receiver();
 /**
  * Receive an entire frame and add it to ringbuffer with an offset
  */
-int receive_offset(ring_buffer *rb);
+int receive_offset(Streams *streams);
 
 /**
  * Put the latest frame into the ring_buffer
  */
-// int receive(ring_buffer *rb);
+int number_of_sensors();
+
+int receive_exposure(Streams *streams);
 
 #endif

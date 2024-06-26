@@ -15,6 +15,7 @@ doc/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+module/
 *.py[cod]
 *$py.class
 env/

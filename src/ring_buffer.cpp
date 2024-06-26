@@ -1,4 +1,3 @@
-
 #include "ring_buffer.h"
 
 /**
@@ -9,6 +8,12 @@
 void offset_ring_buffer(ring_buffer *rb) {
   rb->index = (rb->index + N_SAMPLES) & (BUFFER_LENGTH - 1);
 }
+
+void set_ring_buffer_imm(ring_buffer *rb, size_t m) {
+  rb->index = m;
+}
+
+//inline void write_buffer(ring_buffer *rb, float *frame) 
 
 inline void write_buffer(ring_buffer *rb, float *frame) {
 
