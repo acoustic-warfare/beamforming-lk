@@ -164,7 +164,6 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ring_buffer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
 )
