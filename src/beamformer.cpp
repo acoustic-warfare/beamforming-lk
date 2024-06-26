@@ -7,12 +7,18 @@
 #include "options.h"
 #include "pipeline.h"
 
+#include "mimo.h"
+
 #if AUDIO
 #include "RtAudio.h"
 #endif
 
 #include <Eigen/Dense>
+
+#if USE_WARAPS
 #include <wara_ps_client.h>
+#endif 
+
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -50,53 +56,7 @@ Pipeline *pipeline;
 // Intermediate heatmap used for beamforming (8-bit)
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
 
-/**
- * @brief Calculate delays for different angles beforehand
- *
- * @param fractional_delays delays to use
- * @param antenna antenna structure
- * @param fov field of view
- * @param resolution_x width resolution
- * @param resolution_y height resolution
- */
-void compute_scanning_window(int *offset_delays, float *fractional_delays,
-                             const Antenna &antenna, float fov,
-                             int resolution_x, int resolution_y) {
 
-  float half_x = (float)(resolution_x) / 2 - 0.5;
-  float half_y = (float)(resolution_y) / 2 - 0.5;
-  int k = 0;
-  for (int x = 0; x < resolution_x; x++) {
-    for (int y = 0; y < resolution_y; y++) {
-
-      // Imagine dome in spherical coordinates on the XY-plane with Z being
-      // height
-      float xo = (float)(x - half_x) / (resolution_x);
-      float yo = (float)(y - half_y) / (resolution_y);
-      float level = sqrt(xo * xo + yo * yo) / 1;
-      level = sqrt(1 - level * level);
-      Position point(xo, yo, level);
-      // cout << point << endl;
-
-      VectorXf tmp_delays = steering_vector(antenna, point);
-      int i = 0;
-      for (float del : tmp_delays) {
-        double _offset;
-        float fraction;
-
-        fraction = (float)modf((double)del, &_offset);
-
-        int offset = N_SAMPLES - (int)_offset;
-        // cout << del << endl;
-        fractional_delays[k * N_SENSORS + i] = fraction;
-        offset_delays[k * N_SENSORS + i] = offset;
-        i++;
-      }
-
-      k++;
-    }
-  }
-}
 
 /**
  * @brief Convert multiple input streams into single level by delay
@@ -142,143 +102,12 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
   return power / (float)N_SAMPLES;
 }
 
-// If Audio playback when streaming
-#if AUDIO
 
-RtAudio audio;
-int play = 1;
-std::thread *producer;
-std::vector<float> audioBuffer(N_SAMPLES * 2, 0.0);
-
-/**
- * @brief Producer for audio on pipeline
- *
- * @param pipeline Pipeline
- */
-void audio_producer(Pipeline &pipeline) {
-
-  ring_buffer &rb = pipeline.getRingBuffer();
-
-  float out[N_SAMPLES] = {0.0};
-
-  while (pipeline.isRunning()) {
-
-    for (int i = 0; i < N_SAMPLES; i++) {
-      out[i] /= 64.f;
-
-      out[i] *= 100.f;
-      audioBuffer[i * 2] = out[i];
-      audioBuffer[i * 2 + 1] = out[i];
-      out[i] = 0.0;
-    }
-    play = 0;
-
-    pipeline.barrier();
-
-    // for (int s = 0; s < N_SENSORS; s++) {
-    //
-    //   if (VALID_SENSOR(s)) {
-    //     // cout << s << " ";
-    //     naive_delay(&rb, &out[0], 0.0, s);
-    //   }
-    // }
-
-    naive_delay(&rb, &out[0], 0.0, 140);
-
-    // for (int i = 0; i < N_SAMPLES; i++) {
-    //   audioBuffer[i * 2] = rb.data[140][rb.index + i];
-    //   audioBuffer[i * 2 + 1] = rb.data[140][rb.index + i];
-    // }
-
-    // cout << "run" << endl;
-
-    // memcpy(&yrb.data[140][rb.index], &audioBuffer[0],
-    //        N_SAMPLES * sizeof(float));
-  }
-}
-
-/**
- * @brief Callback for audio stream
- *
- * @param outputBuffer Speaker buffer
- * @param inputBuffer empty (Required by RtAudio API)
- * @param nBufferFrames number of frames to fill
- * @param streamTime duration
- * @param status status
- * @param userData the incoming data
- * @return OK
- */
-int audioCallback(void *outputBuffer, void *inputBuffer,
-                  unsigned int nBufferFrames, double streamTime,
-                  RtAudioStreamStatus status, void *userData) {
-  float *buffer = (float *)outputBuffer;
-
-  // Copy samples from the sineBuffer to the output buffer for playback
-  for (unsigned int i = 0; i < N_SAMPLES * 2; ++i) {
-    if (!play) {
-      *buffer++ = audioBuffer[i];
-    } else {
-      cout << "Underflow" << endl;
-      *buffer++ = 0.0;
-    }
-  }
-
-  play = 1;
-
-  return 0;
-}
-
-/**
- * @brief Initiate Audio player for Pipeline
- *
- * @param pipeline the pipeline to follow
- * @return status
- */
-int init_audio_playback(Pipeline &pipeline) {
-  if (audio.getDeviceCount() < 1) {
-    std::cout << "No audio devices found!" << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  RtAudio::StreamParameters parameters;
-  parameters.deviceId = audio.getDefaultOutputDevice();
-  parameters.nChannels = 2; // Stereo output
-
-  try {
-    unsigned int bufferFrames = N_SAMPLES;
-    audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32, 44100.f,
-                     &bufferFrames, &audioCallback);
-    audio.startStream();
-
-    producer = new std::thread(audio_producer, ref(pipeline));
-
-  } catch (RtAudioErrorType &e) {
-    // std::cout << "Error: " << e.getMessage() << std::endl;
-    return 1;
-  }
-
-  return 0;
-}
-
-void stop_audio_playback() {
-  // Start the separate thread for sine wave generation
-
-  // Keep the program running
-
-  // Stop the sine wave generation thread
-  producer->join();
-
-  // Stop and close the RtAudio stream
-  audio.stopStream();
-  audio.closeStream();
-}
-
-#endif
 
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void naive_seeker(Pipeline *pipeline) {
+void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
@@ -421,7 +250,7 @@ int main() {
 
   std::cout << "Dispatching workers..." << std::endl;
   // Start beamforming thread
-  thread worker(naive_seeker, pipeline);
+  thread worker(static_mimo_heatmap_worker, pipeline);
 
   // Initiate background image
   magnitudeHeatmap.setTo(cv::Scalar(0));
@@ -430,50 +259,18 @@ int main() {
   init_audio_playback(pipeline);
 #endif
 
-#if CAMERA
+
+#if CAMERA 
   cv::VideoCapture cap(CAMERA_PATH); // Open the default camera (change the
                                      // index if you have multiple cameras)
-
   if (!cap.isOpened()) {
     std::cerr << "Error: Unable to open the camera." << std::endl;
-    return -1;
+    //goto cleanup;
+    exit(1);
   }
 
-  while (pipeline->isRunning()) {
-    cv::Mat frame;
-    cap >> frame; // Capture a frame from the camera
-
-    if (frame.empty()) {
-      std::cerr << "Error: Captured frame is empty." << std::endl;
-      break;
-    }
-
-    Mat overlayImage;
-    applyColorMap(magnitudeHeatmap, overlayImage, COLORMAP_JET);
-
-    // Resize the overlay image to match the dimensions of the webcam frame
-    cv::resize(overlayImage, overlayImage, frame.size());
-
-    // Overlay the image onto the webcam frame at a specified location (adjust
-    // as needed)
-    cv::Rect roi(0, 0, overlayImage.cols, overlayImage.rows);
-    cv::Mat imageROI = frame(roi);
-    cv::addWeighted(imageROI, 1.0, overlayImage, 0.5, 0, imageROI);
-
-    // Display the resulting frame with the overlay
-    cv::imshow(APPLICATION_NAME, frame);
-
-    if (waitKey(1) == 'q') {
-      // ok = false;
-      std::cout << "Stopping" << endl;
-
-      break;
-    }
-  }
-
-  // Release the camera and close all OpenCV windows
-  cap.release();
-#else
+  cv::Mat cameraFrame;
+#endif
 
   // Create a window to display the beamforming data
   cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
@@ -485,36 +282,65 @@ int main() {
   previous.setTo(cv::Scalar(0)); // Set to zero
   cv::applyColorMap(previous, previous, cv::COLORMAP_JET);
 
+  cv::Mat frame(Y_RES, X_RES, CV_8UC1);
+
 #if RESIZE_HEATMAP
+  cv::resize(frame, frame, cv::Size(), res, res, cv::INTER_LINEAR);
   cv::resize(previous, previous, cv::Size(), res, res, cv::INTER_LINEAR);
 #endif
 
   std::cout << "Running..." << std::endl;
+
+  
+
   while (pipeline->isRunning()) {
+
+
     if (canPlot) {
       canPlot = 0;
-      cv::Mat coloredMatrix;
+      cv::Mat smallFrame;
+      
       // Blur the image with a Gaussian kernel
       cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap,
                        cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 
       // Apply color map
-      cv::applyColorMap(magnitudeHeatmap, coloredMatrix, cv::COLORMAP_JET);
+      cv::applyColorMap(magnitudeHeatmap, smallFrame, cv::COLORMAP_JET);
 
 #if RESIZE_HEATMAP
       // Resize to smoothen
-      cv::resize(coloredMatrix, coloredMatrix, cv::Size(), res, res,
+      cv::resize(smallFrame, frame, cv::Size(), res, res,
                  cv::INTER_LINEAR);
 #endif
       // Combine previous images for more smooth image
-      cv::addWeighted(coloredMatrix, 0.1, previous, 0.9, 0, coloredMatrix);
+      cv::addWeighted(frame, 0.1, previous, 0.9, 0, frame);
 
       // Update previous image
-      previous = coloredMatrix;
+      previous = frame;
 
-      // Output image to screen
-      cv::imshow(APPLICATION_NAME, coloredMatrix);
+      
     }
+
+#if CAMERA 
+    cap >> cameraFrame; // Capture a frame from the camera
+
+    if (cameraFrame.empty()) {
+      std::cerr << "Error: Captured frame is empty." << std::endl;
+      break;
+    }
+
+    // Overlay the image onto the webcam frame at a specified location (adjust
+    // as needed)
+    //cv::Rect roi(0, 0, frame.cols, frame.rows);
+    //cv::Mat imageROI = cameraFrame(roi);
+    //cv::addWeighted(imageROI, 1.0, frame, 0.5, 0, imageROI);
+
+    cv::resize(cameraFrame, cameraFrame, cv::Size(frame.cols,frame.rows), 0, 0, cv::INTER_LINEAR);
+    cv::addWeighted(cameraFrame, 1.0, frame, 0.5, 0, frame);
+#endif
+
+    // Output image to screen
+    cv::imshow(APPLICATION_NAME, frame);
 
     // Check for key press; if 'q' is pressed, break the loop
 #if USE_WARAPS
@@ -527,16 +353,12 @@ int main() {
     }
   }
 
-#endif
-
 #if DEBUG_BEAMFORMER
   // Save all data
   pipeline->save_pipeline("pipeline.bin");
 #endif
 
-  std::cout << "Disconnecting pipeline..." << std::endl;
-  // Stop UDP stream
-  pipeline->disconnect();
+  
 
 #if AUDIO
   stop_audio_playback();
@@ -545,6 +367,12 @@ int main() {
   std::cout << "Closing application..." << std::endl;
   // Close application windows
   cv::destroyAllWindows();
+
+cleanup:
+
+  std::cout << "Disconnecting pipeline..." << std::endl;
+  // Stop UDP stream
+  pipeline->disconnect();
 
   std::cout << "Waiting for workers..." << std::endl;
   // Join the workers
