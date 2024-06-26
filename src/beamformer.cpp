@@ -7,8 +7,7 @@
 #include "options.h"
 #include "pipeline.h"
 
-
-#if AUDIO 
+#if AUDIO
 #include "RtAudio.h"
 #endif
 
@@ -18,21 +17,19 @@
 #include <cstdlib>
 #include <iostream>
 
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 
 #include <signal.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <thread>
-#include <atomic>
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
-
 
 /**
 Main application for running beamformer program
@@ -41,31 +38,30 @@ You may try to use:
 
 sudo chrt -f 98 ./beamformer
 
-for better performace by altering the real-time scheduling attributes of the program.
+for better performace by altering the real-time scheduling attributes of the
+program.
 
  */
-
 
 std::atomic_int canPlot = 0;
 
 Pipeline *pipeline;
 
-
-
 // Intermediate heatmap used for beamforming (8-bit)
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
 
 /**
- * @brief Calculate delays for different angles beforehand 
+ * @brief Calculate delays for different angles beforehand
  *
  * @param fractional_delays delays to use
- * @param antenna antenna structure 
- * @param fov field of view 
- * @param resolution_x width resolution 
+ * @param antenna antenna structure
+ * @param fov field of view
+ * @param resolution_x width resolution
  * @param resolution_y height resolution
  */
-void compute_scanning_window(int *offset_delays, float *fractional_delays, const Antenna &antenna,
-                             float fov, int resolution_x, int resolution_y) {
+void compute_scanning_window(int *offset_delays, float *fractional_delays,
+                             const Antenna &antenna, float fov,
+                             int resolution_x, int resolution_y) {
 
   float half_x = (float)(resolution_x) / 2 - 0.5;
   float half_y = (float)(resolution_y) / 2 - 0.5;
@@ -73,7 +69,8 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays, const
   for (int x = 0; x < resolution_x; x++) {
     for (int y = 0; y < resolution_y; y++) {
 
-      // Imagine dome in spherical coordinates on the XY-plane with Z being height
+      // Imagine dome in spherical coordinates on the XY-plane with Z being
+      // height
       float xo = (float)(x - half_x) / (resolution_x);
       float yo = (float)(y - half_y) / (resolution_y);
       float level = sqrt(xo * xo + yo * yo) / 1;
@@ -102,28 +99,30 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays, const
 }
 
 /**
- * @brief Convert multiple input streams into single level by delay  
+ * @brief Convert multiple input streams into single level by delay
  *
  * @param t_id [TODO:parameter]
- * @param task pool partition 
+ * @param task pool partition
  * @param fractional_delays delays to use
- * @param rb ring buffer to use 
+ * @param rb ring buffer to use
  * @return power level
  */
-float miso(int t_id, int task, int *offset_delays, float *fractional_delays, Streams *streams) {
+float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
+           Streams *streams) {
   float out[N_SAMPLES] = {0.0};
   int n = 0;
   for (int s = 0; s < N_SENSORS; s++) {
 
-    //if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
-    //  continue;
-    //}
+    // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
+    //   continue;
+    // }
 
     if (VALID_SENSOR(s)) {
       float fraction = fractional_delays[s - 64];
       int offset = offset_delays[s - 64];
 
-      float *signal = (float*)((char*)streams->buffers[s] + streams->position + offset * sizeof(float));
+      float *signal = (float *)((char *)streams->buffers[s] +
+                                streams->position + offset * sizeof(float));
 
       for (int i = 0; i < N_SAMPLES; i++) {
         out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
@@ -132,7 +131,6 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays, Str
       n++;
     }
   }
-
 
   float power = 0.f;
   float norm = 1 / (float)n;
@@ -144,9 +142,7 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays, Str
   return power / (float)N_SAMPLES;
 }
 
-
-
-// If Audio playback when streaming 
+// If Audio playback when streaming
 #if AUDIO
 
 RtAudio audio;
@@ -154,9 +150,8 @@ int play = 1;
 std::thread *producer;
 std::vector<float> audioBuffer(N_SAMPLES * 2, 0.0);
 
-
 /**
- * @brief Producer for audio on pipeline 
+ * @brief Producer for audio on pipeline
  *
  * @param pipeline Pipeline
  */
@@ -203,13 +198,13 @@ void audio_producer(Pipeline &pipeline) {
 }
 
 /**
- * @brief Callback for audio stream 
+ * @brief Callback for audio stream
  *
- * @param outputBuffer Speaker buffer 
+ * @param outputBuffer Speaker buffer
  * @param inputBuffer empty (Required by RtAudio API)
- * @param nBufferFrames number of frames to fill 
- * @param streamTime duration 
- * @param status status 
+ * @param nBufferFrames number of frames to fill
+ * @param streamTime duration
+ * @param status status
  * @param userData the incoming data
  * @return OK
  */
@@ -234,9 +229,9 @@ int audioCallback(void *outputBuffer, void *inputBuffer,
 }
 
 /**
- * @brief Initiate Audio player for Pipeline 
+ * @brief Initiate Audio player for Pipeline
  *
- * @param pipeline the pipeline to follow 
+ * @param pipeline the pipeline to follow
  * @return status
  */
 int init_audio_playback(Pipeline &pipeline) {
@@ -280,7 +275,6 @@ void stop_audio_playback() {
 
 #endif
 
-
 /**
  * Beamforming as fast as possible on top of pipeline
  */
@@ -291,8 +285,8 @@ void naive_seeker(Pipeline *pipeline) {
   float fractional_delays[X_RES * Y_RES * N_SENSORS];
   int offset_delays[X_RES * Y_RES * N_SENSORS];
 
-  compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna, FOV, X_RES, Y_RES);
-
+  compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
+                          FOV, X_RES, Y_RES);
 
   int max = X_RES * Y_RES;
 
@@ -306,11 +300,9 @@ void naive_seeker(Pipeline *pipeline) {
 
   float norm = 1 / 1e-05;
 
-
   float maxVal = 1.0;
 
   Streams *streams = pipeline->getStreams();
-
 
   while (pipeline->isRunning()) {
 
@@ -321,7 +313,6 @@ void naive_seeker(Pipeline *pipeline) {
     // the machine to run as fast as possible
     newData = pipeline->mostRecent();
     float maxVal = 0.0;
-
 
     int i = 0;
     float mean = 0.0;
@@ -335,7 +326,7 @@ void naive_seeker(Pipeline *pipeline) {
     float avgPower = 0.0;
 
     // Repeat until new data or abort if new data arrives
-  while ((pipeline->mostRecent() == newData) && (i < max)) {
+    while ((pipeline->mostRecent() == newData) && (i < max)) {
 
       int task = pixel_index * N_SENSORS;
 
@@ -343,23 +334,23 @@ void naive_seeker(Pipeline *pipeline) {
       yi = pixel_index / X_RES;
 
       // Get power level from direction
-      float val = miso(0, pixel_index, &offset_delays[task], &fractional_delays[task], streams);
+      float val = miso(0, pixel_index, &offset_delays[task],
+                       &fractional_delays[task], streams);
 
       if (val > maxVal) {
         maxVal = val;
       }
 
-      //power = val * 1e5;
+      // power = val * 1e5;
 
-      //power = val * norm * 0.9f + 1.0;
+      // power = val * norm * 0.9f + 1.0;
       power = val + 1.0f;
       power = powf(power, 15);
-      //power *= 1e9f;
+      // power *= 1e9f;
 
       power = log(power) * 0.1f;
 
       power = power * norm * 0.9f;
-
 
       if (power < 0.2) {
         power = 0.0f;
@@ -383,17 +374,13 @@ void naive_seeker(Pipeline *pipeline) {
 
     canPlot = 1;
 
-    norm = (1-alpha) * norm + alpha * (1/(maxVal));
+    norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
 
-    //norm = (1/maxVal) * 1.1f;
+    // norm = (1/maxVal) * 1.1f;
 
-    //cout << maxVal << endl;
-
-    
+    // cout << maxVal << endl;
   }
 }
-
-
 
 void sig_handler(int sig) {
   // Set the stop_processing flag to terminate worker threads gracefully
@@ -401,19 +388,21 @@ void sig_handler(int sig) {
 }
 
 int main() {
-    WaraPSClient client = WaraPSClient("test", "mqtt://localhost:25565");
-    BeamformingOptions options;
+  WaraPSClient client = WaraPSClient("test", "mqtt://localhost:25565");
+  BeamformingOptions options;
 
-    client.set_command_callback("focus_bf", [&](const nlohmann::json &payload) {
-        float theta = payload["theta"];
-        float phi = payload["phi"];
-        float duration = payload.contains("duration") ? (float)payload["duration"] : 5.0f;
+  client.set_command_callback("focus_bf", [&](const nlohmann::json &payload) {
+    float theta = payload["theta"];
+    float phi = payload["phi"];
+    float duration =
+        payload.contains("duration") ? (float)payload["duration"] : 5.0f;
 
-        cout << "Theta: " << theta << "\nPhi: " << phi << endl;
-        client.publish_message("exec/response", string("Focusing beamformer for " + to_string(duration)));
-    });
+    cout << "Theta: " << theta << "\nPhi: " << phi << endl;
+    client.publish_message("exec/response", string("Focusing beamformer for " +
+                                                   to_string(duration)));
+  });
 
-    thread client_thread = client.start();
+  thread client_thread = client.start();
 
   // Setup sigint i.e Ctrl-C
   signal(SIGINT, sig_handler);
@@ -432,9 +421,9 @@ int main() {
   // Initiate background image
   magnitudeHeatmap.setTo(cv::Scalar(0));
 
-  #if AUDIO 
+#if AUDIO
   init_audio_playback(pipeline);
-  #endif
+#endif
 
 #if CAMERA
   cv::VideoCapture cap(CAMERA_PATH); // Open the default camera (change the
@@ -481,7 +470,6 @@ int main() {
   cap.release();
 #else
 
-
   // Create a window to display the beamforming data
   cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
   cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
@@ -501,15 +489,17 @@ int main() {
     if (canPlot) {
       canPlot = 0;
       cv::Mat coloredMatrix;
-      //Blur the image with a Gaussian kernel
-      cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap, cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+      // Blur the image with a Gaussian kernel
+      cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap,
+                       cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 
       // Apply color map
       cv::applyColorMap(magnitudeHeatmap, coloredMatrix, cv::COLORMAP_JET);
 
 #if RESIZE_HEATMAP
       // Resize to smoothen
-      cv::resize(coloredMatrix, coloredMatrix, cv::Size(), res, res, cv::INTER_LINEAR);
+      cv::resize(coloredMatrix, coloredMatrix, cv::Size(), res, res,
+                 cv::INTER_LINEAR);
 #endif
       // Combine previous images for more smooth image
       cv::addWeighted(coloredMatrix, 0.1, previous, 0.9, 0, coloredMatrix);
@@ -528,8 +518,6 @@ int main() {
     }
   }
 
-
-
 #endif
 
 #if DEBUG_BEAMFORMER
@@ -541,9 +529,9 @@ int main() {
   // Stop UDP stream
   pipeline->disconnect();
 
-  #if AUDIO
+#if AUDIO
   stop_audio_playback();
-  #endif
+#endif
 
   std::cout << "Closing application..." << std::endl;
   // Close application windows
