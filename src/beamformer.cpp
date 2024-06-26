@@ -522,7 +522,7 @@ int main() {
     }
 
     // Check for key press; if 'q' is pressed, break the loop
-    if (cv::waitKey(1) == 'q') {
+    if (!client.running() || cv::waitKey(1) == 'q') {
       std::cout << "Stopping application..." << std::endl;
       break;
     }
@@ -552,6 +552,7 @@ int main() {
   std::cout << "Waiting for workers..." << std::endl;
   // Join the workers
   worker.join();
+  client_thread.join();
 
   std::cout << "Exiting..." << std::endl;
 
