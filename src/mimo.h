@@ -1,6 +1,8 @@
 #ifndef MIMO_H
 #define MIMO_H 
 
+#include "antenna.h"
+
 
 /**
  * @brief Calculate delays for different angles beforehand
@@ -30,7 +32,7 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
       Position point(xo, yo, level);
       // cout << point << endl;
 
-      VectorXf tmp_delays = steering_vector(antenna, point);
+      VectorXf tmp_delays = steering_vector_cartesian(antenna, point);
       int i = 0;
       for (float del : tmp_delays) {
         double _offset;
