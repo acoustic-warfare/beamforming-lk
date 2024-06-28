@@ -16,7 +16,7 @@ using namespace Eigen;
  * @param degree The angle to be converted
  * @return angle as radian
  */
-inline float to_radians(float degree) { return degree * (M_PI / 180.0); }
+float to_radians(float degree) { return degree * (M_PI / 180.0); }
 
 /**
  * @brief Helper function to return the middle point of the antenna
@@ -25,8 +25,7 @@ inline float to_radians(float degree) { return degree * (M_PI / 180.0); }
  * @return the point in 3D space of its center
  */
 inline Position find_middle(const Antenna &antenna) {
-    return antenna.points.colwise().mean();
-    // return antenna.points.rowwise().mean();
+  return antenna.points.colwise().mean();
 }
 
 // ********** Antenna in space **********
@@ -35,9 +34,7 @@ inline Position find_middle(const Antenna &antenna) {
  * Place the antenna by positioning the center @ new position
  */
 void place_antenna(Antenna &antenna, const Position position) {
-    antenna.points.rowwise() +=
-            position.transpose() - find_middle(antenna).transpose();
-    // antenna.points.colwise() += position - find_middle(antenna);
+  antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
 }
 
 /**
@@ -60,19 +57,7 @@ Antenna create_antenna(const Position &position, const int columns,
             i++;
         }
     }
-    // MatrixXf points(3, rows * columns); // (id, X|Y|Z)
-    //
-    // // Compute the positions of the antenna in 3D space
-    // int i = 0;
-    // for (int y = 0; y < columns; y++) {
-    //   for (int x = 0; x < rows; x++) {
-    //     points(X_INDEX, i) = x * distance - rows * half + half;
-    //     points(Y_INDEX, i) = y * distance - columns * half + half;
-    //     points(Z_INDEX, i) = 0.f;
-    //
-    //     i++;
-    //   }
-    // }
+
 
     Antenna antenna;
 
@@ -94,9 +79,7 @@ Antenna create_antenna(const Position &position, const int columns,
 VectorXf compute_delays(const Antenna &antenna) {
     VectorXf delays =
             antenna.points.col(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
-    // VectorXf delays =
-    //     antenna.points.row(Z_INDEX).array() * (SAMPLE_RATE /
-    //     PROPAGATION_SPEED);
+
     // There is no need to delay the element that should be closest to source
     delays.array() -= delays.minCoeff();
 
@@ -112,12 +95,12 @@ VectorXf compute_delays(const Antenna &antenna) {
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-Antenna steer(const Antenna &antenna, const float phi, const float theta) {
+Antenna steer(const Antenna &antenna, const float azimuth, const float elevation) {
     Matrix3f Rz1, Rx, Rz2;
 
-    Rz1 << cos(phi), -sin(phi), 0, sin(phi), cos(phi), 0, 0, 0, 1;
-    Rx << 1, 0, 0, 0, cos(theta), -sin(theta), 0, sin(theta), cos(theta);
-    Rz2 << cos(-phi), -sin(-phi), 0, sin(-phi), cos(-phi), 0, 0, 0, 1;
+    Rz1 << cos(azimuth), -sin(azimuth), 0, sin(azimuth), cos(azimuth), 0, 0, 0, 1;
+    Rx << 1, 0, 0, 0, cos(elevation), -sin(elevation), 0, sin(elevation), cos(elevation);
+    Rz2 << cos(-azimuth), -sin(-azimuth), 0, sin(-azimuth), cos(-azimuth), 0, 0, 0, 1;
 
     // Perform the rotation. Order of operations are important
     Matrix3f rotation = Rz2 * (Rx * Rz1);
@@ -129,14 +112,31 @@ Antenna steer(const Antenna &antenna, const float phi, const float theta) {
     return rotated;
 }
 
-/**
- * Calculate the delays when antenna is steered towards angles theta and phi
- */
-VectorXf steering_vector(const Antenna &antenna, float phi, float theta) {
-    Antenna steered = steer(antenna, phi, theta);
-    VectorXf delays = compute_delays(steered);
 
-    return delays;
+
+/**
+ * Convert spherical coordinates to cartesian coordinates
+ */
+Position spherical_to_cartesian(const float theta, const float phi, const float radius = 1.0f) {
+  Position point;
+
+  point(X_INDEX) = radius * (float)(cos(theta) * sin(phi));
+    point(Y_INDEX) = radius * (float)(sin(theta) * sin(phi));
+  point(Z_INDEX) = radius * (float)(cos(phi));
+
+  return point;
+}
+    #if 0 // TODO
+Position horizontal_to_cartesian(const float azimuth, const float elevation, const float radius = 1.0f) {
+  Position point;
+
+  point(X_INDEX) = radius * (float)cos((double))
+}
+#endif
+
+  VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation) {
+  Antenna steered = steer(antenna, azimuth, elevation);
+  return compute_delays(steered);
 }
 
 /**
@@ -144,13 +144,17 @@ VectorXf steering_vector(const Antenna &antenna, float phi, float theta) {
  * on the unitsphere on the positive Z axis. A point may also not be located on
  * the unitsphere, however it must have a Z value >= 0
  */
-VectorXf steering_vector(const Antenna &antenna, const Position point) {
-    float theta, phi;
+VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
+    float azimuth = (float)atan2((double)point(Y_INDEX), (double)point(X_INDEX));
+  float elevation = (float)(M_PI / 2.0f - asin((double)point(Z_INDEX)));
 
-    phi = atan2(point(Y_INDEX), point(X_INDEX));
-    theta = M_PI / 2 - asin(point(Z_INDEX));
+    return steering_vector_horizontal(antenna, azimuth, elevation);
+    }
 
-    return steering_vector(antenna, phi, theta);
+    VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
+  Position point = spherical_to_cartesian(theta, phi);
+
+  return steering_vector_cartesian(antenna, point);
 }
 
 #if 0
@@ -161,7 +165,9 @@ int main() {
 
   // cout << create_antenna(position, COLUMNS, ROWS, DISTANCE) << endl;
 }
+
 #endif
+
 
 MatrixXf generate_unit_dome(const int n) {
     MatrixXf points(n, 3); // (id, X|Y|Z)

@@ -9,6 +9,8 @@
 
 #include "mimo.h"
 
+#include "algorithms/pso_seeker.h"
+
 #if AUDIO
 #include "RtAudio.h"
 #endif
@@ -37,7 +39,7 @@
 #include <iostream>
 #include <thread>
 
-#define VALID_SENSOR(i) (64 <= i) && (i < 128)
+
 
 /**
 Main application for running beamformer program
@@ -59,81 +61,34 @@ Pipeline *pipeline;
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
 
 
-/**
- * @brief Convert multiple input streams into single level by delay
- *
- * @param t_id [TODO:parameter]
- * @param task pool partition
- * @param fractional_delays delays to use
- * @param rb ring buffer to use
- * @return power level
- */
-float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
-           Streams *streams) {
-    float out[N_SAMPLES] = {0.0};
-    int n = 0;
-    for (int s = 0; s < N_SENSORS; s++) {
 
-        // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
-        //   continue;
-        // }
 
-        if (VALID_SENSOR(s)) {
-            float fraction = fractional_delays[s - 64];
-            int offset = offset_delays[s - 64];
 
-            float *signal = (float *) ((char *) streams->buffers[s] +
-                                       streams->position + offset * sizeof(float));
 
-            for (int i = 0; i < N_SAMPLES; i++) {
-                out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
-            }
 
-            n++;
-        }
-    }
 
-    float power = 0.f;
-    float norm = 1 / (float) n;
-    for (int p = 0; p < N_SAMPLES; p++) {
 
-        power += powf(out[p] * norm, 2);
-    }
 
-    return power / (float) N_SAMPLES;
+
+
+inline float clip(float n, float lower, float upper) {
+  return std::max(lower, std::min(n, upper));
 }
 
+  void pso_finder(Pipeline *pipeline) {  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
-/**
- * Beamforming as fast as possible on top of pipeline
- */
-void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
-    Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-
-    float fractional_delays[X_RES * Y_RES * N_SENSORS];
-    int offset_delays[X_RES * Y_RES * N_SENSORS];
-
-    compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
-                            FOV, X_RES, Y_RES);
-
-    int max = X_RES * Y_RES;
-
-    float image[X_RES * Y_RES];
-
-    int pixel_index = 0;
-
-    int newData;
-    float power;
-    float threshold = 3e-8;
-
-    float norm = 1 / 1e-05;
-
-    float maxVal = 1.0;
 
     Streams *streams = pipeline->getStreams();
 
-    while (pipeline->isRunning()) {
+    PSO pso(40, antenna, streams);
+
+  int newData;
+
+  int prevX = 0;
+  int prevY = 0;
+
+  while (pipeline->isRunning()) {
 
         // Wait for incoming data
         pipeline->barrier();
@@ -141,75 +96,58 @@ void static_mimo_heatmap_worker(Pipeline *pipeline) {
         // This loop may run until new data has been produced, meaning its up to
         // the machine to run as fast as possible
         newData = pipeline->mostRecent();
-        float maxVal = 0.0;
 
-        int i = 0;
-        float mean = 0.0;
 
-        int xi, yi = 0;
-        float alpha = 1.0 / (float) (X_RES * Y_RES);
-        alpha = 0.02;
+            pso.initialize_particles();
 
-        float heatmap_data[X_RES * Y_RES];
+            pso.optimize(30);
 
-        float avgPower = 0.0;
+            Eigen::Vector3f sample = pso.sanitize();
 
-        // Repeat until new data or abort if new data arrives
-        while ((pipeline->mostRecent() == newData) && (i < max)) {
+            float azimuth = sample(0);
+    float elevation = sample(1);
 
-            int task = pixel_index * N_SENSORS;
+            azimuth = clip(azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
+            elevation = clip(elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
 
-            xi = pixel_index % X_RES;
-            yi = pixel_index / X_RES;
+            //float x = (float)(cos((double)theta) * sin((double)phi));
+    //float y = (float)(sin((double)theta) * sin((double)phi));
 
-            // Get power level from direction
-            float val = miso(0, pixel_index, &offset_delays[task],
-                             &fractional_delays[task], streams);
+            //float x = (float)(cos((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
+    //float y = (float)(sin((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
 
-            if (val > maxVal) {
-                maxVal = val;
-            }
+                //int xi = (int)((x + 1.0) / 2.0 * X_RES);
+                //int yi = (int)((y + 1.0) / 2.0 * Y_RES);
 
-            // power = val * 1e5;
 
-            // power = val * norm * 0.9f + 1.0;
-            power = val + 1.0f;
-            power = powf(power, 15);
-            // power *= 1e9f;
+            magnitudeHeatmap.setTo(cv::Scalar(0));
 
-            power = log(power) * 0.1f;
+            for (auto& particle : pso.particles) {
+      azimuth = particle.best_azimuth;
+            elevation = particle.best_elevation;
+      int xi = (int)((double)X_RES * (azimuth + ANGLE_LIMIT) / 2.0);
+      int yi = (int)((double)Y_RES * (elevation + ANGLE_LIMIT) / 2.0);
 
-            power = power * norm * 0.9f;
-
-            if (power < 0.2) {
-                power = 0.0f;
-            } else if (power > 1.0) {
-                norm *= 0.95;
-                // cout << "Bigger value" << endl;
-                power = 1.0f;
-            } else if (power < 0.0) {
-                power = 0.0f;
-                // cout << "Negative value" << endl;
-            }
-
-            // Paint pixel
-            magnitudeHeatmap.at<uchar>(yi, xi) = (uchar) (power * 255);
-
-            pixel_index++;
-            pixel_index %= X_RES * Y_RES;
-
-            i++;
+      //magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
+            //magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
+      magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
         }
 
-        canPlot = 1;
-
-        norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
-
-        // norm = (1/maxVal) * 1.1f;
-
-        // cout << maxVal << endl;
-    }
+        //int xi = (int)((double)X_RES * ((theta) + to_radians(FOV / 2)) / 2.0);
+    //int yi = (int)((double)Y_RES * ((phi) + to_radians(FOV / 2)) / 2.0);
+    //
+    ////magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
+    ////magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
+    //magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+    //prevX = xi;
+    //prevY = yi;
+    canPlot = 1;
+    //std::cout << "(" << x << ", " << y << ")" << std::endl;
+    std::cout << "Theta: " << pso.global_best_azimuth << " Phi: " << pso.global_best_elevation << std::endl;
+  }
 }
+
+
 
 void sig_handler(int sig) {
     // Set the stop_processing flag to terminate worker threads gracefully
@@ -252,8 +190,12 @@ int main() {
     pipeline->connect();
 
     std::cout << "Dispatching workers..." << std::endl;
-    // Start beamforming thread
-    thread worker(static_mimo_heatmap_worker, pipeline);
+  #if USE_MIMO  // Start beamforming thread
+    thread worker(static_mimo_heatmap_worker, pipeline, std::ref(magnitudeHeatmap), canPlot);
+#else
+  thread worker(pso_finder, pipeline);
+#endif
+
 
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
@@ -315,7 +257,7 @@ int main() {
                        cv::INTER_LINEAR);
 #endif
             // Combine previous images for more smooth image
-            cv::addWeighted(frame, 0.1, previous, 0.9, 0, frame);
+            cv::addWeighted(frame, IMAGE_CURRENT_WEIGHTED_RATIO, previous, IMAGE_PREVIOUS_WEIGHTED_RATIO, 0, frame);
 
             // Update previous image
             previous = frame;
