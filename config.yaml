@@ -42,8 +42,13 @@ N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2
 N_OFFSET: N_SAMPLES / 2
 BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 
+
+# Optimizations
+LOCAL_AREA_RATIO: 0.7
+GLOBAL_AREA_RATIO: 1.0 - LOCAL_AREA_RATIO
+
 # Camera
-FOV: 80.0 # How far we should look to the side
+FOV: 100.0 # How far we should look to the side
 CAMERA: false
 CAMERA_PATH: "/dev/video0"
 
