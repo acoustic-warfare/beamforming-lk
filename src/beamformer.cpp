@@ -186,7 +186,7 @@ int main() {
 
 #if USE_MIMO
   // Start beamforming thread
-  thread worker(static_mimo_heatmap_worker, pipeline, std::ref(magnitudeHeatmap), std::ref(canPlot));
+  thread worker(static_mimo_heatmap_worker, pipeline, std::ref(magnitudeHeatmap), canPlot);
 #else
   thread worker(pso_finder, pipeline);
 #endif

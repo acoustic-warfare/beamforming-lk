@@ -111,7 +111,7 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void static_mimo_heatmap_worker(Pipeline *pipeline, cv::Mat *magnitudeHeatmap, std::atomic_int *canPlot) {
+void static_mimo_heatmap_worker(Pipeline *pipeline, cv::Mat *magnitudeHeatmap, std::atomic_int &canPlot) {
 
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
@@ -205,7 +205,7 @@ void static_mimo_heatmap_worker(Pipeline *pipeline, cv::Mat *magnitudeHeatmap, s
       i++;
     }
 
-    canPlot = static_cast<std::atomic_int>1;
+    canPlot = 1;
 
     norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
 
