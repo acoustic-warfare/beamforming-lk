@@ -52,6 +52,10 @@ FOV: 100.0 # How far we should look to the side
 CAMERA: false
 CAMERA_PATH: "/dev/video0"
 
+# Heatmaps
+IMAGE_CURRENT_WEIGHTED_RATIO: 0.1
+IMAGE_PREVIOUS_WEIGHTED_RATIO: 1.0 - IMAGE_CURRENT_WEIGHTED_RATIO
+
 
 # Beamforming
 PI: 3.1415926535897
