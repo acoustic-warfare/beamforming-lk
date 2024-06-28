@@ -119,4 +119,8 @@ VectorXf steering_vector(const Antenna &antenna, const Position point);
 
 MatrixXf generate_unit_dome(const int n);
 
+void generate_lookup_table(const MatrixXf &dome, MatrixXi &lookup_table);
+
+void test_lookup_table(const MatrixXf &dome, const MatrixXi &lookup_table);
+
 #endif
