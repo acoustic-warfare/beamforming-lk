@@ -8,6 +8,9 @@
 #include "pipeline.h"
 
 #include "mimo.h"
+#include "kf.h"
+
+#include "algorithms/pso_seeker.h"
 
 #if AUDIO
 #include "RtAudio.h"
@@ -18,6 +21,8 @@
 #if USE_WARAPS
 #include <wara_ps_client.h>
 #endif 
+
+#include <psocpp.h>
 
 #include <cmath>
 #include <cstdlib>
@@ -103,6 +108,86 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
 }
 
 
+
+
+
+
+
+
+
+inline float clip(float n, float lower, float upper) {
+  return std::max(lower, std::min(n, upper));
+}
+
+
+void pso_finder(Pipeline *pipeline) {
+  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+  Streams *streams = pipeline->getStreams();
+
+  PSO pso(40, antenna, streams);
+
+  int newData;
+
+  int prevX = 0;
+  int prevY = 0;
+
+  while (pipeline->isRunning()) {
+
+    // Wait for incoming data
+    pipeline->barrier();
+
+    // This loop may run until new data has been produced, meaning its up to
+    // the machine to run as fast as possible
+    newData = pipeline->mostRecent();
+
+    pso.initialize_particles();
+
+    pso.optimize(30);
+
+    Eigen::Vector3f sample = pso.sanitize();
+
+    float theta = sample(0);
+    float phi = sample(1);
+
+    theta = clip(theta, -ANGLE_LIMIT, ANGLE_LIMIT);
+    phi = clip(phi, -ANGLE_LIMIT, ANGLE_LIMIT);
+
+    //float x = (float)(cos((double)theta) * sin((double)phi));
+    //float y = (float)(sin((double)theta) * sin((double)phi));
+
+    //float x = (float)(cos((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
+    //float y = (float)(sin((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
+    
+    //int xi = (int)((x + 1.0) / 2.0 * X_RES);
+    //int yi = (int)((y + 1.0) / 2.0 * Y_RES);
+
+    magnitudeHeatmap.setTo(cv::Scalar(0));
+
+    for (auto& particle : pso.particles) {
+      theta = particle.best_theta;
+      phi = particle.best_phi;
+      int xi = (int)((double)X_RES * ((theta) + to_radians(FOV / 2)) / 2.0);
+      int yi = (int)((double)Y_RES * ((phi) + to_radians(FOV / 2)) / 2.0);
+      
+      //magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
+      //magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
+      magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+    }
+
+    //int xi = (int)((double)X_RES * ((theta) + to_radians(FOV / 2)) / 2.0);
+    //int yi = (int)((double)Y_RES * ((phi) + to_radians(FOV / 2)) / 2.0);
+    //
+    ////magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
+    ////magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
+    //magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+    //prevX = xi;
+    //prevY = yi;
+    canPlot = 1;
+    //std::cout << "(" << x << ", " << y << ")" << std::endl;
+    std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
+  }
+
+}
 
 /**
  * Beamforming as fast as possible on top of pipeline
@@ -249,8 +334,14 @@ int main() {
   pipeline->connect();
 
   std::cout << "Dispatching workers..." << std::endl;
+
+#if USE_MIMO
   // Start beamforming thread
   thread worker(static_mimo_heatmap_worker, pipeline);
+#else
+  thread worker(pso_finder, pipeline);
+#endif
+  
 
   // Initiate background image
   magnitudeHeatmap.setTo(cv::Scalar(0));
