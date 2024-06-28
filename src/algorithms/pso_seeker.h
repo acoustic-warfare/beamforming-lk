@@ -16,11 +16,13 @@
 
 #include <vector>
 
+#define DIMENSIONS 2
+
 class Particle {
 public:
-  float theta, phi;
-  float velocity_theta, velocity_phi;
-  float best_theta, best_phi;
+  float azimuth, elevation;
+  float velocity_azimuth, velocity_elevation;
+  float best_azimuth, best_elevation;
   float best_magnitude;
 
   Antenna &antenna;
@@ -32,7 +34,7 @@ public:
 
   void random();
 
-  float compute(float theta, float phi);
+  float compute(float azimuth, float elevation);
 
   void update();
 };
@@ -42,7 +44,7 @@ public:
 class PSO {
 public:
   std::vector<Particle> particles;
-  float global_best_theta, global_best_phi;
+  float global_best_azimuth, global_best_elevation;
   float global_best_magnitude;
   int n_particles;
   Antenna &antenna;
