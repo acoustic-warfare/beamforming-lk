@@ -174,7 +174,7 @@ int main() {
 #if USE_MIMO  // Start beamforming thread
     thread worker(static_mimo_heatmap_worker, pipeline, std::ref(magnitudeHeatmap), canPlot);
 #else
-    //thread worker(pso_finder, pipeline);
+    thread worker(pso_finder, pipeline);
 #endif
 
 
@@ -299,8 +299,8 @@ int main() {
     pipeline->disconnect();
 
     std::cout << "Waiting for workers..." << std::endl;
-    // Join the workers
-    // worker.join();
+    // Unite the proletariat
+    worker.join();
 
 #if USE_WARAPS
     client_thread.join();
