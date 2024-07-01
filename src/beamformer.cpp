@@ -1,5 +1,3 @@
-
-
 #include "config.h"
 
 #include "antenna.h"
@@ -32,7 +30,6 @@
 #include <opencv2/opencv.hpp>
 
 #include <signal.h>
-
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
@@ -74,7 +71,7 @@ int main() {
 
 #if USE_WARAPS
 
-    WaraPSClient client = WaraPSClient("test", "mqtt://test.mosquitto.org:1883");
+    WaraPSClient client = WaraPSClient(WARAPS_NAME, WARAPS_ADDRESS);
 
     client.SetCommandCallback("focus_bf", [&](const nlohmann::json &payload) {
         float theta = payload["theta"];
@@ -134,7 +131,6 @@ int main() {
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
-    int res = 16;
 
     // Decay image onto previous frame
     cv::Mat previous(Y_RES, X_RES, CV_8UC1);
@@ -144,8 +140,8 @@ int main() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
 
 #if RESIZE_HEATMAP
-    cv::resize(frame, frame, cv::Size(), res, res, cv::INTER_LINEAR);
-    cv::resize(previous, previous, cv::Size(), res, res, cv::INTER_LINEAR);
+    cv::resize(frame, frame, cv::Size(), RESOLUTION_MULTIPLIER, RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
+    cv::resize(previous, previous, cv::Size(), RESOLUTION_MULTIPLIER, RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
 #endif
 
     std::cout << "Running..." << std::endl;
@@ -167,7 +163,7 @@ int main() {
 
 #if RESIZE_HEATMAP
             // Resize to smoothen
-            cv::resize(smallFrame, frame, cv::Size(), res, res,
+            cv::resize(smallFrame, frame, cv::Size(), RESOLUTION_MULTIPLIER, RESOLUTION_MULTIPLIER,
                        cv::INTER_LINEAR);
 #endif
             // Combine previous images for more smooth image
@@ -186,12 +182,6 @@ int main() {
           std::cerr << "Error: Captured frame is empty." << std::endl;
           break;
         }
-
-        // Overlay the image onto the webcam frame at a specified location (adjust
-        // as needed)
-        //cv::Rect roi(0, 0, frame.cols, frame.rows);
-        //cv::Mat imageROI = cameraFrame(roi);
-        //cv::addWeighted(imageROI, 1.0, frame, 0.5, 0, imageROI);
 
         cv::resize(cameraFrame, cameraFrame, cv::Size(frame.cols,frame.rows), 0, 0, cv::INTER_LINEAR);
         cv::addWeighted(cameraFrame, 1.0, frame, 0.5, 0, frame);

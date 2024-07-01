@@ -1,27 +1,20 @@
 #ifndef PSO_H
 #define PSO_H
 
-#include "../config.h"
-
-#include "../antenna.h"
-#include "../streams.hpp"
-
-#if USE_KALMAN_FILTER
-#include "../kf.h"
-#endif
-
-
-
-#include <Eigen/Dense>
-
 #include <vector>
+#include <atomic>
+
+#include "../config.h"
 
 #include "../antenna.h"
 #include "../streams.hpp"
 #include "../pipeline.h"
 
-#include <atomic>
+#if USE_KALMAN_FILTER
+#include "../kf.h"
+#endif
 
+#include <Eigen/Dense>
 
 #define DIMENSIONS 2
 
