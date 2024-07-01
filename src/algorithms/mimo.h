@@ -1,15 +1,13 @@
 #ifndef MIMO_H
 #define MIMO_H 
 
-#include "config.h"
+#include "../config.h"
 
-#include "antenna.h"
-#include "streams.hpp"
-#include "pipeline.h"
+#include "../antenna.h"
+#include "../streams.hpp"
+#include "../pipeline.h"
 
 #include <atomic>
-
-#include <opencv2/opencv.hpp>
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
 
@@ -111,7 +109,7 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void static_mimo_heatmap_worker(Pipeline *pipeline, cv::Mat *magnitudeHeatmap, std::atomic_int &canPlot) {
+void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
@@ -197,7 +195,7 @@ void static_mimo_heatmap_worker(Pipeline *pipeline, cv::Mat *magnitudeHeatmap, s
       }
 
       // Paint pixel
-      magnitudeHeatmap->at<uchar>(yi, xi) = (uchar)(power * 255);
+      pipeline->magnitudeHeatmap->at<uchar>(yi, xi) = (uchar)(power * 255);
 
       pixel_index++;
       pixel_index %= X_RES * Y_RES;
@@ -205,7 +203,7 @@ void static_mimo_heatmap_worker(Pipeline *pipeline, cv::Mat *magnitudeHeatmap, s
       i++;
     }
 
-    canPlot = 1;
+    pipeline->canPlot = 1;
 
     norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
 
