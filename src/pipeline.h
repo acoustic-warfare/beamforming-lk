@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <memory>
 
 using namespace std;
 
@@ -33,7 +34,7 @@ public:
   /**
    * Connect beamformer to antenna
    */
-  int connect(); //std::vector<std::unique_ptr<BeamformingOptions>>& options
+  int connect(std::vector<std::unique_ptr<BeamformingOptions>>& options);
 
   /**
    * Disconnect beamformer from antenna
@@ -85,7 +86,7 @@ private:
   /**
    * The main distributer of data to the threads (this is also a thread)
    */
-  void producer(); //std::vector<std::unique_ptr<BeamformingOptions>> &options
+  void producer(std::vector<std::unique_ptr<BeamformingOptions>> &options);
 };
 
 #endif

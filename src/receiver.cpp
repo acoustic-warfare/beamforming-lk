@@ -7,8 +7,6 @@
 #define RECEIVER_DEBUG 0
 #define HEADER_SIZE 2
 
-#define PACKET_BYTES sizeof(std::uint32_t) * (HEADER_SIZE + N_SENSORS)
-
 #define NUM_IPS 4
 const char *ip_addresses[NUM_IPS] = {"192.168.1.75", "192.168.1.76",
                                      "192.168.1.77", "192.168.1.78"};
@@ -84,29 +82,25 @@ void stop_receiving() {
   }
 }
 
-int receive_exposure(std::vector<Streams *> streams_dist) { //std::vector<std::unique_ptr<BeamformingOptions>> options
-  //options[0]->n_sensors_
-  //options[1]->n_sensors_
+int receive_exposure(
+    std::vector<Streams *> streams_dist,
+    std::vector<std::unique_ptr<BeamformingOptions>> &options) {
+  // float data[N_FPGAS][N_SENSORS][N_SAMPLES];
 
-  float data[N_FPGAS][N_SENSORS][N_SAMPLES];
- 
- 
+  float ***data = new float **[N_FPGAS];
+  for (int i = 0; i < N_FPGAS; ++i) {
+    data[i] = new float *[options[i]->n_sensors_];
+    for (int j = 0; j < options[i]->n_sensors_; ++j) {
+      data[i][j] = new float[N_SAMPLES];
+    }
+  }
+
   struct sockaddr_in source_addr;
   __socklen_t source_addr_len = sizeof(source_addr);
 
   std::vector<bool> done_samples(N_FPGAS, false);
 
   int sample_counter[N_FPGAS] = {};
-
-  // float sample_counter[N_FPGAS];
-  // for (int i = 0; i < size(sample_counter); i++) {
-  //   sample_counter[i] = 0;
-  // }
-  // std::vector<float> sample_counter(N_FPGAS, 0);
-  //  for (int i = 0; i < N_FPGAS; i++) {
-  //    done_samples[i] = false;
-  //  }
-
   int streams_id = N_FPGAS + 1;
 
   while (std::any_of(done_samples.begin(), done_samples.end(),
@@ -136,7 +130,7 @@ int receive_exposure(std::vector<Streams *> streams_dist) { //std::vector<std::u
 
     unsigned index;
 
-    for (unsigned m = 0; m < N_SENSORS; m++) {
+    for (unsigned m = 0; m < options[streams_id]->n_sensors_; m++) {
       // Array is daisy-chained, flip even columns
       if (m % COLUMNS == 0) {
         inverted = !inverted;
@@ -158,6 +152,13 @@ int receive_exposure(std::vector<Streams *> streams_dist) { //std::vector<std::u
       done_samples[streams_id] = true;
     }
   }
+
+  for (int i = 0; i < N_FPGAS; i++) {
+    for (int s = 0; s < options[i]->n_sensors_; s++) {
+      streams_dist[i]->write_stream(s, &data[i][s][0]);
+    }
+  }
+
   /*
     for (int i = 0; i < N_SAMPLES; i++) {
       if (recvfrom(socket_desc, msg, sizeof(message), 0,
@@ -197,14 +198,10 @@ int receive_exposure(std::vector<Streams *> streams_dist) { //std::vector<std::u
     }
   */
 
-  for (int s = 0; s < N_SENSORS; s++) {
-    streams_dist[streams_id]->write_stream(s, &data[streams_id][s][0]);
-  }
-
   return 0;
 }
 
-int number_of_sensors(int id) { //BeamformingOptions *config
+int number_of_sensors(int id, BeamformingOptions *config) {
   struct sockaddr_in server_addr;
   __socklen_t server_addr_len = sizeof(server_addr);
   char ip[INET_ADDRSTRLEN];
@@ -223,9 +220,9 @@ int number_of_sensors(int id) { //BeamformingOptions *config
     std::cout << "\rsrc_addrs: " << ip << std::endl;
 
     if (strcmp(ip, ip_addresses[id]) == 0) {
-      //config->arrays_ = msg->n_arrays;
-      //config->n_sensors_ = msg->n_arrays * ELEMENTS;
-      //std::cout << "\rn_sensors_ RECEIVER: " << config->n_sensors_ << std::endl;
+      config->arrays_ = msg->n_arrays;
+      config->n_sensors_ = msg->n_arrays * ELEMENTS;
+      std::cout << "\rn_sensors_ RECEIVER: " << config->n_sensors_ << std::endl;
 
       return msg->n_arrays * ELEMENTS;
     }
@@ -234,7 +231,7 @@ int number_of_sensors(int id) { //BeamformingOptions *config
   std::cerr << "Unknown IP: " << ip << std::endl;
 }
 
-#if 0
+#if 0 //TODO: N_SENSORS NEED TO BE UPDATED
 float sine[2 * 48828];
 
 
@@ -266,7 +263,7 @@ void pack_buffer(float *data, message *msg2, unsigned offset) {
 
 
 
-int main() {
+int main() { //TODO: N_SENSORS NEED TO BE UPDATED
   if (init_receiver() == -1) {
     std::cerr << "Unable to establish a connection to antenna" << std::endl;
     return -1;
@@ -323,7 +320,7 @@ int main() {
 }
 #endif
 
-#if 0
+#if 0 //TODO: N_SENSORS NEED TO BE UPDATED
 
 #include <cmath>
 #include <cstdlib>

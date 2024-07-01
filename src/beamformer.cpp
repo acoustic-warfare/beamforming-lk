@@ -60,10 +60,10 @@ cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
  * @return power level
  */
 float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
-           Streams *streams) {
+           Streams *streams, uint32_t n_sensors) {
   float out[N_SAMPLES] = {0.0};
   int n = 0;
-  for (int s = 0; s < N_SENSORS; s++) {
+  for (int s = 0; s < n_sensors; s++) {
     // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
     //   continue;
     // }
@@ -95,14 +95,17 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id) {
+void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id,
+                                uint32_t n_sensors) {
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
-  float fractional_delays[X_RES * Y_RES * N_SENSORS];
-  int offset_delays[X_RES * Y_RES * N_SENSORS];
+  std::cout << "mimo: " << n_sensors << std::endl;
+
+  float fractional_delays[X_RES * Y_RES * n_sensors];
+  int offset_delays[X_RES * Y_RES * n_sensors];
 
   compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
-                          FOV, X_RES, Y_RES);
+                          FOV, X_RES, Y_RES, n_sensors);
 
   int max = X_RES * Y_RES;
 
@@ -119,7 +122,7 @@ void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id) {
   float maxVal = 1.0;
 
   Streams *streams = pipeline->getStreams(stream_id);
-  //std::cout << "streams: " << streams << std::endl;
+  std::cout << "streams: " << streams << std::endl;
 
   while (pipeline->isRunning()) {
     // Wait for incoming data
@@ -143,15 +146,14 @@ void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id) {
 
     // Repeat until new data or abort if new data arrives
     while ((pipeline->mostRecent() == newData) && (i < max)) {
-      
-      int task = pixel_index * N_SENSORS;
+      int task = pixel_index * n_sensors;
 
       xi = pixel_index % X_RES;
       yi = pixel_index / X_RES;
 
       // Get power level from direction
       float val = miso(0, pixel_index, &offset_delays[task],
-                       &fractional_delays[task], streams);
+                       &fractional_delays[task], streams, n_sensors);
 
       if (val > maxVal) {
         maxVal = val;
@@ -211,7 +213,7 @@ int main() {
   // }
   //  BeamformingOptions options;
 
-  //std::vector<std::unique_ptr<BeamformingOptions>> options;
+  std::vector<std::unique_ptr<BeamformingOptions>> options;
 
 #if USE_WARAPS
 
@@ -239,17 +241,17 @@ int main() {
 
   std::cout << "Waiting for UDP stream..." << std::endl;
   // Connect to UDP stream
-  pipeline->connect(); //options
-  //std::cout << "\rn_sensors_ MAIN: " << options[0]->n_sensors_ << std::endl;
-  //std::cout << "\rn_sensors_ MAIN: " << options[1]->n_sensors_ << std::endl;
-  //std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
+  pipeline->connect(options);
+  std::cout << "\rn_sensors_ 0 MAIN: " << options[0]->n_sensors_ << std::endl;
+  std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
+  // std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
   for (int i = 0; i < N_FPGAS; i++) {
     std::cout << "Dispatching workers..." << std::endl;
     // Start beamforming thread
     // thread worker(static_mimo_heatmap_worker, pipeline, i);
-    workers.emplace_back(static_mimo_heatmap_worker, pipeline, i);
-    std::cout << "DONE STATIC MIMO HEATMAP WORKER" << std::endl;
+    workers.emplace_back(static_mimo_heatmap_worker, pipeline, i,
+                         options[i]->n_sensors_);
   }
 
   // Initiate background image

@@ -13,7 +13,7 @@
  */
 void compute_scanning_window(int *offset_delays, float *fractional_delays,
                              const Antenna &antenna, float fov,
-                             int resolution_x, int resolution_y) {
+                             int resolution_x, int resolution_y, uint32_t n_sensors) {
 
   float half_x = (float)(resolution_x) / 2 - 0.5;
   float half_y = (float)(resolution_y) / 2 - 0.5;
@@ -40,8 +40,8 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
 
         int offset = N_SAMPLES - (int)_offset;
         // cout << del << endl;
-        fractional_delays[k * N_SENSORS + i] = fraction;
-        offset_delays[k * N_SENSORS + i] = offset;
+        fractional_delays[k * n_sensors + i] = fraction;
+        offset_delays[k * n_sensors + i] = offset;
         i++;
       }
 
