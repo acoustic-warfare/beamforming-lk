@@ -167,7 +167,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
-        src/audio.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_wrapper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_wrapper.h
 )
 
 

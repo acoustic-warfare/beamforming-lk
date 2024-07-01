@@ -5,8 +5,9 @@
  *
  */
 
-#include <iostream>
 #include "antenna.h"
+
+#include <iostream>
 
 using namespace Eigen;
 
@@ -25,7 +26,7 @@ float to_radians(float degree) { return degree * (M_PI / 180.0); }
  * @return the point in 3D space of its center
  */
 inline Position find_middle(const Antenna &antenna) {
-  return antenna.points.colwise().mean();
+    return antenna.points.colwise().mean();
 }
 
 // ********** Antenna in space **********
@@ -34,7 +35,7 @@ inline Position find_middle(const Antenna &antenna) {
  * Place the antenna by positioning the center @ new position
  */
 void place_antenna(Antenna &antenna, const Position position) {
-  antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
+    antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
 }
 
 /**
@@ -44,7 +45,7 @@ void place_antenna(Antenna &antenna, const Position position) {
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance) {
     float half = distance / 2;
-    MatrixXf points(rows * columns, 3); // (id, X|Y|Z)
+    MatrixXf points(rows * columns, 3);// (id, X|Y|Z)
 
     // Compute the positions of the antenna in 3D space
     int i = 0;
@@ -113,20 +114,19 @@ Antenna steer(const Antenna &antenna, const float azimuth, const float elevation
 }
 
 
-
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
 Position spherical_to_cartesian(const float theta, const float phi, const float radius = 1.0f) {
-  Position point;
+    Position point;
 
-  point(X_INDEX) = radius * (float)(cos(theta) * sin(phi));
-    point(Y_INDEX) = radius * (float)(sin(theta) * sin(phi));
-  point(Z_INDEX) = radius * (float)(cos(phi));
+    point(X_INDEX) = radius * (float) (cos(theta) * sin(phi));
+    point(Y_INDEX) = radius * (float) (sin(theta) * sin(phi));
+    point(Z_INDEX) = radius * (float) (cos(phi));
 
-  return point;
+    return point;
 }
-    #if 0 // TODO
+#if 0// TODO
 Position horizontal_to_cartesian(const float azimuth, const float elevation, const float radius = 1.0f) {
   Position point;
 
@@ -134,9 +134,9 @@ Position horizontal_to_cartesian(const float azimuth, const float elevation, con
 }
 #endif
 
-  VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation) {
-  Antenna steered = steer(antenna, azimuth, elevation);
-  return compute_delays(steered);
+VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation) {
+    Antenna steered = steer(antenna, azimuth, elevation);
+    return compute_delays(steered);
 }
 
 /**
@@ -145,16 +145,16 @@ Position horizontal_to_cartesian(const float azimuth, const float elevation, con
  * the unitsphere, however it must have a Z value >= 0
  */
 VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
-    float azimuth = (float)atan2((double)point(Y_INDEX), (double)point(X_INDEX));
-  float elevation = (float)(M_PI / 2.0f - asin((double)point(Z_INDEX)));
+    float azimuth = (float) atan2((double) point(Y_INDEX), (double) point(X_INDEX));
+    float elevation = (float) (M_PI / 2.0f - asin((double) point(Z_INDEX)));
 
     return steering_vector_horizontal(antenna, azimuth, elevation);
-    }
+}
 
-    VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
-  Position point = spherical_to_cartesian(theta, phi);
+VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
+    Position point = spherical_to_cartesian(theta, phi);
 
-  return steering_vector_cartesian(antenna, point);
+    return steering_vector_cartesian(antenna, point);
 }
 
 #if 0
@@ -170,7 +170,7 @@ int main() {
 
 
 MatrixXf generate_unit_dome(const int n) {
-    MatrixXf points(n, 3); // (id, X|Y|Z)
+    MatrixXf points(n, 3);// (id, X|Y|Z)
 
     double phi, theta;
 
@@ -235,7 +235,7 @@ void test_lookup_table(const MatrixXf &dome, const MatrixXi &lookup_table) {
                 pow(y - point(Y_INDEX), 2) +
                 pow(z - point(Z_INDEX), 2)));
 
-        if(dist > MAX_ALLOWED_DISTANCE) {
+        if (dist > MAX_ALLOWED_DISTANCE) {
             failed_tests++;
             std::cout << "Test failed: " << dist << " > " << MAX_ALLOWED_DISTANCE << std::endl;
             std::cout << "Phi: " << phi << " Theta: " << theta << std::endl;

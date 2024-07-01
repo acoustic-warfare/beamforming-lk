@@ -11,8 +11,6 @@
 
 #include "algorithms/pso_seeker.h"
 
-#include "RtAudio.h"
-
 #include <Eigen/Dense>
 
 #if USE_WARAPS
@@ -287,9 +285,6 @@ int main() {
     // Save all data
     pipeline->save_pipeline("pipeline.bin");
 #endif
-
-
-    stop_audio_playback();
 
     std::cout << "Closing application..." << std::endl;
     // Close application windows
