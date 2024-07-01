@@ -16,6 +16,13 @@
 
 #include <vector>
 
+#include "../antenna.h"
+#include "../streams.hpp"
+#include "../pipeline.h"
+
+#include <atomic>
+
+
 #define DIMENSIONS 2
 
 class Particle {
@@ -64,5 +71,8 @@ public:
 
   Eigen::Vector3f sanitize();
 };
+
+
+void pso_finder(Pipeline *pipeline);
 
 #endif
