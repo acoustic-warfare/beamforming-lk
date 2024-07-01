@@ -11,9 +11,7 @@
 
 #include "algorithms/pso_seeker.h"
 
-#if AUDIO
 #include "RtAudio.h"
-#endif
 
 #include <Eigen/Dense>
 
@@ -40,7 +38,6 @@
 #include <thread>
 
 
-
 /**
 Main application for running beamformer program
 
@@ -61,34 +58,24 @@ Pipeline *pipeline;
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
 
 
-
-
-
-
-
-
-
-
-
-
 inline float clip(float n, float lower, float upper) {
-  return std::max(lower, std::min(n, upper));
+    return std::max(lower, std::min(n, upper));
 }
 
-  void pso_finder(Pipeline *pipeline) {  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-
+void pso_finder(Pipeline *pipeline) {
+    Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
 
     Streams *streams = pipeline->getStreams();
 
     PSO pso(40, antenna, streams);
 
-  int newData;
+    int newData;
 
-  int prevX = 0;
-  int prevY = 0;
+    int prevX = 0;
+    int prevY = 0;
 
-  while (pipeline->isRunning()) {
+    while (pipeline->isRunning()) {
 
         // Wait for incoming data
         pipeline->barrier();
@@ -98,55 +85,54 @@ inline float clip(float n, float lower, float upper) {
         newData = pipeline->mostRecent();
 
 
-            pso.initialize_particles();
+        pso.initialize_particles();
 
-            pso.optimize(30);
+        pso.optimize(30);
 
-            Eigen::Vector3f sample = pso.sanitize();
+        Eigen::Vector3f sample = pso.sanitize();
 
-            float azimuth = sample(0);
-    float elevation = sample(1);
+        float azimuth = sample(0);
+        float elevation = sample(1);
 
-            azimuth = clip(azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
-            elevation = clip(elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
+        azimuth = clip(azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
+        elevation = clip(elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
 
-            //float x = (float)(cos((double)theta) * sin((double)phi));
-    //float y = (float)(sin((double)theta) * sin((double)phi));
+        //float x = (float)(cos((double)theta) * sin((double)phi));
+        //float y = (float)(sin((double)theta) * sin((double)phi));
 
-            //float x = (float)(cos((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
-    //float y = (float)(sin((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
+        //float x = (float)(cos((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
+        //float y = (float)(sin((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
 
-                //int xi = (int)((x + 1.0) / 2.0 * X_RES);
-                //int yi = (int)((y + 1.0) / 2.0 * Y_RES);
+        //int xi = (int)((x + 1.0) / 2.0 * X_RES);
+        //int yi = (int)((y + 1.0) / 2.0 * Y_RES);
 
 
-            magnitudeHeatmap.setTo(cv::Scalar(0));
+        magnitudeHeatmap.setTo(cv::Scalar(0));
 
-            for (auto& particle : pso.particles) {
-      azimuth = particle.best_azimuth;
+        for (auto &particle: pso.particles) {
+            azimuth = particle.best_azimuth;
             elevation = particle.best_elevation;
-      int xi = (int)((double)X_RES * (azimuth + ANGLE_LIMIT) / 2.0);
-      int yi = (int)((double)Y_RES * (elevation + ANGLE_LIMIT) / 2.0);
+            int xi = (int) ((double) X_RES * (azimuth + ANGLE_LIMIT) / 2.0);
+            int yi = (int) ((double) Y_RES * (elevation + ANGLE_LIMIT) / 2.0);
 
-      //magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
+            //magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
             //magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
-      magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+            magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar) (255);
         }
 
         //int xi = (int)((double)X_RES * ((theta) + to_radians(FOV / 2)) / 2.0);
-    //int yi = (int)((double)Y_RES * ((phi) + to_radians(FOV / 2)) / 2.0);
-    //
-    ////magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
-    ////magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
-    //magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
-    //prevX = xi;
-    //prevY = yi;
-    canPlot = 1;
-    //std::cout << "(" << x << ", " << y << ")" << std::endl;
-    std::cout << "Theta: " << pso.global_best_azimuth << " Phi: " << pso.global_best_elevation << std::endl;
-  }
+        //int yi = (int)((double)Y_RES * ((phi) + to_radians(FOV / 2)) / 2.0);
+        //
+        ////magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
+        ////magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
+        //magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+        //prevX = xi;
+        //prevY = yi;
+        canPlot = 1;
+        //std::cout << "(" << x << ", " << y << ")" << std::endl;
+        std::cout << "Theta: " << pso.global_best_azimuth << " Phi: " << pso.global_best_elevation << std::endl;
+    }
 }
-
 
 
 void sig_handler(int sig) {
@@ -190,10 +176,10 @@ int main() {
     pipeline->connect();
 
     std::cout << "Dispatching workers..." << std::endl;
-  #if USE_MIMO  // Start beamforming thread
+#if USE_MIMO  // Start beamforming thread
     thread worker(static_mimo_heatmap_worker, pipeline, std::ref(magnitudeHeatmap), canPlot);
 #else
-  thread worker(pso_finder, pipeline);
+    thread worker(pso_finder, pipeline);
 #endif
 
 
@@ -290,7 +276,7 @@ int main() {
 #if USE_WARAPS
         if (!client.running() || cv::waitKey(1) == 'q') {
 #else
-            if (cv::waitKey(1) == 'q') {
+        if (cv::waitKey(1) == 'q') {
 #endif
             std::cout << "Stopping application..." << std::endl;
             break;
@@ -303,9 +289,7 @@ int main() {
 #endif
 
 
-#if AUDIO
     stop_audio_playback();
-#endif
 
     std::cout << "Closing application..." << std::endl;
     // Close application windows

@@ -64,7 +64,7 @@ ANGLE_LIMIT: FOV / 2.0 * PI / 180.0
 USE_KALMAN_FILTER: true
 
 # Audio 
-AUDIO: false
+AUDIO: true
 
 
 # Networking 
