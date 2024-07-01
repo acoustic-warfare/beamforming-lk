@@ -7,7 +7,7 @@
 #include "options.h"
 #include "pipeline.h"
 
-#include "mimo.h"
+#include "algorithms/mimo.h"
 
 #include "algorithms/pso_seeker.h"
 
