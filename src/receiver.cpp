@@ -1,10 +1,17 @@
 #include "receiver.h"
 
+#include <arpa/inet.h>
+
+#include <algorithm>
 
 #define RECEIVER_DEBUG 0
 #define HEADER_SIZE 2
 
 #define PACKET_BYTES sizeof(std::uint32_t) * (HEADER_SIZE + N_SENSORS)
+
+#define NUM_IPS 4
+const char *ip_addresses[NUM_IPS] = {"192.168.1.75", "192.168.1.76",
+                                     "192.168.1.77", "192.168.1.78"};
 
 #if RECEIVER_DEBUG
 
@@ -17,8 +24,7 @@ void printBinary(uint32_t n) {
       std::cout << "0";
 
     // Print space after every 4 bits for readability
-    if (i % 8 == 0)
-      std::cout << " ";
+    if (i % 8 == 0) std::cout << " ";
   }
   std::cout << " " << n << std::endl;
 }
@@ -29,7 +35,6 @@ int socket_desc;
 
 int init_receiver() {
   if (msg) {
-
 #if RECEIVER_DEBUG
     std::cout << "Message pointer already defined" << std::endl;
 #endif
@@ -38,7 +43,6 @@ int init_receiver() {
   }
   msg = new message();
 
-  struct sockaddr_in server_addr;
   socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
   if (socket_desc < 0) {
@@ -53,6 +57,7 @@ int init_receiver() {
   }
 
   // Set port and IP:
+  struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_port = htons(UDP_PORT);
   server_addr.sin_addr.s_addr = inet_addr(UDP_ADDRESS);
@@ -79,15 +84,52 @@ void stop_receiving() {
   }
 }
 
+int receive_exposure(std::vector<Streams *> streams_dist) { //std::vector<std::unique_ptr<BeamformingOptions>> options
+  //options[0]->n_sensors_
+  //options[1]->n_sensors_
 
+  float data[N_FPGAS][N_SENSORS][N_SAMPLES];
+ 
+ 
+  struct sockaddr_in source_addr;
+  __socklen_t source_addr_len = sizeof(source_addr);
 
-int receive_exposure(Streams *streams) {
-  float data[N_SENSORS][N_SAMPLES];
+  std::vector<bool> done_samples(N_FPGAS, false);
 
-  for (int i = 0; i < N_SAMPLES; i++) {
-    if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
+  int sample_counter[N_FPGAS] = {};
+
+  // float sample_counter[N_FPGAS];
+  // for (int i = 0; i < size(sample_counter); i++) {
+  //   sample_counter[i] = 0;
+  // }
+  // std::vector<float> sample_counter(N_FPGAS, 0);
+  //  for (int i = 0; i < N_FPGAS; i++) {
+  //    done_samples[i] = false;
+  //  }
+
+  int streams_id = N_FPGAS + 1;
+
+  while (std::any_of(done_samples.begin(), done_samples.end(),
+                     [](bool b) { return !b; })) {
+    if (recvfrom(socket_desc, msg, sizeof(message), 0,
+                 (struct sockaddr *)&source_addr, &source_addr_len) < 0) {
       printf("Couldn't receive\n");
       return -1;
+    }
+
+    char ip[INET_ADDRSTRLEN];
+    // Convert IP address from binary to text form
+    inet_ntop(AF_INET, &(source_addr.sin_addr), ip, INET_ADDRSTRLEN);
+
+    for (int i = 0; i < NUM_IPS; ++i) {
+      if (strcmp(ip, ip_addresses[i]) == 0) {
+        streams_id = i;
+        break;
+      }
+    }
+
+    if (streams_id == N_FPGAS + 1) {
+      std::cerr << "Unknown IP: " << ip << std::endl;
     }
 
     int inverted = 1;
@@ -95,7 +137,6 @@ int receive_exposure(Streams *streams) {
     unsigned index;
 
     for (unsigned m = 0; m < N_SENSORS; m++) {
-
       // Array is daisy-chained, flip even columns
       if (m % COLUMNS == 0) {
         inverted = !inverted;
@@ -107,30 +148,91 @@ int receive_exposure(Streams *streams) {
         index = m;
       }
 
-      data[m][i] = (float)msg->stream[index] / (float)MAX_VALUE_FLOAT;
+      data[streams_id][m][sample_counter[streams_id]] =
+          (float)msg->stream[index] / (float)MAX_VALUE_FLOAT;
+    }
+
+    if (sample_counter[streams_id] != N_SAMPLES) {
+      sample_counter[streams_id]++;
+    } else {
+      done_samples[streams_id] = true;
     }
   }
+  /*
+    for (int i = 0; i < N_SAMPLES; i++) {
+      if (recvfrom(socket_desc, msg, sizeof(message), 0,
+                   (struct sockaddr *)&source_addr, &source_addr_len) < 0) {
+        printf("Couldn't receive\n");
+        return -1;
+      }
 
+      char ip[INET_ADDRSTRLEN];
+      // Convert IP address from binary to text form
+      inet_ntop(AF_INET, &(source_addr.sin_addr), ip, INET_ADDRSTRLEN);
 
+      for (int i = 0; i < NUM_IPS; ++i) {
+        if (strcmp(ip, ip_addresses[i]) == 0) {
+          break;
+        }
+      }
+
+      int inverted = 1;
+
+      unsigned index;
+
+      for (unsigned m = 0; m < N_SENSORS; m++) {
+        // Array is daisy-chained, flip even columns
+        if (m % COLUMNS == 0) {
+          inverted = !inverted;
+        }
+
+        if (inverted) {
+          index = COLUMNS * (1 + m / COLUMNS) - m % COLUMNS;
+        } else {
+          index = m;
+        }
+
+        data[m][i] = (float)msg->stream[index] / (float)MAX_VALUE_FLOAT;
+      }
+    }
+  */
 
   for (int s = 0; s < N_SENSORS; s++) {
-    streams->write_stream(s, &data[s][0]);
+    streams_dist[streams_id]->write_stream(s, &data[streams_id][s][0]);
   }
 
   return 0;
 }
 
+int number_of_sensors(int id) { //BeamformingOptions *config
+  struct sockaddr_in server_addr;
+  __socklen_t server_addr_len = sizeof(server_addr);
+  char ip[INET_ADDRSTRLEN];
 
-int number_of_sensors() {
-  // gather data
-  if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
-    printf("Couldn't receive\n");
-    return -1;
+  while (true) {
+    if (recvfrom(socket_desc, msg, sizeof(message), 0,
+                 (struct sockaddr *)&server_addr, &server_addr_len) < 0) {
+      printf("Couldn't receive\n");
+      return -1;
+    }
+
+    // Convert IP address from binary to text form
+    inet_ntop(AF_INET, &(server_addr.sin_addr), ip, INET_ADDRSTRLEN);
+
+    std::cout << "\rn_arrays: " << static_cast<int>(msg->n_arrays) << std::endl;
+    std::cout << "\rsrc_addrs: " << ip << std::endl;
+
+    if (strcmp(ip, ip_addresses[id]) == 0) {
+      //config->arrays_ = msg->n_arrays;
+      //config->n_sensors_ = msg->n_arrays * ELEMENTS;
+      //std::cout << "\rn_sensors_ RECEIVER: " << config->n_sensors_ << std::endl;
+
+      return msg->n_arrays * ELEMENTS;
+    }
   }
 
-  return msg->n_arrays * ELEMENTS;
+  std::cerr << "Unknown IP: " << ip << std::endl;
 }
-
 
 #if 0
 float sine[2 * 48828];
@@ -223,12 +325,13 @@ int main() {
 
 #if 0
 
-#include "RtAudio.h"
-#include "config.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <thread>
+
+#include "RtAudio.h"
+#include "config.h"
 RtAudio audio;
 int play = 1;
 std::thread *producer;

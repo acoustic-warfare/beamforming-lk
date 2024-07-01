@@ -4,8 +4,8 @@
 //#include "ring_buffer.h"
 #include "streams.hpp"
 
-#include "pipeline.h"
 #include "receiver.h"
+#include "options.h"
 //#include "ring_buffer.h"
 #include <fstream>
 #include <iostream>
@@ -33,7 +33,7 @@ public:
   /**
    * Connect beamformer to antenna
    */
-  int connect();
+  int connect(); //std::vector<std::unique_ptr<BeamformingOptions>>& options
 
   /**
    * Disconnect beamformer from antenna
@@ -55,12 +55,14 @@ public:
    */
   void barrier();
   
-  Streams *getStreams();
+  Streams *getStreams(int stream_id);
 
   int save_pipeline(std::string path);
 
 private:
-  Streams *streams;
+  //Streams *streams;
+  std::vector<Streams *> streams_dist;
+  std::string ipAddress; 
   int connected = 0;
   mutex pool_mutex;
   mutex barrier_mutex;
@@ -73,7 +75,7 @@ private:
 
   int p = 0;
 
-  float buffer[N_SAMPLES * N_SENSORS * 2];
+  //float buffer[N_SAMPLES * N_SENSORS * 2];
 
   /**
    * Allow the worker threads to continue
@@ -83,7 +85,7 @@ private:
   /**
    * The main distributer of data to the threads (this is also a thread)
    */
-  void producer();
+  void producer(); //std::vector<std::unique_ptr<BeamformingOptions>> &options
 };
 
 #endif

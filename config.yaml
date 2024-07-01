@@ -29,10 +29,13 @@ USE_WARAPS: false
 
 
 # FPGA 
-N_ARRAYS: 4 # TODO during handshake
+#N_ARRAYS: 4 # TODO: during handshake
 SAMPLE_RATE: 48828.0 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
-N_SENSORS: ROWS * COLUMNS * N_ARRAYS # TODO this should be determined during handshake
+#N_SENSORS: ROWS * COLUMNS * N_ARRAYS # TODO: this should be determined during handshake
+N_SENSORS: ROWS * COLUMNS * 2 # TODO: this should be determined during handshake
+N_FPGAS: 2
+
 
 # Beamforming 
 N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
@@ -50,8 +53,8 @@ AUDIO: false
 
 
 # Networking 
-# UDP_ADDRESS: "10.0.0.1"
-UDP_ADDRESS: "127.0.0.1"
+UDP_ADDRESS: "10.0.0.1"
+#UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
 UDP_PORT: 21844
 

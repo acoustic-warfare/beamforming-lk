@@ -1,15 +1,19 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
-#include "config.h"
-
-#include <iostream>
-#include <cstring>
-#include "streams.hpp"
 #include <arpa/inet.h>
-#include <cstdint>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <vector>
+
+#include "config.h"
+#include "options.h"
+#include "pipeline.h"
+#include "streams.hpp"
 #define HEADER_SIZE 2
 
 // @brief FPGA Protocol Version 2
@@ -39,8 +43,8 @@ int receive_offset(Streams *streams);
 /**
  * Put the latest frame into the ring_buffer
  */
-int number_of_sensors();
+int number_of_sensors(int id); //BeamformingOptions *config
 
-int receive_exposure(Streams *streams);
+int receive_exposure(std::vector<Streams *> streams_dists); //std::vector<std::unique_ptr<BeamformingOptions>> options
 
 #endif

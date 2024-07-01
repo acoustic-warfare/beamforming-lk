@@ -1,13 +1,11 @@
 
 
-#include "config.h"
-
 #include "antenna.h"
+#include "config.h"
 #include "delay.h"
+#include "mimo.h"
 #include "options.h"
 #include "pipeline.h"
-
-#include "mimo.h"
 
 #if AUDIO
 #include "RtAudio.h"
@@ -17,15 +15,7 @@
 
 #if USE_WARAPS
 #include <wara_ps_client.h>
-#endif 
-
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/opencv.hpp>
+#endif
 
 #include <signal.h>
 
@@ -33,6 +23,9 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <thread>
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
@@ -52,11 +45,10 @@ program.
 std::atomic_int canPlot = 0;
 
 Pipeline *pipeline;
+std::vector<std::thread> workers;
 
 // Intermediate heatmap used for beamforming (8-bit)
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
-
-
 
 /**
  * @brief Convert multiple input streams into single level by delay
@@ -72,7 +64,6 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
   float out[N_SAMPLES] = {0.0};
   int n = 0;
   for (int s = 0; s < N_SENSORS; s++) {
-
     // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
     //   continue;
     // }
@@ -95,20 +86,16 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
   float power = 0.f;
   float norm = 1 / (float)n;
   for (int p = 0; p < N_SAMPLES; p++) {
-
     power += powf(out[p] * norm, 2);
   }
 
   return power / (float)N_SAMPLES;
 }
 
-
-
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void static_mimo_heatmap_worker(Pipeline *pipeline) {
-
+void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id) {
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
   float fractional_delays[X_RES * Y_RES * N_SENSORS];
@@ -131,10 +118,10 @@ void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
   float maxVal = 1.0;
 
-  Streams *streams = pipeline->getStreams();
+  Streams *streams = pipeline->getStreams(stream_id);
+  //std::cout << "streams: " << streams << std::endl;
 
   while (pipeline->isRunning()) {
-
     // Wait for incoming data
     pipeline->barrier();
 
@@ -156,7 +143,7 @@ void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
     // Repeat until new data or abort if new data arrives
     while ((pipeline->mostRecent() == newData) && (i < max)) {
-
+      
       int task = pixel_index * N_SENSORS;
 
       xi = pixel_index % X_RES;
@@ -217,8 +204,14 @@ void sig_handler(int sig) {
 }
 
 int main() {
-  
-  BeamformingOptions options;
+  // BeamformingOptions options[N_FPGAS];
+  // std::vector<BeamformingOptions> options;
+  // for (int i = 0; i < N_FPGAS; i++) {
+  //   options.emplace_back();
+  // }
+  //  BeamformingOptions options;
+
+  //std::vector<std::unique_ptr<BeamformingOptions>> options;
 
 #if USE_WARAPS
 
@@ -232,7 +225,7 @@ int main() {
 
     cout << "Theta: " << theta << "\nPhi: " << phi << endl;
     client.PublishMessage("exec/response", string("Focusing beamformer for " +
-                                                   to_string(duration)));
+                                                  to_string(duration)));
   });
 
   thread client_thread = client.Start();
@@ -246,11 +239,18 @@ int main() {
 
   std::cout << "Waiting for UDP stream..." << std::endl;
   // Connect to UDP stream
-  pipeline->connect();
+  pipeline->connect(); //options
+  //std::cout << "\rn_sensors_ MAIN: " << options[0]->n_sensors_ << std::endl;
+  //std::cout << "\rn_sensors_ MAIN: " << options[1]->n_sensors_ << std::endl;
+  //std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
-  std::cout << "Dispatching workers..." << std::endl;
-  // Start beamforming thread
-  thread worker(static_mimo_heatmap_worker, pipeline);
+  for (int i = 0; i < N_FPGAS; i++) {
+    std::cout << "Dispatching workers..." << std::endl;
+    // Start beamforming thread
+    // thread worker(static_mimo_heatmap_worker, pipeline, i);
+    workers.emplace_back(static_mimo_heatmap_worker, pipeline, i);
+    std::cout << "DONE STATIC MIMO HEATMAP WORKER" << std::endl;
+  }
 
   // Initiate background image
   magnitudeHeatmap.setTo(cv::Scalar(0));
@@ -259,13 +259,12 @@ int main() {
   init_audio_playback(pipeline);
 #endif
 
-
-#if CAMERA 
-  cv::VideoCapture cap(CAMERA_PATH); // Open the default camera (change the
-                                     // index if you have multiple cameras)
+#if CAMERA
+  cv::VideoCapture cap(CAMERA_PATH);  // Open the default camera (change the
+                                      // index if you have multiple cameras)
   if (!cap.isOpened()) {
     std::cerr << "Error: Unable to open the camera." << std::endl;
-    //goto cleanup;
+    // goto cleanup;
     exit(1);
   }
 
@@ -279,7 +278,7 @@ int main() {
 
   // Decay image onto previous frame
   cv::Mat previous(Y_RES, X_RES, CV_8UC1);
-  previous.setTo(cv::Scalar(0)); // Set to zero
+  previous.setTo(cv::Scalar(0));  // Set to zero
   cv::applyColorMap(previous, previous, cv::COLORMAP_JET);
 
   cv::Mat frame(Y_RES, X_RES, CV_8UC1);
@@ -291,15 +290,11 @@ int main() {
 
   std::cout << "Running..." << std::endl;
 
-  
-
   while (pipeline->isRunning()) {
-
-
     if (canPlot) {
       canPlot = 0;
       cv::Mat smallFrame;
-      
+
       // Blur the image with a Gaussian kernel
       cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap,
                        cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
@@ -309,20 +304,17 @@ int main() {
 
 #if RESIZE_HEATMAP
       // Resize to smoothen
-      cv::resize(smallFrame, frame, cv::Size(), res, res,
-                 cv::INTER_LINEAR);
+      cv::resize(smallFrame, frame, cv::Size(), res, res, cv::INTER_LINEAR);
 #endif
       // Combine previous images for more smooth image
       cv::addWeighted(frame, 0.1, previous, 0.9, 0, frame);
 
       // Update previous image
       previous = frame;
-
-      
     }
 
-#if CAMERA 
-    cap >> cameraFrame; // Capture a frame from the camera
+#if CAMERA
+    cap >> cameraFrame;  // Capture a frame from the camera
 
     if (cameraFrame.empty()) {
       std::cerr << "Error: Captured frame is empty." << std::endl;
@@ -331,11 +323,12 @@ int main() {
 
     // Overlay the image onto the webcam frame at a specified location (adjust
     // as needed)
-    //cv::Rect roi(0, 0, frame.cols, frame.rows);
-    //cv::Mat imageROI = cameraFrame(roi);
-    //cv::addWeighted(imageROI, 1.0, frame, 0.5, 0, imageROI);
+    // cv::Rect roi(0, 0, frame.cols, frame.rows);
+    // cv::Mat imageROI = cameraFrame(roi);
+    // cv::addWeighted(imageROI, 1.0, frame, 0.5, 0, imageROI);
 
-    cv::resize(cameraFrame, cameraFrame, cv::Size(frame.cols,frame.rows), 0, 0, cv::INTER_LINEAR);
+    cv::resize(cameraFrame, cameraFrame, cv::Size(frame.cols, frame.rows), 0, 0,
+               cv::INTER_LINEAR);
     cv::addWeighted(cameraFrame, 1.0, frame, 0.5, 0, frame);
 #endif
 
@@ -345,7 +338,7 @@ int main() {
     // Check for key press; if 'q' is pressed, break the loop
 #if USE_WARAPS
     if (!client.running() || cv::waitKey(1) == 'q') {
-#else 
+#else
     if (cv::waitKey(1) == 'q') {
 #endif
       std::cout << "Stopping application..." << std::endl;
@@ -357,8 +350,6 @@ int main() {
   // Save all data
   pipeline->save_pipeline("pipeline.bin");
 #endif
-
-  
 
 #if AUDIO
   stop_audio_playback();
@@ -376,14 +367,20 @@ cleanup:
 
   std::cout << "Waiting for workers..." << std::endl;
   // Join the workers
-  worker.join();
+  // worker.join();
+
+  for (auto &worker : workers) {
+    if (worker.joinable()) {
+      worker.join();
+    }
 
 #if USE_WARAPS
-  client_thread.join();
+    client_thread.join();
 #endif
 
-  std::cout << "Exiting..." << std::endl;
+    std::cout << "Exiting..." << std::endl;
 
-  // Cleanup
-  delete pipeline;
+    // Cleanup
+    delete pipeline;
+  }
 }
