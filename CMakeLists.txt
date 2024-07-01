@@ -167,6 +167,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        src/audio.cpp
 )
 
 
@@ -182,7 +183,7 @@ add_executable(beamformer
 target_link_libraries(beamformer
         Eigen3::Eigen
         PkgConfig::RtAudio
-        WaraPSClient::WaraPSClient
+        WaraPSClient
         nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
 )
