@@ -24,11 +24,6 @@ class BeamformingOptions {
   BeamformingOptions(const BeamformingOptions &) = delete;
   BeamformingOptions &operator=(const BeamformingOptions &) = delete;
 
-  //BeamformingOptions(const BeamformingOptions &) = delete;
-  //BeamformingOptions &operator=(const BeamformingOptions &) = delete;
-  //BeamformingOptions(BeamformingOptions &&) = delete;
-  //BeamformingOptions &operator=(BeamformingOptions &&) = delete;
-
   std::atomic_bool have_changed_ = false;
 
   // Antenna
@@ -47,8 +42,6 @@ class BeamformingOptions {
   float sample_rate_ = 48828.0;
   std::uint32_t protocol_version_ = 2;
   std::uint32_t n_sensors_ = columns_ * rows_ * arrays_;
-  // std::vector<std::string> ipAddresses = {"192.168.1.75", "192.168.1.76",
-  // "192.168.1.77", "192.168.1.78"};
 
   // Camera
   float camera_fov_ = 80.0;

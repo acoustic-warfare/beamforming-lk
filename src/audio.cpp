@@ -176,7 +176,7 @@ int main() {
 
 
 // If Audio playback when streaming
-#if AUDIO
+#if AUDIO //TODO: N_SENSORS NEED TO BE UPDATED
 
 RtAudio audio;
 int play = 1;
