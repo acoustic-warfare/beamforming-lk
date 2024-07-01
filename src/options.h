@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include "config.h"
 
 /**
  * Multithreading-safe options for the beamforming application.
@@ -47,7 +48,7 @@ public:
     std::string camera_path_ = "/dev/video0";
 
     // Audio
-    bool audio_on_ = false;
+    bool audio_on_ = AUDIO;
 
     // UDP
     std::string udp_address_ = "127.0.0.1";

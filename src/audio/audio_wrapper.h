@@ -5,15 +5,21 @@
 #ifndef BEAMFORMER_AUDIO_WRAPPER_H
 #define BEAMFORMER_AUDIO_WRAPPER_H
 
-#include "pipeline.h"
+#include <atomic>
+
+#include "../config.h"
+#include "../pipeline.h"
+#include <portaudio.h>
 
 class AudioWrapper {
 private:
     Streams _streams;
-    std::thread _producer_thread;
+    std::thread producer_thread_;
+    atomic<bool> is_on_ = false;
+    PaStream *audio_stream_{};
 
 public:
-    AudioWrapper(Streams &streams);
+    explicit AudioWrapper(Streams &streams);
 
     AudioWrapper(const AudioWrapper &) = delete;
     AudioWrapper(AudioWrapper &&) = delete;
@@ -22,6 +28,8 @@ public:
 
     void start_audio_playback();
     void stop_audio_playback();
+
+    ~AudioWrapper();
 };
 
 

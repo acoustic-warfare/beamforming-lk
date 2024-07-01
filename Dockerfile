@@ -2,7 +2,7 @@
 # docker build -t beamformer .
 
 # docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host beamformer bash
-# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --device /dev/snd --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
 
 FROM ubuntu:22.04
 
@@ -20,11 +20,8 @@ RUN apt-get install -y \
 # Installing libraries
 RUN apt-get install -y \
     libopencv-dev \
-    libeigen3-dev \
-    librtaudio-dev
+    libeigen3-dev
 
-RUN apt-get install -y \
-    python3-yaml
 
 # Setting up WARAPS
 
@@ -37,10 +34,14 @@ RUN apt-get install -y \
     libpaho-mqttpp-dev \
     nlohmann-json3-dev
 
-RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git 
+RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
 RUN mkdir -p WARA-PS-MQTT-Agent/build
 WORKDIR /WARA-PS-MQTT-Agent/build
 RUN cmake .. && make install
+
+RUN apt-get install -y \
+    python3-yaml \
+    alsa-utils
 
 # Create app directory
 RUN mkdir -p /usr/src/app

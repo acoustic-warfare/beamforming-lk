@@ -1,17 +1,15 @@
 
 
-#include "config.h"
-
-#include "antenna.h"
-#include "delay.h"
-#include "options.h"
-#include "pipeline.h"
-
-#include "mimo.h"
+#include <Eigen/Dense>
 
 #include "algorithms/pso_seeker.h"
-
-#include <Eigen/Dense>
+#include "antenna.h"
+#include "audio/audio_wrapper.h"
+#include "config.h"
+#include "delay.h"
+#include "mimo.h"
+#include "options.h"
+#include "pipeline.h"
 
 #if USE_WARAPS
 
@@ -128,7 +126,6 @@ void pso_finder(Pipeline *pipeline) {
         //prevY = yi;
         canPlot = 1;
         //std::cout << "(" << x << ", " << y << ")" << std::endl;
-        std::cout << "Theta: " << pso.global_best_azimuth << " Phi: " << pso.global_best_elevation << std::endl;
     }
 }
 
@@ -140,8 +137,8 @@ void sig_handler(int sig) {
 
 int main() {
     MatrixXf dome = generate_unit_dome(100);
-    MatrixXi lookup_table(90, 360);
-    generate_lookup_table(dome, lookup_table);
+    // MatrixXi lookup_table(90, 360);
+    // generate_lookup_table(dome, lookup_table);
 
     BeamformingOptions options;
 
@@ -177,16 +174,17 @@ int main() {
 #if USE_MIMO  // Start beamforming thread
     thread worker(static_mimo_heatmap_worker, pipeline, std::ref(magnitudeHeatmap), canPlot);
 #else
-    thread worker(pso_finder, pipeline);
+    //thread worker(pso_finder, pipeline);
 #endif
 
 
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
-#if AUDIO
-    init_audio_playback(pipeline);
-#endif
+    AudioWrapper audio(*pipeline->getStreams());
+    if(options.audio_on_) {
+        audio.start_audio_playback();
+    }
 
 
 #if CAMERA
@@ -290,6 +288,10 @@ int main() {
     // Close application windows
     cv::destroyAllWindows();
 
+    if(options.audio_on_) {
+        audio.stop_audio_playback();
+    }
+
     cleanup:
 
     std::cout << "Disconnecting pipeline..." << std::endl;
@@ -298,7 +300,7 @@ int main() {
 
     std::cout << "Waiting for workers..." << std::endl;
     // Join the workers
-    worker.join();
+    // worker.join();
 
 #if USE_WARAPS
     client_thread.join();

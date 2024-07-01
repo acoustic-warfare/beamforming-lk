@@ -26,7 +26,6 @@ int Pipeline::connect() {
 
     for (int s = 0; s < number_of_sensors(); s++) {
         this->streams->create_stream(s);
-        std::cout << "\rAdding stream: " << s << "        ";
     }
 
     std::cout << std::endl;
