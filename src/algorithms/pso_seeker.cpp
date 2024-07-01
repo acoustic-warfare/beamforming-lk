@@ -3,11 +3,11 @@
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
 
 
-float beamform(Streams *streams, int *offset_delays, float *fractional_delays) {
+float beamform(Streams *streams, int *offset_delays, float *fractional_delays, int n_sensors) {
   float out[N_SAMPLES] = {0.0f};
   unsigned n = 0;
 
-  for (unsigned s = 0; s < N_SENSORS; s++) {
+  for (unsigned s = 0; s < n_sensors; s++) {
     if (VALID_SENSOR(s)) {
       float fraction = fractional_delays[s - 64];
       int offset = offset_delays[s - 64];
@@ -35,14 +35,14 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays) {
 }
 
 
-Particle::Particle(Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams) {
+Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors) : antenna(antenna), streams(streams), n_sensors(n_sensors) {
     azimuth = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
     elevation = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
     velocity_azimuth = 0.0f;
     velocity_elevation = 0.0f;
     best_azimuth = azimuth;
     best_elevation = elevation;
-    best_magnitude = compute(azimuth, elevation);
+    best_magnitude = compute(azimuth, elevation, n_sensors);
 }
 
 
@@ -51,10 +51,10 @@ void Particle::random() {
   elevation = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
 }
 
-float Particle::compute(float azimuth, float elevation) {
+float Particle::compute(float azimuth, float elevation, int n_sensors) {
   Eigen::VectorXf tmp_delays = steering_vector_horizontal(antenna, azimuth, elevation);
-  float fractional_delays[N_SENSORS];
-  int offset_delays[N_SENSORS];
+  float fractional_delays[n_sensors]; 
+  int offset_delays[n_sensors];
   int i = 0;
   for (float del : tmp_delays) {
     double _offset;
@@ -66,11 +66,11 @@ float Particle::compute(float azimuth, float elevation) {
     offset_delays[i] = offset;
     i++;
   }
-  return beamform(streams, &offset_delays[0], &fractional_delays[0]);
+  return beamform(streams, &offset_delays[0], &fractional_delays[0], n_sensors);
 }
 
 void Particle::update() {
-  float magnitude = compute(azimuth, elevation);
+  float magnitude = compute(azimuth, elevation, n_sensors);
   best_magnitude *= 0.99;
   if (magnitude > best_magnitude) {
     best_magnitude = magnitude;
@@ -93,8 +93,9 @@ inline float wrapAngle( float angle )
 }
 
 
-PSO::PSO(int n_particles, Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams), kf(0.1) {
+PSO::PSO(int n_particles, Antenna &antenna, Streams *streams, int n_sensors) : antenna(antenna), streams(streams), kf(0.1) {
   this->n_particles = n_particles;
+  this->n_sensors = n_sensors;
   global_best_magnitude = 0.0f;
   initialize_particles();
 }
@@ -102,7 +103,7 @@ PSO::PSO(int n_particles, Antenna &antenna, Streams *streams) : antenna(antenna)
 void PSO::initialize_particles() {
   particles.clear();
   for (int i = 0; i < n_particles; i++) {
-    particles.emplace_back(antenna, streams);
+    particles.emplace_back(antenna, streams, n_sensors);
 
     Particle &particle = particles.back();
 
@@ -163,11 +164,12 @@ Eigen::Vector3f PSO::sanitize() {
 
 
 
-void pso_finder(Pipeline *pipeline, int stream_id) {
+void pso_finder(Pipeline *pipeline, int stream_id, int n_sensors_in) {
   Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
   Streams *streams = pipeline->getStreams(stream_id);
+  //n_sensors = n_sensors_in;
 
-  PSO pso(40, antenna, streams);
+  PSO pso(40, antenna, streams, n_sensors_in);
 
   int newData;
 

@@ -1,13 +1,10 @@
-#include "config.h"
-
+#include "algorithms/mimo.h"
+#include "algorithms/pso_seeker.h"
 #include "antenna.h"
+#include "config.h"
 #include "delay.h"
 #include "options.h"
 #include "pipeline.h"
-
-#include "algorithms/mimo.h"
-
-//#include "algorithms/pso_seeker.h"
 
 #if AUDIO
 #include "RtAudio.h"
@@ -21,21 +18,16 @@
 
 #endif
 
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/opencv.hpp>
-
 #include <signal.h>
+
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <thread>
-
 
 /**
 Main application for running beamformer program
@@ -109,7 +101,8 @@ int main() {
     workers.emplace_back(static_mimo_heatmap_worker, pipeline, i,
                          options[i]->n_sensors_);
 #else
-   //thread worker(&pso_finder, pipeline, i);
+    // thread worker(&pso_finder, pipeline, i, options[i]->n_sensors_);
+    workers.emplace_back(&pso_finder, pipeline, i, options[i]->n_sensors_);
 #endif
   }
 
