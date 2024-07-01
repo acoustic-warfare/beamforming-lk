@@ -15,9 +15,15 @@
 #include <mutex>
 #include <thread>
 
+#include <atomic>
+
 #include <cstddef>
 #include <cstdio>
 #include <memory>
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 
@@ -29,6 +35,8 @@ using namespace std;
 class Pipeline {
 
 public:
+  std::atomic_int canPlot = 0;
+  cv::Mat *magnitudeHeatmap;
   Pipeline();
   ~Pipeline();
   /**

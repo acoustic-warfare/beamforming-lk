@@ -27,10 +27,7 @@ typedef struct {
   int id;
 } Antenna;
 
-/**
- * Compute the delay in regard to the Z value
- */
-VectorXf compute_delays(const MatrixXf &antenna);
+float to_radians(float degree);
 
 /**
  * Find the center of antenna
@@ -75,7 +72,38 @@ VectorXf compute_delays(const Antenna &antenna);
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-Antenna steer(const Antenna &antenna, const float phi, const float theta);
+Antenna steer(const Antenna &antenna, const float azimuth, const float elevation);
+
+
+/**
+ * Convert spherical coordinates to cartesian coordinates
+ */
+Position spherical_to_cartesian(const float theta, const float phi, const float radius);
+
+
+VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation);
+
+/**
+ * Calculate the delays when antenna is steered towards a specific point located
+ * on the unitsphere on the positive Z axis. A point may also not be located on
+ * the unitsphere, however it must have a Z value >= 0
+ */
+VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point);
+
+VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Calculate the delays when antenna is steered towards angles theta and phi
@@ -90,5 +118,9 @@ VectorXf steering_vector(const Antenna &antenna, float phi, float theta);
 VectorXf steering_vector(const Antenna &antenna, const Position point);
 
 MatrixXf generate_unit_dome(const int n);
+
+void generate_lookup_table(const MatrixXf &dome, MatrixXi &lookup_table);
+
+void test_lookup_table(const MatrixXf &dome, const MatrixXi &lookup_table);
 
 #endif

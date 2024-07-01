@@ -5,10 +5,10 @@
  *
  */
 
+#include <iostream>
 #include "antenna.h"
 
 using namespace Eigen;
-using namespace std;
 
 /**
  * @brief Convert degree to radians
@@ -16,7 +16,7 @@ using namespace std;
  * @param degree The angle to be converted
  * @return angle as radian
  */
-inline float to_radians(float degree) { return degree * (M_PI / 180.0); }
+float to_radians(float degree) { return degree * (M_PI / 180.0); }
 
 /**
  * @brief Helper function to return the middle point of the antenna
@@ -26,7 +26,6 @@ inline float to_radians(float degree) { return degree * (M_PI / 180.0); }
  */
 inline Position find_middle(const Antenna &antenna) {
   return antenna.points.colwise().mean();
-  // return antenna.points.rowwise().mean();
 }
 
 // ********** Antenna in space **********
@@ -35,9 +34,7 @@ inline Position find_middle(const Antenna &antenna) {
  * Place the antenna by positioning the center @ new position
  */
 void place_antenna(Antenna &antenna, const Position position) {
-  antenna.points.rowwise() +=
-      position.transpose() - find_middle(antenna).transpose();
-  // antenna.points.colwise() += position - find_middle(antenna);
+  antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
 }
 
 /**
@@ -46,43 +43,31 @@ void place_antenna(Antenna &antenna, const Position position) {
  */
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance) {
-  float half = distance / 2;
-  MatrixXf points(rows * columns, 3); // (id, X|Y|Z)
+    float half = distance / 2;
+    MatrixXf points(rows * columns, 3); // (id, X|Y|Z)
 
-  // Compute the positions of the antenna in 3D space
-  int i = 0;
-  for (int y = 0; y < columns; y++) {
-    for (int x = 0; x < rows; x++) {
-      points(i, X_INDEX) = x * distance - rows * half + half;
-      points(i, Y_INDEX) = y * distance - columns * half + half;
-      points(i, Z_INDEX) = 0.f;
+    // Compute the positions of the antenna in 3D space
+    int i = 0;
+    for (int y = 0; y < columns; y++) {
+        for (int x = 0; x < rows; x++) {
+            points(i, X_INDEX) = x * distance - rows * half + half;
+            points(i, Y_INDEX) = y * distance - columns * half + half;
+            points(i, Z_INDEX) = 0.f;
 
-      i++;
+            i++;
+        }
     }
-  }
-  // MatrixXf points(3, rows * columns); // (id, X|Y|Z)
-  //
-  // // Compute the positions of the antenna in 3D space
-  // int i = 0;
-  // for (int y = 0; y < columns; y++) {
-  //   for (int x = 0; x < rows; x++) {
-  //     points(X_INDEX, i) = x * distance - rows * half + half;
-  //     points(Y_INDEX, i) = y * distance - columns * half + half;
-  //     points(Z_INDEX, i) = 0.f;
-  //
-  //     i++;
-  //   }
-  // }
 
-  Antenna antenna;
 
-  antenna.id = 0;
-  antenna.points = points;
+    Antenna antenna;
 
-  // Now we place the antenna for the user
-  place_antenna(antenna, position);
+    antenna.id = 0;
+    antenna.points = points;
 
-  return antenna;
+    // Now we place the antenna for the user
+    place_antenna(antenna, position);
+
+    return antenna;
 }
 
 /**
@@ -92,15 +77,13 @@ Antenna create_antenna(const Position &position, const int columns,
  * accomodate for a planar wave
  */
 VectorXf compute_delays(const Antenna &antenna) {
-  VectorXf delays =
-      antenna.points.col(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
-  // VectorXf delays =
-  //     antenna.points.row(Z_INDEX).array() * (SAMPLE_RATE /
-  //     PROPAGATION_SPEED);
-  // There is no need to delay the element that should be closest to source
-  delays.array() -= delays.minCoeff();
+    VectorXf delays =
+            antenna.points.col(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
 
-  return delays;
+    // There is no need to delay the element that should be closest to source
+    delays.array() -= delays.minCoeff();
+
+    return delays;
 }
 
 /**
@@ -112,44 +95,66 @@ VectorXf compute_delays(const Antenna &antenna) {
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-Antenna steer(const Antenna &antenna, const float phi, const float theta) {
-  Matrix3f Rz1, Rx, Rz2;
+Antenna steer(const Antenna &antenna, const float azimuth, const float elevation) {
+    Matrix3f Rz1, Rx, Rz2;
 
-  Rz1 << cos(phi), -sin(phi), 0, sin(phi), cos(phi), 0, 0, 0, 1;
-  Rx << 1, 0, 0, 0, cos(theta), -sin(theta), 0, sin(theta), cos(theta);
-  Rz2 << cos(-phi), -sin(-phi), 0, sin(-phi), cos(-phi), 0, 0, 0, 1;
+    Rz1 << cos(azimuth), -sin(azimuth), 0, sin(azimuth), cos(azimuth), 0, 0, 0, 1;
+    Rx << 1, 0, 0, 0, cos(elevation), -sin(elevation), 0, sin(elevation), cos(elevation);
+    Rz2 << cos(-azimuth), -sin(-azimuth), 0, sin(-azimuth), cos(-azimuth), 0, 0, 0, 1;
 
-  // Perform the rotation. Order of operations are important
-  Matrix3f rotation = Rz2 * (Rx * Rz1);
+    // Perform the rotation. Order of operations are important
+    Matrix3f rotation = Rz2 * (Rx * Rz1);
 
-  Antenna rotated;
-  rotated.points = antenna.points * rotation;
-  rotated.id = antenna.id;
+    Antenna rotated;
+    rotated.points = antenna.points * rotation;
+    rotated.id = antenna.id;
 
-  return rotated;
+    return rotated;
 }
+
+
 
 /**
- * Calculate the delays when antenna is steered towards angles theta and phi
+ * Convert spherical coordinates to cartesian coordinates
  */
-VectorXf steering_vector(const Antenna &antenna, float phi, float theta) {
-  Antenna steered = steer(antenna, phi, theta);
-  VectorXf delays = compute_delays(steered);
+Position spherical_to_cartesian(const float theta, const float phi, const float radius = 1.0f) {
+  Position point;
 
-  return delays;
+  point(X_INDEX) = radius * (float)(cos(theta) * sin(phi));
+    point(Y_INDEX) = radius * (float)(sin(theta) * sin(phi));
+  point(Z_INDEX) = radius * (float)(cos(phi));
+
+  return point;
 }
+    #if 0 // TODO
+Position horizontal_to_cartesian(const float azimuth, const float elevation, const float radius = 1.0f) {
+  Position point;
+
+  point(X_INDEX) = radius * (float)cos((double))
+}
+#endif
+
+  VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation) {
+  Antenna steered = steer(antenna, azimuth, elevation);
+  return compute_delays(steered);
+}
+
 /**
  * Calculate the delays when antenna is steered towards a specific point located
  * on the unitsphere on the positive Z axis. A point may also not be located on
  * the unitsphere, however it must have a Z value >= 0
  */
-VectorXf steering_vector(const Antenna &antenna, const Position point) {
-  float theta, phi;
+VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
+    float azimuth = (float)atan2((double)point(Y_INDEX), (double)point(X_INDEX));
+  float elevation = (float)(M_PI / 2.0f - asin((double)point(Z_INDEX)));
 
-  phi = atan2(point(Y_INDEX), point(X_INDEX));
-  theta = M_PI / 2 - asin(point(Z_INDEX));
+    return steering_vector_horizontal(antenna, azimuth, elevation);
+    }
 
-  return steering_vector(antenna, phi, theta);
+    VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
+  Position point = spherical_to_cartesian(theta, phi);
+
+  return steering_vector_cartesian(antenna, point);
 }
 
 #if 0
@@ -160,23 +165,83 @@ int main() {
 
   // cout << create_antenna(position, COLUMNS, ROWS, DISTANCE) << endl;
 }
+
 #endif
 
+
 MatrixXf generate_unit_dome(const int n) {
-  MatrixXf points(n, 3); // (id, X|Y|Z)
+    MatrixXf points(n, 3); // (id, X|Y|Z)
 
-  double phi, theta;
+    double phi, theta;
 
-  double magic = 2.0 * M_PI / 1.618033988749;
+    double magic = 2.0 * M_PI / 1.618033988749;
 
-  for (int i = 0; i < n; i++) {
-    phi = acos(1.0 - (double)i / double(n));
-    theta = (double)i * magic;
+    for (int i = 0; i < n; i++) {
+        phi = acos(1.0 - (double) i / double(n));
+        theta = (double) i * magic;
 
-    points(i, X_INDEX) = (float)(cos(theta) * sin(phi));
-    points(i, Y_INDEX) = (float)(sin(theta) * sin(phi));
-    points(i, Z_INDEX) = (float)(cos(phi));
-  }
+        points(i, X_INDEX) = (float) (cos(theta) * sin(phi));
+        points(i, Y_INDEX) = (float) (sin(theta) * sin(phi));
+        points(i, Z_INDEX) = (float) (cos(phi));
+    }
 
-  return points;
+    return points;
+}
+
+void generate_lookup_table(const MatrixXf &dome, MatrixXi &lookup_table) {
+    for (int phi = 0; phi < 90; ++phi) {
+        for (int theta = 0; theta < 360; ++theta) {
+            int best_match = -1;
+            float min_dist = 1000000.0f;
+            for (int i = 0; i < dome.size(); ++i) {
+                float phi_radians = to_radians(float(phi));
+                float theta_radians = to_radians(float(theta));
+                float x = cos(theta_radians) * sin(phi_radians);
+                float y = sin(theta_radians) * sin(phi_radians);
+                float z = cos(phi_radians);
+
+                auto dist = float(sqrt(
+                        pow(x - dome(i, X_INDEX), 2) +
+                        pow(y - dome(i, Y_INDEX), 2) +
+                        pow(z - dome(i, Z_INDEX), 2)));
+
+                best_match = dist < min_dist ? i : best_match;
+                min_dist = dist < min_dist ? dist : min_dist;
+            }
+            lookup_table(phi, theta) = best_match;
+        }
+    }
+}
+
+void test_lookup_table(const MatrixXf &dome, const MatrixXi &lookup_table) {
+    constexpr int TEST_CASES = 10000;
+    constexpr float MAX_ALLOWED_DISTANCE = 0.2f;
+    int failed_tests = 0;
+    for (int i = 0; i < TEST_CASES; ++i) {
+        int phi = rand() % 90;
+        int theta = rand() % 360;
+
+        int index = lookup_table(phi, theta);
+        auto point = dome.row(index);
+
+        float phi_radians = to_radians(float(phi));
+        float theta_radians = to_radians(float(theta));
+        float x = cos(theta_radians) * sin(phi_radians);
+        float y = sin(theta_radians) * sin(phi_radians);
+        float z = cos(phi_radians);
+
+        auto dist = float(sqrt(
+                pow(x - point(X_INDEX), 2) +
+                pow(y - point(Y_INDEX), 2) +
+                pow(z - point(Z_INDEX), 2)));
+
+        if(dist > MAX_ALLOWED_DISTANCE) {
+            failed_tests++;
+            std::cout << "Test failed: " << dist << " > " << MAX_ALLOWED_DISTANCE << std::endl;
+            std::cout << "Phi: " << phi << " Theta: " << theta << std::endl;
+            std::cout << "Random point: " << x << " " << y << " " << z << std::endl;
+            std::cout << "Looked up: " << point(X_INDEX) << " " << point(Y_INDEX) << " " << point(Z_INDEX) << std::endl;
+        }
+    }
+    std::cout << "Completed " << TEST_CASES - failed_tests << "/" << TEST_CASES << " tests" << std::endl;
 }

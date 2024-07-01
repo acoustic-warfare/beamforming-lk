@@ -1,14 +1,21 @@
-# Docker-tftpd
-FROM ubuntu:latest
-
-# Build
+#
+# Author: Irreq
+#
+# Dockerfile for TFTP server to host bitstreams and .elf file for the FPGA
+#
+# To build the container run the following command:
+# 
 # docker build -t tftpd .
-
-# Start the container
-# docker run -it -d --rm --network=host -v YOUR_PATH:/var/lib/tftpboot --name tftp-server tftpd
-
-# Stop the service
+#
+# To run the container
+# 
+# docker run -it -d --rm --network=host -v $(pwd)/tftp:/var/lib/tftpboot --name tftp-server tftpd
+#
+# To stop the service
+#
 # docker kill tftp-server
+
+FROM ubuntu:22.04
 
 # Install tftpd-hpa deamon
 RUN apt-get update
