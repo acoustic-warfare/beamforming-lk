@@ -9,6 +9,8 @@
 
 #define PI_HALF M_PI / 2.0
 
+#define TO_RADIANS(degree) degree * (M_PI / 180.0)
+
 #include "config.h"
 #include <Eigen/Dense>
 #include <cmath>
@@ -28,7 +30,7 @@ typedef struct {
   int id;
 } Antenna;
 
-float to_radians(float degree);
+//float to_radians(float degree);
 
 /**
  * Find the center of antenna
@@ -73,19 +75,18 @@ Eigen::VectorXf compute_delays(const Antenna &antenna);
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-Antenna steer(const Antenna &antenna, const float theta, const float phi);
-
+Antenna steer(const Antenna &antenna, const double theta, const double phi);
 
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
-Position spherical_to_cartesian(const float theta, const float phi, const float radius);
+Position spherical_to_cartesian(const double theta, const double phi, const double radius);
 
 /**
  * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation
  * is up and down.
  */
-Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation);
+Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation);
 
 /**
  * Calculate the delays when antenna is steered towards a specific point located
@@ -97,14 +98,7 @@ Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position
 /**
  * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
  */
-Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi);
-
-/**
- * Calculate the delays when antenna is steered towards angles theta and phi
- */
-Eigen::VectorXf steering_vector(const Antenna &antenna, float phi, float theta);
-
-
+Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi);
 
 Eigen::MatrixXf generate_unit_dome(const int n);
 

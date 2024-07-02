@@ -14,7 +14,7 @@
  * @param degree The angle to be converted
  * @return angle as radian
  */
-float to_radians(float degree) { return degree * (M_PI / 180.0); }
+//double to_radians(float degree) { return degree * (M_PI / 180.0); }
 
 /**
  * @brief Helper function to return the middle point of the antenna
@@ -93,17 +93,17 @@ Eigen::VectorXf compute_delays(const Antenna &antenna) {
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-inline Antenna steer(const Antenna &antenna, const float theta, const float phi) {
+inline Antenna steer(const Antenna &antenna, const double theta, const double phi) {
     Eigen::Matrix3f Rz1, Rx, Rz2;
 
-    Rz1 << (float)cos((double)theta), -(float)sin((double)theta), 0.0f, \
-           (float)sin((double)theta), (float)cos((double)theta), 0.0f, \
+    Rz1 << (float)cos(theta), -(float)sin(theta), 0.0f, \
+           (float)sin(theta), (float)cos(theta), 0.0f, \
            0.0f, 0.0f, 1.0f;
     Rx << 1.0f, 0.0f, 0.0f, \
-          0.0f, (float)cos((double)phi), -(float)sin((double)phi), \
-          0.0f, (float)sin((double)phi), (float)cos((double)phi);
-    Rz2 << (float)cos((double)-theta), -(float)sin((double)-theta), 0.0f, \
-           (float)sin((double)-theta), (float)cos((double)-theta), 0.0f, \
+          0.0f, (float)cos(phi), -(float)sin(phi), \
+          0.0f, (float)sin(phi), (float)cos(phi);
+    Rz2 << (float)cos(-theta), -(float)sin(-theta), 0.0f, \
+           (float)sin(-theta), (float)cos(-theta), 0.0f, \
            0.0f, 0.0f, 1.0f;
 
     // Perform the rotation. Order of operations are important
@@ -119,12 +119,12 @@ inline Antenna steer(const Antenna &antenna, const float theta, const float phi)
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
-Position spherical_to_cartesian(const float theta, const float phi, const float radius = 1.0f) {
+Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0f) {
   Position point;
 
-  point(X_INDEX) = radius * (float)(cos(theta) * sin(phi));
-  point(Y_INDEX) = radius * (float)(sin(theta) * sin(phi));
-  point(Z_INDEX) = radius * (float)(cos(phi));
+  point(X_INDEX) = (float)(radius * (cos(theta) * sin(phi)));
+  point(Y_INDEX) = (float)(radius * (sin(theta) * sin(phi)));
+  point(Z_INDEX) = (float)(radius * (cos(phi)));
 
   return point;
 }
@@ -133,11 +133,11 @@ Position spherical_to_cartesian(const float theta, const float phi, const float 
  * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation 
  * is up and down.
  */
-Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const float azimuth, const float elevation) {
-  double x = sin((double)azimuth);
-  double y = sin((double)elevation);
-  float theta = (float)atan2(y, x);
-  float phi = (float)(PI_HALF - asin(sqrt(1 - pow(x, 2) - pow(y, 2))));
+Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation) {
+  double x = sin(azimuth);
+  double y = sin(elevation);
+  double theta = atan2(y, x);
+  double phi = (PI_HALF - asin(sqrt(1 - pow(x, 2) - pow(y, 2))));
 
   Antenna steered = steer(antenna, theta, phi);
   return compute_delays(steered);
@@ -149,16 +149,16 @@ Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const float a
  * the unitsphere, however it must have a Z value >= 0
  */
 Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
-    float azimuth = (float)atan2((double)point(Y_INDEX), (double)point(X_INDEX));
-  float elevation = (float)(M_PI / 2.0f - asin((double)point(Z_INDEX)));
-
-    return steering_vector_horizontal(antenna, azimuth, elevation);
-    }
+  double azimuth = atan2((double)point(Y_INDEX), (double)point(X_INDEX));
+  double elevation = M_PI / 2.0f - asin((double)point(Z_INDEX));
+  
+  return steering_vector_horizontal(antenna, azimuth, elevation);
+}
 
 /**
  * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
  */
-Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
+Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi) {
   Antenna steered = steer(antenna, theta, phi);
   return compute_delays(steered);
 }
@@ -189,8 +189,8 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
             int best_match = -1;
             float min_dist = 1000000.0f;
             for (int i = 0; i < dome.size(); ++i) {
-                float phi_radians = to_radians(float(phi));
-                float theta_radians = to_radians(float(theta));
+                float phi_radians = TO_RADIANS(float(phi));
+                float theta_radians = TO_RADIANS(float(theta));
                 float x = cos(theta_radians) * sin(phi_radians);
                 float y = sin(theta_radians) * sin(phi_radians);
                 float z = cos(phi_radians);
@@ -219,8 +219,8 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
         int index = lookup_table(phi, theta);
         auto point = dome.row(index);
 
-        float phi_radians = to_radians(float(phi));
-        float theta_radians = to_radians(float(theta));
+        float phi_radians = TO_RADIANS(double(phi));
+        float theta_radians = TO_RADIANS(double(theta));
         float x = cos(theta_radians) * sin(phi_radians);
         float y = sin(theta_radians) * sin(phi_radians);
         float z = cos(phi_radians);
