@@ -89,7 +89,7 @@ int main() {
   // Connect to UDP stream
   pipeline->connect(options);
   std::cout << "\rn_sensors_ 0 MAIN: " << options[0]->n_sensors_ << std::endl;
-  std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
+  //std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
   // std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
   pipeline->magnitudeHeatmap = &magnitudeHeatmap;  // TODO: in constructor?

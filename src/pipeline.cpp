@@ -35,18 +35,10 @@ int Pipeline::connect(
   connected = 1;
 
   for (int i = 0; i < N_FPGAS; i++) {
-    // BeamformingOptions *config;
-    // options->emplace_back(&config);
-    // BeamformingOptions *config = options[i];
-
-    // options->emplace_back();
-    // BeamformingOptions *config = &options->back();
-
     options.emplace_back(std::make_unique<BeamformingOptions>());
     BeamformingOptions* config = options.back().get();
 
     int n = number_of_sensors(i, config);
-    std::cout << "number of sensors: " << n << std::endl;
     std::cout << "\rn_sensors_ PIPELINE: " << config->n_sensors_ << std::endl;
 
     for (int s = 0; s < n; s++) {
@@ -127,11 +119,7 @@ void Pipeline::release_barrier() {
  * The main distributer of data to the threads (this is also a thread)
  */
 void Pipeline::producer(
-    std::vector<std::unique_ptr<BeamformingOptions>> &options) {
-  std::cout << "\rn_sensors_ 0 PRODUCER: " << options[0]->n_sensors_ << std::endl;
-  std::cout << "\rn_sensors_ 1 PRODUCER: " << options[1]->n_sensors_ << std::endl;
-  //std::cout << "\rn_sensors_ PRODUCER: " << options[3]->n_sensors_ << std::endl;
-  
+    std::vector<std::unique_ptr<BeamformingOptions>>& options) {
   while (isRunning()) {
     // receive_offset(&rb); // Fill buffer
     receive_exposure(streams_dist, options);

@@ -7,9 +7,15 @@
 #define RECEIVER_DEBUG 0
 #define HEADER_SIZE 2
 
-#define NUM_IPS 4
-const char *ip_addresses[NUM_IPS] = {"192.168.1.75", "192.168.1.76",
-                                     "192.168.1.77", "192.168.1.78"};
+#define DEBUG_IP 0
+
+//TODO: Add into config?
+#if DEBUG_IP
+const char *ip_addresses[] = {"10.0.0.1"};
+#else
+const char *ip_addresses[] = {"192.168.1.75", "192.168.1.76", "192.168.1.77",
+                              "192.168.1.78"};
+#endif
 
 #if RECEIVER_DEBUG
 
@@ -115,12 +121,12 @@ int receive_exposure(
     // Convert IP address from binary to text form
     inet_ntop(AF_INET, &(source_addr.sin_addr), ip, INET_ADDRSTRLEN);
 
-    for (int i = 0; i < NUM_IPS; ++i) {
-      if (strcmp(ip, ip_addresses[i]) == 0) {
-        streams_id = i;
-        break;
-      }
-    }
+     for (int i = 0; i < N_FPGAS; ++i) {
+       if (strcmp(ip, ip_addresses[i]) == 0) {
+         streams_id = i;
+         break;
+       }
+     }
 
     if (streams_id == N_FPGAS + 1) {
       std::cerr << "Unknown IP: " << ip << std::endl;
@@ -231,7 +237,7 @@ int number_of_sensors(int id, BeamformingOptions *config) {
   std::cerr << "Unknown IP: " << ip << std::endl;
 }
 
-#if 0 //TODO: N_SENSORS NEED TO BE UPDATED
+#if 0  // TODO: N_SENSORS NEED TO BE UPDATED
 float sine[2 * 48828];
 
 
@@ -320,7 +326,7 @@ int main() { //TODO: N_SENSORS NEED TO BE UPDATED
 }
 #endif
 
-#if 0 //TODO: N_SENSORS NEED TO BE UPDATED
+#if 0  // TODO: N_SENSORS NEED TO BE UPDATED
 
 #include <cmath>
 #include <cstdlib>
