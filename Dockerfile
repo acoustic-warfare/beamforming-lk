@@ -31,7 +31,11 @@ RUN apt-get install -y \
 RUN apt-get install -y \
     libopencv-dev \
     libeigen3-dev \
-    librtaudio-dev
+    libasound-dev \
+    portaudio19-dev \
+    libportaudio2  \
+    libportaudiocpp0
+
 
 RUN apt-get install -y \
     python3-yaml
@@ -43,14 +47,20 @@ RUN apt-get install -y \
     git \
     libboost-dev \
     libssl-dev \
-    libpaho-mqtt-dev \
-    libpaho-mqttpp-dev \
     nlohmann-json3-dev
 
+RUN git clone https://github.com/eclipse/paho.mqtt.cpp.git
+WORKDIR /paho.mqtt.cpp
+RUN git submodule init \
+    && git submodule update \
+    && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON \
+    && cmake --build build/ --target install
+
+WORKDIR /
 RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git 
-RUN mkdir -p WARA-PS-MQTT-Agent/build
-WORKDIR /WARA-PS-MQTT-Agent/build
-RUN cmake .. && make install
+WORKDIR /WARA-PS-MQTT-Agent
+RUN cmake -S . -B build \
+    && cmake --build build --target install
 
 WORKDIR /
 RUN git clone https://github.com/Rookfighter/pso-cpp.git
