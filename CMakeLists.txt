@@ -139,7 +139,7 @@ find_package(Boost REQUIRED)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
-find_package(portaudio REQUIRED)
+#find_package(portaudio REQUIRED)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -167,9 +167,9 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
+        #${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
+        #${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
 )
 
 
@@ -185,7 +185,7 @@ target_link_libraries(beamformer
         WaraPSClient
         nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
-        portaudio
+        #portaudio
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
