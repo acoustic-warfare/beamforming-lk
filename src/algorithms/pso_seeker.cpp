@@ -47,7 +47,7 @@ void Particle::random() {
   elevation = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
 }
 
-float Particle::compute(float azimuth, float elevation) {
+float Particle::compute(double azimuth, double elevation) {
   Eigen::VectorXf tmp_delays = steering_vector_horizontal(antenna, azimuth, elevation);
   float fractional_delays[N_SENSORS];
   int offset_delays[N_SENSORS];
@@ -78,13 +78,13 @@ void Particle::update() {
 
 
 
-inline float clip(float n, float lower, float upper) {
+inline float clip(const double n, const double lower, const double upper) {
   return std::max(lower, std::min(n, upper));
 }
 
-inline float wrapAngle( float angle )
+inline double wrapAngle(const double angle)
 {
-    return (float)(angle - TWO_PI * floor( angle / TWO_PI));
+    return angle - TWO_PI * floor( angle / TWO_PI);
 }
 
 
@@ -110,19 +110,19 @@ void PSO::initialize_particles() {
 }
 
 void PSO::optimize(int iterations) {
-  float w = 0.5f, c1 = 2.0f, c2 = 2.0f;
-  float amount = 1.5;
-  float delta = to_radians(FOV / iterations * 2.0) * amount;
+  double w = 0.5f, c1 = 2.0f, c2 = 2.0f;
+  double amount = 1.5;
+  double delta = TO_RADIANS(FOV / (double)iterations * 2.0) * amount;
   global_best_magnitude *= 0.9f;
 
   for (int i = 0; i < iterations; i++) {
     for (auto& particle : particles) {
       particle.velocity_azimuth = w * particle.velocity_azimuth \
-      + c1 * static_cast<float>(rand()) / RAND_MAX * (particle.best_azimuth - particle.azimuth) * LOCAL_AREA_RATIO \
-      + c2 * static_cast<float>(rand()) / RAND_MAX * (global_best_azimuth - particle.azimuth) * GLOBAL_AREA_RATIO;
+      + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_azimuth - particle.azimuth) * LOCAL_AREA_RATIO \
+      + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_azimuth - particle.azimuth) * GLOBAL_AREA_RATIO;
       particle.velocity_elevation = w * particle.velocity_elevation \
-      + c1 * static_cast<float>(rand()) / RAND_MAX * (particle.best_elevation - particle.elevation) * LOCAL_AREA_RATIO \
-      + c2 * static_cast<float>(rand()) / RAND_MAX * (global_best_elevation - particle.elevation) * GLOBAL_AREA_RATIO;
+      + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_elevation - particle.elevation) * LOCAL_AREA_RATIO \
+      + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_elevation - particle.elevation) * GLOBAL_AREA_RATIO;
       particle.azimuth += particle.velocity_azimuth * delta;
       particle.elevation += particle.velocity_elevation * delta;
       
@@ -188,10 +188,10 @@ void pso_finder(Pipeline *pipeline) {
 
 #if 1
     for (auto& particle : pso.particles) {
-      float azimuth = particle.best_azimuth;
-      float elevation = particle.best_elevation;
-      int xi = (int)((double)X_RES * (sin((double)azimuth) / 2.0 + 0.5));
-      int yi = (int)((double)Y_RES * (sin((double)elevation) / 2.0 + 0.5));
+      double azimuth = particle.best_azimuth;
+      double elevation = particle.best_elevation;
+      int xi = (int)((double)X_RES * (sin(azimuth) / 2.0 + 0.5));
+      int yi = (int)((double)Y_RES * (sin(elevation) / 2.0 + 0.5));
       
       pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar)(255);
     }
