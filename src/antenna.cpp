@@ -8,8 +8,6 @@
 #include <iostream>
 #include "antenna.h"
 
-using namespace Eigen;
-
 /**
  * @brief Convert degree to radians
  *
@@ -44,7 +42,7 @@ void place_antenna(Antenna &antenna, const Position position) {
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance) {
     float half = distance / 2;
-    MatrixXf points(rows * columns, 3); // (id, X|Y|Z)
+    Eigen::MatrixXf points(rows * columns, 3); // (id, X|Y|Z)
 
     // Compute the positions of the antenna in 3D space
     int i = 0;
@@ -76,8 +74,8 @@ Antenna create_antenna(const Position &position, const int columns,
  * distance to the target and is used to calculate the necessary delays to
  * accomodate for a planar wave
  */
-VectorXf compute_delays(const Antenna &antenna) {
-    VectorXf delays =
+Eigen::VectorXf compute_delays(const Antenna &antenna) {
+    Eigen::VectorXf delays =
             antenna.points.col(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
 
     // There is no need to delay the element that should be closest to source
@@ -95,15 +93,21 @@ VectorXf compute_delays(const Antenna &antenna) {
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-Antenna steer(const Antenna &antenna, const float azimuth, const float elevation) {
-    Matrix3f Rz1, Rx, Rz2;
+inline Antenna steer(const Antenna &antenna, const float theta, const float phi) {
+    Eigen::Matrix3f Rz1, Rx, Rz2;
 
-    Rz1 << cos(azimuth), -sin(azimuth), 0, sin(azimuth), cos(azimuth), 0, 0, 0, 1;
-    Rx << 1, 0, 0, 0, cos(elevation), -sin(elevation), 0, sin(elevation), cos(elevation);
-    Rz2 << cos(-azimuth), -sin(-azimuth), 0, sin(-azimuth), cos(-azimuth), 0, 0, 0, 1;
+    Rz1 << (float)cos((double)theta), -(float)sin((double)theta), 0.0f, \
+           (float)sin((double)theta), (float)cos((double)theta), 0.0f, \
+           0.0f, 0.0f, 1.0f;
+    Rx << 1.0f, 0.0f, 0.0f, \
+          0.0f, (float)cos((double)phi), -(float)sin((double)phi), \
+          0.0f, (float)sin((double)phi), (float)cos((double)phi);
+    Rz2 << (float)cos((double)-theta), -(float)sin((double)-theta), 0.0f, \
+           (float)sin((double)-theta), (float)cos((double)-theta), 0.0f, \
+           0.0f, 0.0f, 1.0f;
 
     // Perform the rotation. Order of operations are important
-    Matrix3f rotation = Rz2 * (Rx * Rz1);
+    Eigen::Matrix3f rotation = Rz2 * (Rx * Rz1);
 
     Antenna rotated;
     rotated.points = antenna.points * rotation;
@@ -112,8 +116,6 @@ Antenna steer(const Antenna &antenna, const float azimuth, const float elevation
     return rotated;
 }
 
-
-
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
@@ -121,21 +123,23 @@ Position spherical_to_cartesian(const float theta, const float phi, const float 
   Position point;
 
   point(X_INDEX) = radius * (float)(cos(theta) * sin(phi));
-    point(Y_INDEX) = radius * (float)(sin(theta) * sin(phi));
+  point(Y_INDEX) = radius * (float)(sin(theta) * sin(phi));
   point(Z_INDEX) = radius * (float)(cos(phi));
 
   return point;
 }
-    #if 0 // TODO
-Position horizontal_to_cartesian(const float azimuth, const float elevation, const float radius = 1.0f) {
-  Position point;
 
-  point(X_INDEX) = radius * (float)cos((double))
-}
-#endif
+/**
+ * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation 
+ * is up and down.
+ */
+Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const float azimuth, const float elevation) {
+  double x = sin((double)azimuth);
+  double y = sin((double)elevation);
+  float theta = (float)atan2(y, x);
+  float phi = (float)(PI_HALF - asin(sqrt(1 - pow(x, 2) - pow(y, 2))));
 
-  VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation) {
-  Antenna steered = steer(antenna, azimuth, elevation);
+  Antenna steered = steer(antenna, theta, phi);
   return compute_delays(steered);
 }
 
@@ -144,33 +148,24 @@ Position horizontal_to_cartesian(const float azimuth, const float elevation, con
  * on the unitsphere on the positive Z axis. A point may also not be located on
  * the unitsphere, however it must have a Z value >= 0
  */
-VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
+Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
     float azimuth = (float)atan2((double)point(Y_INDEX), (double)point(X_INDEX));
   float elevation = (float)(M_PI / 2.0f - asin((double)point(Z_INDEX)));
 
     return steering_vector_horizontal(antenna, azimuth, elevation);
     }
 
-    VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
-  Position point = spherical_to_cartesian(theta, phi);
-
-  return steering_vector_cartesian(antenna, point);
+/**
+ * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
+ */
+Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi) {
+  Antenna steered = steer(antenna, theta, phi);
+  return compute_delays(steered);
 }
 
-#if 0
-#include <iostream>
-int main() {
-  // Test the antenna
-  Vector3f position(0, 0, 0);
 
-  // cout << create_antenna(position, COLUMNS, ROWS, DISTANCE) << endl;
-}
-
-#endif
-
-
-MatrixXf generate_unit_dome(const int n) {
-    MatrixXf points(n, 3); // (id, X|Y|Z)
+Eigen::MatrixXf generate_unit_dome(const int n) {
+    Eigen::MatrixXf points(n, 3); // (id, X|Y|Z)
 
     double phi, theta;
 
@@ -188,7 +183,7 @@ MatrixXf generate_unit_dome(const int n) {
     return points;
 }
 
-void generate_lookup_table(const MatrixXf &dome, MatrixXi &lookup_table) {
+void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_table) {
     for (int phi = 0; phi < 90; ++phi) {
         for (int theta = 0; theta < 360; ++theta) {
             int best_match = -1;
@@ -213,7 +208,7 @@ void generate_lookup_table(const MatrixXf &dome, MatrixXi &lookup_table) {
     }
 }
 
-void test_lookup_table(const MatrixXf &dome, const MatrixXi &lookup_table) {
+void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &lookup_table) {
     constexpr int TEST_CASES = 10000;
     constexpr float MAX_ALLOWED_DISTANCE = 0.2f;
     int failed_tests = 0;

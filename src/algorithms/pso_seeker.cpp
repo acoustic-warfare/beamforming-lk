@@ -12,12 +12,8 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays) {
       float fraction = fractional_delays[s - 64];
       int offset = offset_delays[s - 64];
 
-      float *signal = (float *)((char *)streams->buffers[s] +
-                                streams->position + offset * sizeof(float));
-
-      for (int i = 0; i < N_SAMPLES; i++) {
-        out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
-      }
+      float *signal = streams->get_signal(s, offset);
+      delay(&out[0], signal, fraction);
 
       n++;
     }
@@ -88,8 +84,7 @@ inline float clip(float n, float lower, float upper) {
 
 inline float wrapAngle( float angle )
 {
-    double twoPi = 2.0 * 3.141592865358979;
-    return (float)(angle - twoPi * floor( angle / twoPi ));
+    return (float)(angle - TWO_PI * floor( angle / TWO_PI));
 }
 
 
@@ -116,11 +111,10 @@ void PSO::initialize_particles() {
 
 void PSO::optimize(int iterations) {
   float w = 0.5f, c1 = 2.0f, c2 = 2.0f;
-  float delta = to_radians(FOV / iterations * 2.0);
+  float amount = 1.5;
+  float delta = to_radians(FOV / iterations * 2.0) * amount;
   global_best_magnitude *= 0.9f;
-  for (auto& particle : particles) {
-    particle.random();
-  }
+
   for (int i = 0; i < iterations; i++) {
     for (auto& particle : particles) {
       particle.velocity_azimuth = w * particle.velocity_azimuth \
@@ -132,9 +126,6 @@ void PSO::optimize(int iterations) {
       particle.azimuth += particle.velocity_azimuth * delta;
       particle.elevation += particle.velocity_elevation * delta;
       
-      //particle.azimuth = wrapAngle(particle.azimuth);
-      //particle.azimuth %= (float)(2.0*M_PI); //clip(particle.azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
-      //particle.elevation = clip(particle.elevation, to_radians(5.0), to_radians(80.0)); // Should be 2pi
       particle.azimuth = clip(particle.azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
       particle.elevation = clip(particle.elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
 
@@ -187,42 +178,37 @@ void pso_finder(Pipeline *pipeline) {
 
     pso.optimize(30);
 
-    Eigen::Vector3f sample = pso.sanitize();
-
-    float azimuth = sample(0);
-    float elevation = sample(1);
-
-    azimuth = clip(azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
-    elevation = clip(elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
-
-    //float x = (float)(cos((double)theta) * sin((double)phi));
-    //float y = (float)(sin((double)theta) * sin((double)phi));
-
-    //float x = (float)(cos((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
-    //float y = (float)(sin((double)pso.global_best_theta) * sin((double)pso.global_best_phi));
-    
-    //int xi = (int)((x + 1.0) / 2.0 * X_RES);
-    //int yi = (int)((y + 1.0) / 2.0 * Y_RES);
+    //Eigen::Vector3f sample = pso.sanitize();
+    //float azimuth = sample(0);
+    //float elevation = sample(1);
+    //azimuth = clip(azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
+    //elevation = clip(elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
 
     pipeline->magnitudeHeatmap->setTo(cv::Scalar(0));
 
+#if 1
     for (auto& particle : pso.particles) {
-      azimuth = particle.best_azimuth;
-      elevation = particle.best_elevation;
-      int xi = (int)((double)X_RES * (azimuth + ANGLE_LIMIT) / 2.0);
-      int yi = (int)((double)Y_RES * (elevation + ANGLE_LIMIT) / 2.0);
+      float azimuth = particle.best_azimuth;
+      float elevation = particle.best_elevation;
+      int xi = (int)((double)X_RES * (sin((double)azimuth) / 2.0 + 0.5));
+      int yi = (int)((double)Y_RES * (sin((double)elevation) / 2.0 + 0.5));
       
-      //magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
-      //magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
-      pipeline->magnitudeHeatmap->at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+      pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar)(255);
     }
+#else
 
-    //int xi = (int)((double)X_RES * ((theta) + to_radians(FOV / 2)) / 2.0);
-    //int yi = (int)((double)Y_RES * ((phi) + to_radians(FOV / 2)) / 2.0);
-    //
-    ////magnitudeHeatmap.at<uchar>(prevY, prevX) = (uchar)(0);
-    ////magnitudeHeatmap.at<uchar>(yi, xi) = (uchar)(255);
-    //magnitudeHeatmap.at<uchar>(Y_RES - 1 - yi, xi) = (uchar)(255);
+    Eigen::Vector3f res = pso.sanitize();
+
+    double x = sin((double)res(0));
+    double y = sin((double)res(1));
+
+    int xi = (int)((double)X_RES * (x / 2.0 + 0.5));
+    int yi = (int)((double)Y_RES * (y / 2.0 + 0.5));
+
+    pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar)(255);
+
+#endif
+
     //prevX = xi;
     //prevY = yi;
     pipeline->canPlot = 1;

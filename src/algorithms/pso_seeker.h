@@ -9,6 +9,7 @@
 #include "../antenna.h"
 #include "../streams.hpp"
 #include "../pipeline.h"
+#include "../delay.h"
 
 #if USE_KALMAN_FILTER
 #include "../kf.h"
