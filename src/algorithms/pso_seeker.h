@@ -21,9 +21,9 @@
 
 class Particle {
 public:
-  double azimuth, elevation;
-  double velocity_azimuth, velocity_elevation;
-  double best_azimuth, best_elevation;
+  double theta, phi;
+  double velocity_theta, velocity_phi;
+  double best_theta, best_phi;
   float best_magnitude;
 
   Antenna &antenna;
@@ -35,7 +35,7 @@ public:
 
   void random();
 
-  float compute(double azimuth, double elevation);
+  float compute(double theta, double phi);
 
   void update();
 };
@@ -45,7 +45,7 @@ public:
 class PSO {
 public:
   std::vector<Particle> particles;
-  double global_best_azimuth, global_best_elevation;
+  double global_best_theta, global_best_phi;
   float global_best_magnitude;
   int n_particles;
   Antenna &antenna;
