@@ -7,10 +7,7 @@
 #include <cmath>
 #include <vector>
 
-
-const int channels = 1;
-constexpr int device = 0;                     // 0 indicates the default or first available device
-constexpr double frequency = 3 * 440.0;
+constexpr int device = 0;
 
 static int audioCallback(const void *_, void *outputBuffer,
                          unsigned long framesPerBuffer,
@@ -22,20 +19,55 @@ static int audioCallback(const void *_, void *outputBuffer,
 
     (void) _;// Ignore unused variable warning for input buffer
 
-    in->read_stream(124, out, 0);
+    for (int i = 0; i < framesPerBuffer; ++i) {
+        out[i] = in->buffers[0][i];
+    }
 
     return 0;
 }
 
-AudioWrapper::AudioWrapper(Streams &streams) : _streams(streams) {
+AudioWrapper::AudioWrapper(Streams &streams) : AudioWrapper(streams, false){};
+
+AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), debug_(debug) {
     Pa_Initialize();
-    Pa_OpenDefaultStream(&audio_stream_, 0, channels, paFloat32,
-                         SAMPLE_RATE, 256, audioCallback, &streams);
+
+    if (debug_) {
+        const int deviceAmt = Pa_GetDeviceCount();
+        for (int i = 0; i < deviceAmt; ++i) {
+            const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(i);
+            const string deviceName = Pa_GetHostApiInfo(deviceInfo->hostApi)->name;
+            std::cout << "Device: " << deviceInfo->name << " Api: " << deviceName << std::endl;
+            std::cout << deviceInfo->defaultSampleRate << std::endl;
+            std::cout << deviceInfo->maxOutputChannels << std::endl;
+            std::cout << deviceInfo->defaultSampleRate << std::endl;
+        }
+    }
+
+    PaError err = paNoError;
+
+    PaStreamParameters out_param;
+    out_param.device = Pa_GetDefaultOutputDevice();
+    out_param.channelCount = 2;
+    out_param.hostApiSpecificStreamInfo = nullptr;
+    out_param.sampleFormat = paFloat32;
+    out_param.suggestedLatency = 0;
+
+    err = Pa_OpenStream(&audio_stream_,
+                        nullptr,
+                        &out_param,
+                        SAMPLE_RATE,
+                        256,
+                        paNoFlag,
+                        audioCallback,
+                        &streams);
+
+    if (err != paNoError) {
+        std::cerr << "Unable to open stream, error code " << err << std::endl;
+    }
 }
 
 
 void AudioWrapper::start_audio_playback() {
-    float data[256];
     Pa_StartStream(audio_stream_);
     is_on_ = true;
 }

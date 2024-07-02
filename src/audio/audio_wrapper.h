@@ -13,10 +13,12 @@
 
 class AudioWrapper {
 private:
+    AudioWrapper(Streams &streams, bool debug);
     Streams _streams;
     std::thread producer_thread_;
     atomic<bool> is_on_ = false;
-    PaStream *audio_stream_{};
+    bool debug_ = false;
+    PaStream *audio_stream_ = nullptr;
 
 public:
     explicit AudioWrapper(Streams &streams);
