@@ -106,8 +106,8 @@ void PSO::initialize_particles() {
 
         if (particle.best_magnitude > global_best_magnitude) {
             global_best_magnitude = particle.best_magnitude;
-            global_best_azimuth = particle.best_azimuth;
-            global_best_elevation = particle.best_elevation;
+            global_best_theta = particle.best_theta;
+            global_best_phi = particle.best_phi;
         }
     }
 }
@@ -140,6 +140,7 @@ void PSO::optimize(int iterations) {
         global_best_phi = particle.best_phi;
       }
     }
+  }
 }
 
 Eigen::Vector3f PSO::sanitize() {
