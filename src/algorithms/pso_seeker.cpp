@@ -31,47 +31,54 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays) {
 
 
 Particle::Particle(Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams) {
-    azimuth = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
-    elevation = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
-    velocity_azimuth = 0.0f;
-    velocity_elevation = 0.0f;
-    best_azimuth = azimuth;
-    best_elevation = elevation;
-    best_magnitude = compute(azimuth, elevation);
+    //theta = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
+    //phi = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
+    random();
+    velocity_theta = 0.0f;
+    velocity_phi = 0.0f;
+    best_theta = theta;
+    best_phi = phi;
+    best_magnitude = compute(theta, phi);
 }
 
 
 void Particle::random() {
-    azimuth = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
-    elevation = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
+  theta = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * (2.0 * PI);
+  phi = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * PI_HALF;
+  //particle.theta = wrapAngle(particle.theta);
+  //particle.phi = clip(particle.phi, 0.0, PI_HALF);
+  
 }
 
-float Particle::compute(double azimuth, double elevation) {
-    Eigen::VectorXf tmp_delays = steering_vector_horizontal(antenna, azimuth, elevation);
-    float fractional_delays[N_SENSORS];
-    int offset_delays[N_SENSORS];
-    int i = 0;
-    for (float del: tmp_delays) {
-        double _offset;
-        float fraction;
-        fraction = (float) modf((double) del, &_offset);
-        int offset = N_SAMPLES - (int) _offset;
-        // cout << del << endl;
-        fractional_delays[i] = fraction;
-        offset_delays[i] = offset;
-        i++;
-    }
-    return beamform(streams, &offset_delays[0], &fractional_delays[0]);
+float Particle::compute(double theta, double phi) {
+  Eigen::VectorXf tmp_delays = steering_vector_spherical(antenna, theta, phi);
+  //Eigen::VectorXf tmp_delays = steering_vector_horizontal(antenna, azimuth, elevation);
+  float fractional_delays[N_SENSORS];
+  int offset_delays[N_SENSORS];
+  int i = 0;
+  for (float del : tmp_delays) {
+    //std::cout << "Del: " << del << std::endl;
+    double _offset;
+    float fraction;
+    fraction = (float)modf((double)del, &_offset);
+    int offset = N_SAMPLES - (int)_offset;
+    // cout << del << endl;
+    fractional_delays[i] = fraction;
+    offset_delays[i] = offset;
+    i++;
+  }
+  //std::cout << "azimuth: " << azimuth << " elevation: " << elevation << std::endl;
+  return beamform(streams, &offset_delays[0], &fractional_delays[0]);
 }
 
 void Particle::update() {
-    float magnitude = compute(azimuth, elevation);
-    best_magnitude *= 0.99;
-    if (magnitude > best_magnitude) {
-        best_magnitude = magnitude;
-        best_azimuth = azimuth;
-        best_elevation = elevation;
-    }
+  float magnitude = compute(theta, phi);
+  best_magnitude *= 0.99;
+  if (magnitude > best_magnitude) {
+    best_magnitude = magnitude;
+    best_theta = theta;
+    best_phi = phi;
+  }
 }
 
 
@@ -99,41 +106,45 @@ void PSO::initialize_particles() {
 
         if (particle.best_magnitude > global_best_magnitude) {
             global_best_magnitude = particle.best_magnitude;
-            global_best_azimuth = particle.best_azimuth;
-            global_best_elevation = particle.best_elevation;
+            global_best_theta = particle.best_theta;
+            global_best_phi = particle.best_phi;
         }
     }
 }
 
 void PSO::optimize(int iterations) {
-    double w = 0.5f, c1 = 2.0f, c2 = 2.0f;
-    double amount = 1.5;
-    double delta = TO_RADIANS(FOV / (double) iterations * 2.0) * amount;
-    global_best_magnitude *= 0.9f;
+  double w = 0.5f, c1 = 2.0f, c2 = 2.0f;
+  double amount = 10.0;
+  double delta = TO_RADIANS(FOV / (double)iterations * 2.0) * amount;
+  global_best_magnitude *= 0.9f;
 
-    for (int i = 0; i < iterations; i++) {
-        for (auto &particle: particles) {
-            particle.velocity_azimuth = w * particle.velocity_azimuth + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_azimuth - particle.azimuth) * LOCAL_AREA_RATIO + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_azimuth - particle.azimuth) * GLOBAL_AREA_RATIO;
-            particle.velocity_elevation = w * particle.velocity_elevation + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_elevation - particle.elevation) * LOCAL_AREA_RATIO + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_elevation - particle.elevation) * GLOBAL_AREA_RATIO;
-            particle.azimuth += particle.velocity_azimuth * delta;
-            particle.elevation += particle.velocity_elevation * delta;
+  for (int i = 0; i < iterations; i++) {
+    for (auto& particle : particles) {
+      particle.velocity_theta = w * particle.velocity_theta \
+      + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO \
+      + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO;
+      particle.velocity_phi = w * particle.velocity_phi \
+      + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO \
+      + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO;
+      particle.theta += particle.velocity_theta * delta;
+      particle.phi += particle.velocity_phi * delta;
 
-            particle.azimuth = clip(particle.azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
-            particle.elevation = clip(particle.elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
+      particle.theta = wrapAngle(particle.theta);
+      particle.phi = clip(particle.phi, 0.0, PI_HALF);
 
-            particle.update();
+      particle.update();
 
-            if (particle.best_magnitude > global_best_magnitude) {
-                global_best_magnitude = particle.best_magnitude;
-                global_best_azimuth = particle.best_azimuth;
-                global_best_elevation = particle.best_elevation;
-            }
-        }
+      if (particle.best_magnitude > global_best_magnitude) {
+        global_best_magnitude = particle.best_magnitude;
+        global_best_theta = particle.best_theta;
+        global_best_phi = particle.best_phi;
+      }
     }
+  }
 }
 
 Eigen::Vector3f PSO::sanitize() {
-    Eigen::Vector3f sample(global_best_azimuth, global_best_elevation, 0.0);
+  Eigen::Vector3f sample(global_best_theta, global_best_phi, 0.0);
 
 #if USE_KALMAN_FILTER
     kf.update(sample);
@@ -148,7 +159,7 @@ void pso_finder(Pipeline *pipeline) {
     Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
     Streams *streams = pipeline->getStreams();
 
-    PSO pso(40, antenna, streams);
+    PSO pso(100, antenna, streams);
 
     int newData;
 
@@ -168,20 +179,13 @@ void pso_finder(Pipeline *pipeline) {
 
         pso.optimize(30);
 
-        //Eigen::Vector3f sample = pso.sanitize();
-        //float azimuth = sample(0);
-        //float elevation = sample(1);
-        //azimuth = clip(azimuth, -ANGLE_LIMIT, ANGLE_LIMIT);
-        //elevation = clip(elevation, -ANGLE_LIMIT, ANGLE_LIMIT);
-
         pipeline->magnitudeHeatmap->setTo(cv::Scalar(0));
 
 #if 1
         for (auto &particle: pso.particles) {
-            double azimuth = particle.best_azimuth;
-            double elevation = particle.best_elevation;
-            int xi = (int) ((double) X_RES * (sin(azimuth) / 2.0 + 0.5));
-            int yi = (int) ((double) Y_RES * (sin(elevation) / 2.0 + 0.5));
+            Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 1.0);
+            int xi = (int)((double)X_RES * (position(0) / 2.0 + 0.5));
+            int yi = (int)((double)Y_RES * (position(1) / 2.0 + 0.5));
 
             pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar) (255);
         }
@@ -189,20 +193,18 @@ void pso_finder(Pipeline *pipeline) {
 
         Eigen::Vector3f res = pso.sanitize();
 
-        double x = sin((double) res(0));
-        double y = sin((double) res(1));
+        Position position = spherical_to_cartesian(res(0), res(1), 1.0);
 
-        int xi = (int) ((double) X_RES * (x / 2.0 + 0.5));
-        int yi = (int) ((double) Y_RES * (y / 2.0 + 0.5));
+        int xi = (int)((double)X_RES * (position(0) / 2.0 + 0.5));
+        int yi = (int)((double)Y_RES * (position(1) / 2.0 + 0.5));
 
         pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar) (255);
 
 #endif
 
-        //prevX = xi;
-        //prevY = yi;
+
         pipeline->canPlot = 1;
-        //std::cout << "(" << x << ", " << y << ")" << std::endl;
-        std::cout << "Theta: " << pso.global_best_azimuth << " Phi: " << pso.global_best_elevation << std::endl;
+    
+        std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
     }
 }

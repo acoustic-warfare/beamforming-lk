@@ -138,7 +138,7 @@ Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double 
     double x = sin(azimuth);
     double y = sin(elevation);
     double theta = atan2(y, x);
-    double phi = (PI_HALF - asin(sqrt(1 - pow(x, 2) - pow(y, 2))));
+    double phi = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
 
     Antenna steered = steer(antenna, theta, phi);
     return compute_delays(steered);
