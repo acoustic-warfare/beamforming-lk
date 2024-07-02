@@ -1,5 +1,4 @@
 name: Docker Image CI and CMake Checks
-
 on:
   pull_request:
     branches: [ "main" ]
@@ -7,11 +6,13 @@ on:
 jobs:
 
   build-image:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag beamformer:$(date +%s)
+      run: docker build . --tag beamformer:latest
+
+    - name: Run cmake in the docker image
+      run: docker run --rm beamformer:latest cmake -S . -B build && cmake --build build
+
     
