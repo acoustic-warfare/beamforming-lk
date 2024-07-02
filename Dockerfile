@@ -1,8 +1,18 @@
-# Build
+#
+# Author: Irreq
+#
+# Dockerfile for building and running the project. Running container without root access
+# is recomended since the container have read/write access to the directory.
+# 
+# 
+# To build the container run the following command:
+# 
 # docker build -t beamformer .
-
-# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host beamformer bash
-# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --device /dev/snd --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+# 
+# To run the container
+#
+# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+#
 
 FROM ubuntu:22.04
 
@@ -20,8 +30,11 @@ RUN apt-get install -y \
 # Installing libraries
 RUN apt-get install -y \
     libopencv-dev \
-    libeigen3-dev
+    libeigen3-dev \
+    librtaudio-dev
 
+RUN apt-get install -y \
+    python3-yaml
 
 # Setting up WARAPS
 
@@ -34,14 +47,16 @@ RUN apt-get install -y \
     libpaho-mqttpp-dev \
     nlohmann-json3-dev
 
-RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
+RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git 
 RUN mkdir -p WARA-PS-MQTT-Agent/build
 WORKDIR /WARA-PS-MQTT-Agent/build
 RUN cmake .. && make install
 
-RUN apt-get install -y \
-    python3-yaml \
-    alsa-utils
+WORKDIR /
+RUN git clone https://github.com/Rookfighter/pso-cpp.git
+RUN mkdir -p pso-cpp/build
+WORKDIR /pso-cpp/build 
+RUN cmake .. && make install
 
 # Create app directory
 RUN mkdir -p /usr/src/app

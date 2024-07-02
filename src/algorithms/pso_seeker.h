@@ -1,25 +1,28 @@
 #ifndef PSO_H
 #define PSO_H
 
+#include <atomic>
+#include <vector>
+
 #include "../antenna.h"
 #include "../config.h"
+#include "../delay.h"
+#include "../pipeline.h"
 #include "../streams.hpp"
 
 #if USE_KALMAN_FILTER
 #include "../kf.h"
 #endif
 
-
 #include <Eigen/Dense>
-#include <vector>
 
 #define DIMENSIONS 2
 
 class Particle {
 public:
-    float azimuth, elevation;
-    float velocity_azimuth, velocity_elevation;
-    float best_azimuth, best_elevation;
+    double azimuth, elevation;
+    double velocity_azimuth, velocity_elevation;
+    double best_azimuth, best_elevation;
     float best_magnitude;
 
     Antenna &antenna;
@@ -31,7 +34,7 @@ public:
 
     void random();
 
-    float compute(float azimuth, float elevation);
+    float compute(double azimuth, double elevation);
 
     void update();
 };
@@ -40,7 +43,7 @@ public:
 class PSO {
 public:
     std::vector<Particle> particles;
-    float global_best_azimuth, global_best_elevation;
+    double global_best_azimuth, global_best_elevation;
     float global_best_magnitude;
     int n_particles;
     Antenna &antenna;
@@ -60,5 +63,8 @@ public:
 
     Eigen::Vector3f sanitize();
 };
+
+
+void pso_finder(Pipeline *pipeline);
 
 #endif

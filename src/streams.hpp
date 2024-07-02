@@ -55,6 +55,10 @@ public:
         return true;
     }
 
+    float *get_signal(unsigned index, int offset) {
+        return (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float));
+    }
+
     inline void write_stream(unsigned index, float *data) {
         memcpy((char *) this->buffers[index] + this->position, data, BUFFER_BYTES);
     }

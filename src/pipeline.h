@@ -6,12 +6,16 @@
 #include "receiver.h"
 #include "streams.hpp"
 //#include "ring_buffer.h"
+#include <atomic>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <string>
 #include <thread>
 
@@ -25,6 +29,8 @@ using namespace std;
 class Pipeline {
 
 public:
+    std::atomic_int canPlot = 0;
+    cv::Mat *magnitudeHeatmap;
     Pipeline();
     ~Pipeline();
     /**
