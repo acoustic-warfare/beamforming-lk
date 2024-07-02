@@ -7,6 +7,8 @@
 #include "../streams.hpp"
 #include "../pipeline.h"
 
+#include <Eigen/Dense>
+
 #include <atomic>
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
@@ -40,7 +42,7 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
       Position point(xo, yo, level);
       // cout << point << endl;
 
-      VectorXf tmp_delays = steering_vector_cartesian(antenna, point);
+      Eigen::VectorXf tmp_delays = steering_vector_cartesian(antenna, point);
       int i = 0;
       for (float del : tmp_delays) {
         double _offset;
@@ -158,6 +160,7 @@ void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
     // Repeat until new data or abort if new data arrives
     while ((pipeline->mostRecent() == newData) && (i < max)) {
+    //while ((i < max)) {
 
       int task = pixel_index * N_SENSORS;
 

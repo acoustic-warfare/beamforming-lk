@@ -63,8 +63,8 @@ void sig_handler(int sig) {
 }
 
 int main() {
-    MatrixXf dome = generate_unit_dome(100);
-    MatrixXi lookup_table(90, 360);
+    Eigen::MatrixXf dome = generate_unit_dome(100);
+    Eigen::MatrixXi lookup_table(90, 360);
     generate_lookup_table(dome, lookup_table);
 
     BeamformingOptions options;
