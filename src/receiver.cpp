@@ -9,18 +9,18 @@
 #if RECEIVER_DEBUG
 
 void printBinary(uint32_t n) {
-  for (int i = 31; i >= 0; --i) {
-    // Bitwise AND operation to check if the ith bit is set
-    if ((n >> i) & 1)
-      std::cout << "1";
-    else
-      std::cout << "0";
+    for (int i = 31; i >= 0; --i) {
+        // Bitwise AND operation to check if the ith bit is set
+        if ((n >> i) & 1)
+            std::cout << "1";
+        else
+            std::cout << "0";
 
-    // Print space after every 4 bits for readability
-    if (i % 8 == 0)
-      std::cout << " ";
-  }
-  std::cout << " " << n << std::endl;
+        // Print space after every 4 bits for readability
+        if (i % 8 == 0)
+            std::cout << " ";
+    }
+    std::cout << " " << n << std::endl;
 }
 #endif
 
@@ -28,107 +28,105 @@ message *msg;
 int socket_desc;
 
 int init_receiver() {
-  if (msg) {
+    if (msg) {
 
 #if RECEIVER_DEBUG
-    std::cout << "Message pointer already defined" << std::endl;
+        std::cout << "Message pointer already defined" << std::endl;
 #endif
 
-    return -1;
-  }
-  msg = new message();
+        return -1;
+    }
+    msg = new message();
 
-  struct sockaddr_in server_addr;
-  socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    struct sockaddr_in server_addr;
+    socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  if (socket_desc < 0) {
+    if (socket_desc < 0) {
 #if RECEIVER_DEBUG
-    printf("Error creating socket\n");
+        printf("Error creating socket\n");
 #endif
-    return -1;
-  } else {
+        return -1;
+    } else {
 #if RECEIVER_DEBUG
-    printf("Socket created successfully\n");
+        printf("Socket created successfully\n");
 #endif
-  }
+    }
 
-  // Set port and IP:
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(UDP_PORT);
-  server_addr.sin_addr.s_addr = inet_addr(UDP_ADDRESS);
+    // Set port and IP:
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(UDP_PORT);
+    server_addr.sin_addr.s_addr = inet_addr(UDP_ADDRESS);
 
-  // Bind to the set port and IP:
-  if (bind(socket_desc, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
-      0) {
+    // Bind to the set port and IP:
+    if (bind(socket_desc, (struct sockaddr *) &server_addr, sizeof(server_addr)) <
+        0) {
 #if RECEIVER_DEBUG
-    printf("Couldn't bind socket to the port\n");
+        printf("Couldn't bind socket to the port\n");
 #endif
-    return -1;
-  }
+        return -1;
+    }
 #if RECEIVER_DEBUG
-  printf("Binding complete\n");
+    printf("Binding complete\n");
 #endif
 
-  return 0;
+    return 0;
 }
 
 void stop_receiving() {
-  if (msg) {
-    close(socket_desc);
-    delete msg;
-  }
+    if (msg) {
+        close(socket_desc);
+        delete msg;
+    }
 }
 
 
-
 int receive_exposure(Streams *streams) {
-  float data[N_SENSORS][N_SAMPLES];
+    float data[N_SENSORS][N_SAMPLES];
 
-  for (int i = 0; i < N_SAMPLES; i++) {
-    if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
-      printf("Couldn't receive\n");
-      return -1;
+    for (int i = 0; i < N_SAMPLES; i++) {
+        if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
+            printf("Couldn't receive\n");
+            return -1;
+        }
+
+        int inverted = 1;
+
+        unsigned index;
+
+        for (unsigned m = 0; m < N_SENSORS; m++) {
+
+            // Array is daisy-chained, flip even columns
+            if (m % COLUMNS == 0) {
+                inverted = !inverted;
+            }
+
+            if (inverted) {
+                index = COLUMNS * (1 + m / COLUMNS) - m % COLUMNS;
+            } else {
+                index = m;
+            }
+
+            data[m][i] = (float) msg->stream[index] / (float) MAX_VALUE_FLOAT;
+        }
     }
 
-    int inverted = 1;
 
-    unsigned index;
-
-    for (unsigned m = 0; m < N_SENSORS; m++) {
-
-      // Array is daisy-chained, flip even columns
-      if (m % COLUMNS == 0) {
-        inverted = !inverted;
-      }
-
-      if (inverted) {
-        index = COLUMNS * (1 + m / COLUMNS) - m % COLUMNS;
-      } else {
-        index = m;
-      }
-
-      data[m][i] = (float)msg->stream[index] / (float)MAX_VALUE_FLOAT;
+    for (int s = 0; s < N_SENSORS; s++) {
+        streams->write_stream(s, &data[s][0]);
     }
-  }
 
-
-
-  for (int s = 0; s < N_SENSORS; s++) {
-    streams->write_stream(s, &data[s][0]);
-  }
-
-  return 0;
+    return 0;
 }
 
 
 int number_of_sensors() {
-  // gather data
-  if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
-    printf("Couldn't receive\n");
-    return -1;
-  }
+    // gather data
+    if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
+        printf("Couldn't receive\n");
+        return -1;
+    }
 
-  return msg->n_arrays * ELEMENTS;
+    return msg->n_arrays * ELEMENTS;
 }
 
 
@@ -223,12 +221,13 @@ int main() {
 
 #if 0
 
-#include "RtAudio.h"
-#include "config.h"
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <thread>
+
+#include "RtAudio.h"
+#include "config.h"
 RtAudio audio;
 int play = 1;
 std::thread *producer;

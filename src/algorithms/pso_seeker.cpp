@@ -4,32 +4,29 @@
 
 
 float beamform(Streams *streams, int *offset_delays, float *fractional_delays) {
-  float out[N_SAMPLES] = {0.0f};
-  unsigned n = 0;
+    float out[N_SAMPLES] = {0.0f};
+    unsigned n = 0;
 
-  for (unsigned s = 0; s < N_SENSORS; s++) {
-    if (VALID_SENSOR(s)) {
-      float fraction = fractional_delays[s - 64];
-      int offset = offset_delays[s - 64];
+    for (unsigned s = 0; s < N_SENSORS; s++) {
+        if (VALID_SENSOR(s)) {
+            float fraction = fractional_delays[s - 64];
+            int offset = offset_delays[s - 64];
 
-      //std::cout << "s: " << s << " frac: " << fraction << " offset: " << offset << std::endl;
+            float *signal = streams->get_signal(s, offset);
+            delay(&out[0], signal, fraction);
 
-      float *signal = streams->get_signal(s, offset);
-      delay(&out[0], signal, fraction);
-
-      n++;
+            n++;
+        }
     }
-  }
 
-  float power = 0.0f;
-  float norm = 1 /(float)n;
+    float power = 0.0f;
+    float norm = 1 / (float) n;
 
-  for (int i = 0; i < N_SAMPLES; i++) {
-    power += powf(out[i] * norm, 2);
-  }
+    for (int i = 0; i < N_SAMPLES; i++) {
+        power += powf(out[i] * norm, 2);
+    }
 
-  return power / (float)N_SAMPLES;
-
+    return power / (float) N_SAMPLES;
 }
 
 
@@ -85,37 +82,34 @@ void Particle::update() {
 }
 
 
-
-
 inline float clip(const double n, const double lower, const double upper) {
-  return std::max(lower, std::min(n, upper));
+    return std::max(lower, std::min(n, upper));
 }
 
-inline double wrapAngle(const double angle)
-{
-    return angle - TWO_PI * floor( angle / TWO_PI);
+inline double wrapAngle(const double angle) {
+    return angle - TWO_PI * floor(angle / TWO_PI);
 }
 
 
 PSO::PSO(int n_particles, Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams), kf(0.1) {
-  this->n_particles = n_particles;
-  global_best_magnitude = 0.0f;
-  initialize_particles();
+    this->n_particles = n_particles;
+    global_best_magnitude = 0.0f;
+    initialize_particles();
 }
 
 void PSO::initialize_particles() {
-  particles.clear();
-  for (int i = 0; i < n_particles; i++) {
-    particles.emplace_back(antenna, streams);
+    particles.clear();
+    for (int i = 0; i < n_particles; i++) {
+        particles.emplace_back(antenna, streams);
 
-    Particle &particle = particles.back();
+        Particle &particle = particles.back();
 
-    if (particle.best_magnitude > global_best_magnitude) {
-        global_best_magnitude = particle.best_magnitude;
-        global_best_theta = particle.best_theta;
-        global_best_phi = particle.best_phi;
+        if (particle.best_magnitude > global_best_magnitude) {
+            global_best_magnitude = particle.best_magnitude;
+            global_best_azimuth = particle.best_azimuth;
+            global_best_elevation = particle.best_elevation;
+        }
     }
-  }
 }
 
 void PSO::optimize(int iterations) {
@@ -146,74 +140,70 @@ void PSO::optimize(int iterations) {
         global_best_phi = particle.best_phi;
       }
     }
-  }
 }
 
 Eigen::Vector3f PSO::sanitize() {
   Eigen::Vector3f sample(global_best_theta, global_best_phi, 0.0);
 
 #if USE_KALMAN_FILTER
-  kf.update(sample);
-  return kf.getState();
+    kf.update(sample);
+    return kf.getState();
 #else
-  return sample;
+    return sample;
 #endif
 }
 
 
-
-
 void pso_finder(Pipeline *pipeline) {
-  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-  Streams *streams = pipeline->getStreams();
+    Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+    Streams *streams = pipeline->getStreams();
 
-  PSO pso(100, antenna, streams);
+    PSO pso(100, antenna, streams);
 
-  int newData;
+    int newData;
 
-  int prevX = 0;
-  int prevY = 0;
+    int prevX = 0;
+    int prevY = 0;
 
-  while (pipeline->isRunning()) {
+    while (pipeline->isRunning()) {
 
-    // Wait for incoming data
-    pipeline->barrier();
+        // Wait for incoming data
+        pipeline->barrier();
 
-    // This loop may run until new data has been produced, meaning its up to
-    // the machine to run as fast as possible
-    newData = pipeline->mostRecent();
+        // This loop may run until new data has been produced, meaning its up to
+        // the machine to run as fast as possible
+        newData = pipeline->mostRecent();
 
-    pso.initialize_particles();
+        pso.initialize_particles();
 
-    pso.optimize(30);
+        pso.optimize(30);
 
-    pipeline->magnitudeHeatmap->setTo(cv::Scalar(0));
+        pipeline->magnitudeHeatmap->setTo(cv::Scalar(0));
 
 #if 1
-    for (auto& particle : pso.particles) {
-      Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 1.0);
-      int xi = (int)((double)X_RES * (position(0) / 2.0 + 0.5));
-      int yi = (int)((double)Y_RES * (position(1) / 2.0 + 0.5));
-      
-      pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar)(255);
-    }
+        for (auto &particle: pso.particles) {
+            Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 1.0);
+            int xi = (int)((double)X_RES * (position(0) / 2.0 + 0.5));
+            int yi = (int)((double)Y_RES * (position(1) / 2.0 + 0.5));
+
+            pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar) (255);
+        }
 #else
 
-    Eigen::Vector3f res = pso.sanitize();
+        Eigen::Vector3f res = pso.sanitize();
 
-    Position position = spherical_to_cartesian(res(0), res(1), 1.0);
+        Position position = spherical_to_cartesian(res(0), res(1), 1.0);
 
-    int xi = (int)((double)X_RES * (position(0) / 2.0 + 0.5));
-    int yi = (int)((double)Y_RES * (position(1) / 2.0 + 0.5));
+        int xi = (int)((double)X_RES * (position(0) / 2.0 + 0.5));
+        int yi = (int)((double)Y_RES * (position(1) / 2.0 + 0.5));
 
-    pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar)(255);
+        pipeline->magnitudeHeatmap->at<uchar>(xi, yi) = (uchar) (255);
 
 #endif
 
-    //prevX = xi;
-    //prevY = yi;
-    pipeline->canPlot = 1;
-    //std::cout << "(" << x << ", " << y << ")" << std::endl;
-    std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
-  }
+
+        pipeline->canPlot = 1;
+    
+        std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
+    }
 }

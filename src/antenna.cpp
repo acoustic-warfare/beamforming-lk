@@ -5,8 +5,9 @@
  *
  */
 
-#include <iostream>
 #include "antenna.h"
+
+#include <iostream>
 
 /**
  * @brief Convert degree to radians
@@ -23,7 +24,7 @@
  * @return the point in 3D space of its center
  */
 inline Position find_middle(const Antenna &antenna) {
-  return antenna.points.colwise().mean();
+    return antenna.points.colwise().mean();
 }
 
 // ********** Antenna in space **********
@@ -32,7 +33,7 @@ inline Position find_middle(const Antenna &antenna) {
  * Place the antenna by positioning the center @ new position
  */
 void place_antenna(Antenna &antenna, const Position position) {
-  antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
+    antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
 }
 
 /**
@@ -42,7 +43,7 @@ void place_antenna(Antenna &antenna, const Position position) {
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance) {
     float half = distance / 2;
-    Eigen::MatrixXf points(rows * columns, 3); // (id, X|Y|Z)
+    Eigen::MatrixXf points(rows * columns, 3);// (id, X|Y|Z)
 
     // Compute the positions of the antenna in 3D space
     int i = 0;
@@ -96,15 +97,15 @@ Eigen::VectorXf compute_delays(const Antenna &antenna) {
 inline Antenna steer(const Antenna &antenna, const double theta, const double phi) {
     Eigen::Matrix3f Rz1, Rx, Rz2;
 
-    Rz1 << (float)cos(theta), -(float)sin(theta), 0.0f, \
-           (float)sin(theta), (float)cos(theta), 0.0f, \
-           0.0f, 0.0f, 1.0f;
-    Rx << 1.0f, 0.0f, 0.0f, \
-          0.0f, (float)cos(phi), -(float)sin(phi), \
-          0.0f, (float)sin(phi), (float)cos(phi);
-    Rz2 << (float)cos(-theta), -(float)sin(-theta), 0.0f, \
-           (float)sin(-theta), (float)cos(-theta), 0.0f, \
-           0.0f, 0.0f, 1.0f;
+    Rz1 << (float) cos(theta), -(float) sin(theta), 0.0f,
+            (float) sin(theta), (float) cos(theta), 0.0f,
+            0.0f, 0.0f, 1.0f;
+    Rx << 1.0f, 0.0f, 0.0f,
+            0.0f, (float) cos(phi), -(float) sin(phi),
+            0.0f, (float) sin(phi), (float) cos(phi);
+    Rz2 << (float) cos(-theta), -(float) sin(-theta), 0.0f,
+            (float) sin(-theta), (float) cos(-theta), 0.0f,
+            0.0f, 0.0f, 1.0f;
 
     // Perform the rotation. Order of operations are important
     Eigen::Matrix3f rotation = Rz2 * (Rx * Rz1);
@@ -120,13 +121,13 @@ inline Antenna steer(const Antenna &antenna, const double theta, const double ph
  * Convert spherical coordinates to cartesian coordinates
  */
 Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0f) {
-  Position point;
+    Position point;
 
-  point(X_INDEX) = (float)(radius * (cos(theta) * sin(phi)));
-  point(Y_INDEX) = (float)(radius * (sin(theta) * sin(phi)));
-  point(Z_INDEX) = (float)(radius * (cos(phi)));
+    point(X_INDEX) = (float) (radius * (cos(theta) * sin(phi)));
+    point(Y_INDEX) = (float) (radius * (sin(theta) * sin(phi)));
+    point(Z_INDEX) = (float) (radius * (cos(phi)));
 
-  return point;
+    return point;
 }
 
 /**
@@ -134,14 +135,13 @@ Position spherical_to_cartesian(const double theta, const double phi, const doub
  * is up and down.
  */
 Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation) {
-  double x = sin(azimuth);
-  double y = sin(elevation);
-  double theta = atan2(y, x);
-  //double phi = (PI_HALF - asin(sqrt(1 - pow(x, 2) - pow(y, 2))));
-  double phi = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
+    double x = sin(azimuth);
+    double y = sin(elevation);
+    double theta = atan2(y, x);
+    double phi = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
 
-  Antenna steered = steer(antenna, theta, phi);
-  return compute_delays(steered);
+    Antenna steered = steer(antenna, theta, phi);
+    return compute_delays(steered);
 }
 
 /**
@@ -150,23 +150,23 @@ Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double 
  * the unitsphere, however it must have a Z value >= 0
  */
 Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
-  double azimuth = atan2((double)point(Y_INDEX), (double)point(X_INDEX));
-  double elevation = M_PI / 2.0f - asin((double)point(Z_INDEX));
-  
-  return steering_vector_horizontal(antenna, azimuth, elevation);
+    double azimuth = atan2((double) point(Y_INDEX), (double) point(X_INDEX));
+    double elevation = M_PI / 2.0f - asin((double) point(Z_INDEX));
+
+    return steering_vector_horizontal(antenna, azimuth, elevation);
 }
 
 /**
  * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
  */
 Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi) {
-  Antenna steered = steer(antenna, theta, phi);
-  return compute_delays(steered);
+    Antenna steered = steer(antenna, theta, phi);
+    return compute_delays(steered);
 }
 
 
 Eigen::MatrixXf generate_unit_dome(const int n) {
-    Eigen::MatrixXf points(n, 3); // (id, X|Y|Z)
+    Eigen::MatrixXf points(n, 3);// (id, X|Y|Z)
 
     double phi, theta;
 
@@ -231,7 +231,7 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
                 pow(y - point(Y_INDEX), 2) +
                 pow(z - point(Z_INDEX), 2)));
 
-        if(dist > MAX_ALLOWED_DISTANCE) {
+        if (dist > MAX_ALLOWED_DISTANCE) {
             failed_tests++;
             std::cout << "Test failed: " << dist << " > " << MAX_ALLOWED_DISTANCE << std::endl;
             std::cout << "Phi: " << phi << " Theta: " << theta << std::endl;
