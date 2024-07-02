@@ -43,7 +43,7 @@ DISTANCE: 0.02 # Distance between each element to the next
 SAMPLE_RATE: 48828.0 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
 MAX_N_SENSORS: ROWS * COLUMNS * 4 
-N_FPGAS: 2 # How many running FPGAs
+N_FPGAS: 4 # How many running FPGAs
 IP_ADDRESSES: ['192.168.1.75', '192.168.1.76', '192.168.1.77', '192.168.1.78']
 
 # Beamforming 
@@ -78,8 +78,8 @@ AUDIO: false
 
 
 # Networking 
-#UDP_ADDRESS: "10.0.0.1"
-UDP_ADDRESS: "127.0.0.1"
+UDP_ADDRESS: "10.0.0.1"
+#UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
 UDP_PORT: 21844
 
