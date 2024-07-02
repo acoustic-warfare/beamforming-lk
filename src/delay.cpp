@@ -3,9 +3,9 @@
 #ifndef __AVX2__
 
 void delay(float *out, const float *signal, const float fraction) {
-  for (int i = 0; i < N_SAMPLES; i++) {
-    out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
-  }
+    for (int i = 0; i < N_SAMPLES; i++) {
+        out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
+    }
 }
 
 #else
@@ -14,7 +14,7 @@ void delay(float *out, const float *signal, const float fraction) {
 #define AVX_SIMD_LENGTH 8
 
 void delay(float *out, const float *signal, const float fraction) {
-    __m256 fraction_block =_mm256_broadcast_ss(&fraction);
+    __m256 fraction_block = _mm256_broadcast_ss(&fraction);
 
     __m256 accumulator = _mm256_setzero_ps();
     for (int i = 0; i < N_SAMPLES; i += AVX_SIMD_LENGTH) {
@@ -23,7 +23,6 @@ void delay(float *out, const float *signal, const float fraction) {
 
         accumulator = _mm256_sub_ps(signal_current_block, signal_next_block);
 
-        
 
         signal_next_block = _mm256_fmadd_ps(fraction_block, accumulator, signal_next_block);
 
@@ -33,25 +32,22 @@ void delay(float *out, const float *signal, const float fraction) {
         //__m256 accumulator = _mm256_setzero_ps();
         //accumulator = _mm256_fmadd_ps(signal_block, fraction_block, accumulator);
         _mm256_storeu_ps(out + i, acc);
-
-
     }
 
     //__m256 data1_block __attribute__((aligned(ALIGNMENT)));
     //__m256 data2_block __attribute__((aligned(ALIGNMENT)));
     //__m256 accumulator __attribute__((aligned(ALIGNMENT)));
-//
+    //
     //__m256 fraction_block __attribute__((aligned(ALIGNMENT))) =_mm256_broadcast_ss(fraction);
     //for (int i = 0; i < N_SAMPLES; i += AVX_SIMD_LENGTH) {
     //    accumulator = _mm256_setzero_ps();
-//
+    //
     //    data1_block = _mm256_loadu_ps(signal + i * sizeof(float));
     //    accumulator = _mm256_fmadd_ps(fraction_block, data1_block, accumulator);
     //}
 }
 
 #endif
-
 
 
 #if 0
@@ -102,7 +98,7 @@ Vectorized convolution for AVX2 with single accumulator without reset
 #include <algorithm>
 #include <chrono>
 #include <iostream>
-#include<vector>
+#include <vector>
 using namespace std;
 using namespace std::chrono;
 

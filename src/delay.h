@@ -1,11 +1,10 @@
 #ifndef DELAY_H
 #define DELAY_H
 
-#include "config.h"
-
 #include <algorithm>
-
 #include <cmath>
+
+#include "config.h"
 
 #ifdef __AVX2__
 #include <immintrin.h>

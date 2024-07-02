@@ -74,7 +74,7 @@ ANGLE_LIMIT: PI / 4.0
 USE_KALMAN_FILTER: true
 
 # Audio 
-AUDIO: false
+AUDIO: true
 
 
 # Networking 
