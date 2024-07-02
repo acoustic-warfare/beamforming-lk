@@ -11,6 +11,8 @@ IF (NOT PYTHON)
     find_program(PYTHON "python3")
 ENDIF ()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -O3")
+
 
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
@@ -165,6 +167,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
 )
