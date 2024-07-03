@@ -49,6 +49,15 @@ void sig_handler(int sig) {
 int main() {
     BeamformingOptions options;
 
+    typedef struct {
+        bool use_wara_ps_;
+        bool use_audio_;
+    } SystemOptions;
+
+    SystemOptions sysops;
+    sysops.use_wara_ps_ = USE_WARAPS;
+    sysops.use_audio_ = USE_AUDIO;
+
     WaraPSClient client = WaraPSClient(WARAPS_NAME, WARAPS_ADDRESS);
 
     client.SetCommandCallback("focus_bf", [&](const nlohmann::json &payload) {
@@ -64,7 +73,7 @@ int main() {
 
     thread client_thread;
 
-    if (options.use_wara_ps_) {
+    if (sysops.use_wara_ps_) {
         client_thread = client.Start();
     }
 
@@ -92,7 +101,7 @@ int main() {
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
     AudioWrapper audio(*pipeline->getStreams());
-    if (options.audio_on_) {
+    if (sysops.use_audio_) {
         audio.start_audio_playback();
     }
 
@@ -168,7 +177,7 @@ int main() {
         cv::imshow(APPLICATION_NAME, frame);
 
         // Check for key press; if 'q' is pressed, break the loop
-        if ((options.use_wara_ps_ && !client.running()) || cv::waitKey(1) == 'q') {
+        if ((sysops.use_wara_ps_ && !client.running()) || cv::waitKey(1) == 'q') {
             std::cout << "Stopping application..." << std::endl;
             break;
         }
@@ -183,7 +192,7 @@ int main() {
     // Close application windows
     cv::destroyAllWindows();
 
-    if (options.audio_on_) {
+    if (sysops.use_audio_) {
         audio.stop_audio_playback();
     }
 
@@ -197,7 +206,7 @@ cleanup:
     // Unite the proletariat
     worker.join();
 
-    if (options.use_wara_ps_) {
+    if (sysops.use_wara_ps_) {
         if(client.running())
             client.Stop();
         client_thread.join();
