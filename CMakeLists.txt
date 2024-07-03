@@ -21,7 +21,6 @@ set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 set(CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml)
 set(CONFIG_MAKER "${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py")
 
-
 add_custom_command(
         DEPENDS ${CONFIG_FILE}
 
@@ -130,7 +129,6 @@ find_package(Eigen3 REQUIRED)
 
 # MQTT Communication
 find_package(nlohmann_json REQUIRED)
-find_package(WaraPSClient REQUIRED)
 
 # Generating UUID:s
 find_package(Boost REQUIRED)
@@ -139,7 +137,13 @@ find_package(Boost REQUIRED)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
-find_package(portaudio REQUIRED)
+find_package(WaraPSClient REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
+find_package(eclipse-paho-mqtt-c REQUIRED)
+
+find_library(portaudio
+    portaudio
+)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -183,6 +187,8 @@ add_executable(beamformer
 target_link_libraries(beamformer
         Eigen3::Eigen
         WaraPSClient
+        eclipse-paho-mqtt-c::paho-mqtt3as
+        PahoMqttCpp::paho-mqttpp3
         nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
         portaudio

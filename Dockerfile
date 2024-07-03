@@ -31,10 +31,7 @@ RUN apt-get install -y \
 RUN apt-get install -y \
     libopencv-dev \
     libeigen3-dev \
-    libasound-dev \
-    portaudio19-dev \
-    libportaudio2  \
-    libportaudiocpp0
+    libasound-dev
 
 
 RUN apt-get install -y \
@@ -47,14 +44,9 @@ RUN apt-get install -y \
     git \
     libboost-dev \
     libssl-dev \
-    nlohmann-json3-dev
-
-RUN git clone https://github.com/eclipse/paho.mqtt.cpp.git
-WORKDIR /paho.mqtt.cpp
-RUN git submodule init \
-    && git submodule update \
-    && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON \
-    && cmake --build build/ --target install
+    nlohmann-json3-dev \
+    libpaho-mqtt-dev \
+    libpaho-mqttpp-dev
 
 WORKDIR /
 RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git 
@@ -70,6 +62,7 @@ RUN cmake .. && make install
 
 # Create app directory
 RUN mkdir -p /usr/src/app
+COPY . /usr/src/app
 # Change working dir to /usr/src/app
 WORKDIR /usr/src/app
 

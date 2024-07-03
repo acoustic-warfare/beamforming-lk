@@ -26,7 +26,7 @@ RESOLUTION_MULTIPLIER: 16 # times the initial resolution
 BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 
 # Waraps client
-USE_WARAPS: false
+USE_WARAPS: true
 WARAPS_NAME: "test"
 WARAPS_ADDRESS: "mqtt://test.mosquitto.org:1883"
 
