@@ -40,6 +40,16 @@ std::string WaraPSClient::GenerateHeartBeatMessage() const {
 }
 
 std::thread WaraPSClient::Start() {
+
+    std::cout << "Creating client and connecting to server" << std::endl;
+    bool connected = client_.connect()->wait_for(std::chrono::seconds(5));
+    if (!connected) {
+        throw std::runtime_error("Failed to connect to MQTT server");
+    }
+
+    std::cout << "Connected to server" << std::endl;
+
+    client_.subscribe(GenerateFullTopic("exec/command"), QOS_AT_LEAST_ONCE)->wait();
     client_.start_consuming();
     is_running_ = std::make_shared<bool>(true);
     heartbeat_thread_ = std::thread([this]() {
@@ -141,17 +151,7 @@ void WaraPSClient::Stop() {
 }
 
 WaraPSClient::WaraPSClient(std::string name, std::string server_address)
-        : kUnitName(std::move(name)), kServerAddress(std::move(server_address)), client_(kServerAddress, kUUID) {
-    std::cout << "Creating client and connecting to server" << std::endl;
-    bool connected = client_.connect()->wait_for(std::chrono::seconds(5));
-    if (!connected) {
-        throw std::runtime_error("Failed to connect to MQTT server");
-    }
-
-    std::cout << "Connected to server" << std::endl;
-
-    client_.subscribe(GenerateFullTopic("exec/command"), QOS_AT_LEAST_ONCE)->wait();
-}
+        : kUnitName(std::move(name)), kServerAddress(std::move(server_address)), client_(kServerAddress, kUUID) {}
 
 WaraPSClient::~WaraPSClient() {
     if (running()) {

@@ -1,26 +1,6 @@
-#include <Eigen/Dense>
-
-#include "algorithms/mimo.h"
-#include "algorithms/pso_seeker.h"
-#include "antenna.h"
-
-#if USE_AUDIO
-#include "audio/audio_wrapper.h"
-#endif 
-
-#include "config.h"
-#include "delay.h"
-#include "options.h"
-#include "pipeline.h"
-
-#if USE_WARAPS
-
-#include <wara_ps_client.h>
-
-#endif
-
 #include <signal.h>
 
+#include <Eigen/Dense>
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
@@ -29,6 +9,16 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
+
+#include "algorithms/mimo.h"
+#include "algorithms/pso_seeker.h"
+#include "antenna.h"
+#include "audio/audio_wrapper.h"
+#include "config.h"
+#include "delay.h"
+#include "mqtt/wara_ps_client.h"
+#include "options.h"
+#include "pipeline.h"
 
 
 /**
@@ -57,13 +47,7 @@ void sig_handler(int sig) {
 }
 
 int main() {
-    Eigen::MatrixXf dome = generate_unit_dome(100);
-    Eigen::MatrixXi lookup_table(90, 360);
-    generate_lookup_table(dome, lookup_table);
-
     BeamformingOptions options;
-
-#if USE_WARAPS
 
     WaraPSClient client = WaraPSClient(WARAPS_NAME, WARAPS_ADDRESS);
 
@@ -78,8 +62,11 @@ int main() {
                                                       to_string(duration)));
     });
 
-    thread client_thread = client.Start();
-#endif
+    thread client_thread;
+
+    if (options.use_wara_ps_) {
+        client_thread = client.Start();
+    }
 
     // Setup sigint i.e Ctrl-C
     signal(SIGINT, sig_handler);
@@ -104,13 +91,10 @@ int main() {
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
-#if USE_AUDIO
-
     AudioWrapper audio(*pipeline->getStreams());
     if (options.audio_on_) {
         audio.start_audio_playback();
     }
-#endif
 
 
 #if CAMERA
@@ -145,8 +129,6 @@ int main() {
 
 
     while (pipeline->isRunning()) {
-
-
         if (pipeline->canPlot) {
             pipeline->canPlot = 0;
             cv::Mat smallFrame;
@@ -186,11 +168,7 @@ int main() {
         cv::imshow(APPLICATION_NAME, frame);
 
         // Check for key press; if 'q' is pressed, break the loop
-#if USE_WARAPS
-        if (!client.running() || cv::waitKey(1) == 'q') {
-#else
-        if (cv::waitKey(1) == 'q') {
-#endif
+        if ((options.use_wara_ps_ && !client.running()) || cv::waitKey(1) == 'q') {
             std::cout << "Stopping application..." << std::endl;
             break;
         }
@@ -205,11 +183,9 @@ int main() {
     // Close application windows
     cv::destroyAllWindows();
 
-#if USE_AUDIO
     if (options.audio_on_) {
         audio.stop_audio_playback();
     }
-#endif
 
 cleanup:
 
@@ -221,9 +197,11 @@ cleanup:
     // Unite the proletariat
     worker.join();
 
-#if USE_WARAPS
-    client_thread.join();
-#endif
+    if (options.use_wara_ps_) {
+        if(client.running())
+            client.Stop();
+        client_thread.join();
+    }
 
     std::cout << "Exiting..." << std::endl;
 

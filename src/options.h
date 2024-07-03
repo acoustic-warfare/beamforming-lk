@@ -25,6 +25,9 @@ public:
 
     std::atomic_bool have_changed_ = false;
 
+    // WARA-PS Agent
+    atomic<bool> use_wara_ps_ = USE_WARAPS;
+
     // Antenna
     std::uint32_t columns_ = 8;
     std::uint32_t rows_ = 8;

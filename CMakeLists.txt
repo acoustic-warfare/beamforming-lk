@@ -131,6 +131,7 @@ find_package(Eigen3 REQUIRED)
 
 # MQTT Communication
 find_package(nlohmann_json REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
 
 # Generating UUID:s
 find_package(Boost REQUIRED)
@@ -139,8 +140,6 @@ find_package(Boost REQUIRED)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
-find_package(WaraPSClient REQUIRED)
-find_package(PahoMqttCpp REQUIRED)
 
 find_library(portaudio
     portaudio

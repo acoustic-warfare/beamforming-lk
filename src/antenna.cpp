@@ -192,9 +192,9 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
             for (int i = 0; i < dome.size(); ++i) {
                 float phi_radians = TO_RADIANS(float(phi));
                 float theta_radians = TO_RADIANS(float(theta));
-                float x = cos(theta_radians) * sin(phi_radians);
-                float y = sin(theta_radians) * sin(phi_radians);
-                float z = cos(phi_radians);
+                float x = std::cos(theta_radians) * std::sin(phi_radians);
+                float y = std::sin(theta_radians) * std::sin(phi_radians);
+                float z = std::cos(phi_radians);
 
                 auto dist = float(sqrt(
                         pow(x - dome(i, X_INDEX), 2) +
