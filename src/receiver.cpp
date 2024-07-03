@@ -49,7 +49,7 @@ int init_receiver() {
     }
     msg = new message();
 
-      socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if (socket_desc < 0) {
 #if RECEIVER_DEBUG
@@ -90,48 +90,48 @@ void stop_receiving() {
     }
 }
 int receive_exposure(
-    std::vector<Streams *> streams_dist,
-    std::vector<std::unique_ptr<BeamformingOptions>> &options) {
+        std::vector<Streams *> streams_dist,
+        std::vector<std::unique_ptr<BeamformingOptions>> &options) {
     // float data[N_FPGAS][N_SENSORS][N_SAMPLES];
 
-  float ***data = new float **[N_FPGAS];
-  for (int i = 0; i < N_FPGAS; ++i) {
-    data[i] = new float *[options[i]->n_sensors_];
-    for (int j = 0; j < options[i]->n_sensors_; ++j) {
-      data[i][j] = new float[N_SAMPLES];
-    }
-  }
-
-  struct sockaddr_in source_addr;
-  __socklen_t source_addr_len = sizeof(source_addr);
-
-  std::vector<bool> done_samples(N_FPGAS, false);
-
-  int sample_counter[N_FPGAS] = {};
-  int streams_id = N_FPGAS + 1;
-
-  while (std::any_of(done_samples.begin(), done_samples.end(),
-                     [](bool b) { return !b; })) {
-    if (recvfrom(socket_desc, msg, sizeof(message), 0,
-                 (struct sockaddr *)&source_addr, &source_addr_len) < 0) {
-      printf("Couldn't receive\n");
-      return -1;
+    float ***data = new float **[N_FPGAS];
+    for (int i = 0; i < N_FPGAS; ++i) {
+        data[i] = new float *[options[i]->n_sensors_];
+        for (int j = 0; j < options[i]->n_sensors_; ++j) {
+            data[i][j] = new float[N_SAMPLES];
+        }
     }
 
-    char ip[INET_ADDRSTRLEN];
-    // Convert IP address from binary to text form
-    inet_ntop(AF_INET, &(source_addr.sin_addr), ip, INET_ADDRSTRLEN);
+    struct sockaddr_in source_addr;
+    __socklen_t source_addr_len = sizeof(source_addr);
 
-     for (int i = 0; i < N_FPGAS; ++i) {
-       if (strcmp(ip, ip_addresses[i]) == 0) {
-         streams_id = i;
-         break;
-       }
-     }
+    std::vector<bool> done_samples(N_FPGAS, false);
 
-    if (streams_id == N_FPGAS + 1) {
-      std::cerr << "Unknown IP: " << ip << std::endl;
-    }
+    int sample_counter[N_FPGAS] = {};
+    int streams_id = N_FPGAS + 1;
+
+    while (std::any_of(done_samples.begin(), done_samples.end(),
+                       [](bool b) { return !b; })) {
+        if (recvfrom(socket_desc, msg, sizeof(message), 0,
+                     (struct sockaddr *) &source_addr, &source_addr_len) < 0) {
+            printf("Couldn't receive\n");
+            return -1;
+        }
+
+        char ip[INET_ADDRSTRLEN];
+        // Convert IP address from binary to text form
+        inet_ntop(AF_INET, &(source_addr.sin_addr), ip, INET_ADDRSTRLEN);
+
+        for (int i = 0; i < N_FPGAS; ++i) {
+            if (strcmp(ip, ip_addresses[i]) == 0) {
+                streams_id = i;
+                break;
+            }
+        }
+
+        if (streams_id == N_FPGAS + 1) {
+            std::cerr << "Unknown IP: " << ip << std::endl;
+        }
 
         int inverted = 1;
 
@@ -149,24 +149,24 @@ int receive_exposure(
                 index = m;
             }
 
-      data[streams_id][m][sample_counter[streams_id]] =
-          (float)msg->stream[index] / (float)MAX_VALUE_FLOAT;
+            data[streams_id][m][sample_counter[streams_id]] =
+                    (float) msg->stream[index] / (float) MAX_VALUE_FLOAT;
+        }
+
+        if (sample_counter[streams_id] != N_SAMPLES) {
+            sample_counter[streams_id]++;
+        } else {
+            done_samples[streams_id] = true;
+        }
     }
 
-    if (sample_counter[streams_id] != N_SAMPLES) {
-      sample_counter[streams_id]++;
-    } else {
-      done_samples[streams_id] = true;
+    for (int i = 0; i < N_FPGAS; i++) {
+        for (int s = 0; s < options[i]->n_sensors_; s++) {
+            streams_dist[i]->write_stream(s, &data[i][s][0]);
+        }
     }
-  }
 
-  for (int i = 0; i < N_FPGAS; i++) {
-    for (int s = 0; s < options[i]->n_sensors_; s++) {
-      streams_dist[i]->write_stream(s, &data[i][s][0]);
-    }
-  }
-
-  /*
+    /*
     for (int i = 0; i < N_SAMPLES; i++) {
       if (recvfrom(socket_desc, msg, sizeof(message), 0,
                    (struct sockaddr *)&source_addr, &source_addr_len) < 0) {
@@ -209,36 +209,36 @@ int receive_exposure(
 }
 
 int number_of_sensors(int id, BeamformingOptions *config) {
-  struct sockaddr_in server_addr;
-  __socklen_t server_addr_len = sizeof(server_addr);
-  char ip[INET_ADDRSTRLEN];
+    struct sockaddr_in server_addr;
+    __socklen_t server_addr_len = sizeof(server_addr);
+    char ip[INET_ADDRSTRLEN];
 
-  while (true) {
-    if (recvfrom(socket_desc, msg, sizeof(message), 0,
-                 (struct sockaddr *)&server_addr, &server_addr_len) < 0) {
-      printf("Couldn't receive\n");
-      return -1;
+    while (true) {
+        if (recvfrom(socket_desc, msg, sizeof(message), 0,
+                     (struct sockaddr *) &server_addr, &server_addr_len) < 0) {
+            printf("Couldn't receive\n");
+            return -1;
+        }
+
+        // Convert IP address from binary to text form
+        inet_ntop(AF_INET, &(server_addr.sin_addr), ip, INET_ADDRSTRLEN);
+
+        std::cout << "\rn_arrays: " << static_cast<int>(msg->n_arrays) << std::endl;
+        std::cout << "\rsrc_addrs: " << ip << std::endl;
+
+        if (strcmp(ip, ip_addresses[id]) == 0) {
+            config->arrays_ = msg->n_arrays;
+            config->n_sensors_ = msg->n_arrays * ELEMENTS;
+            std::cout << "\rn_sensors_ RECEIVER: " << config->n_sensors_ << std::endl;
+
+            return msg->n_arrays * ELEMENTS;
+        }
     }
 
-    // Convert IP address from binary to text form
-    inet_ntop(AF_INET, &(server_addr.sin_addr), ip, INET_ADDRSTRLEN);
-
-    std::cout << "\rn_arrays: " << static_cast<int>(msg->n_arrays) << std::endl;
-    std::cout << "\rsrc_addrs: " << ip << std::endl;
-
-    if (strcmp(ip, ip_addresses[id]) == 0) {
-      config->arrays_ = msg->n_arrays;
-      config->n_sensors_ = msg->n_arrays * ELEMENTS;
-      std::cout << "\rn_sensors_ RECEIVER: " << config->n_sensors_ << std::endl;
-
-      return msg->n_arrays * ELEMENTS;
-    }
-  }
-
-  std::cerr << "Unknown IP: " << ip << std::endl;
+    std::cerr << "Unknown IP: " << ip << std::endl;
 }
 
-#if 0  // TODO: N_SENSORS NEED TO BE UPDATED
+#if 0// TODO: N_SENSORS NEED TO BE UPDATED
 float sine[2 * 48828];
 
 
@@ -327,7 +327,7 @@ int main() { //TODO: N_SENSORS NEED TO BE UPDATED
 }
 #endif
 
-#if 0  // TODO: N_SENSORS NEED TO BE UPDATED
+#if 0// TODO: N_SENSORS NEED TO BE UPDATED
 
 #include <cmath>
 #include <cstdlib>

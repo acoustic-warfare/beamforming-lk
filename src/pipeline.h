@@ -2,19 +2,18 @@
 #define PIPELINE_H
 
 //#include "ring_buffer.h"
-#include "streams.hpp"
-
-#include "receiver.h"
 #include "options.h"
+#include "receiver.h"
+#include "streams.hpp"
 
 //#include "ring_buffer.h"
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdio>
-#include <memory>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -39,7 +38,7 @@ public:
     /**
    * Connect beamformer to antenna
    */
-    int connect(std::vector<std::unique_ptr<BeamformingOptions>>& options);
+    int connect(std::vector<std::unique_ptr<BeamformingOptions>> &options);
 
     /**
    * Disconnect beamformer from antenna
@@ -68,7 +67,7 @@ public:
 private:
     //Streams *streams;
     std::vector<Streams *> streams_dist;
-    std::string ipAddress; 
+    std::string ipAddress;
     int connected = 0;
     mutex pool_mutex;
     mutex barrier_mutex;
