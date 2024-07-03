@@ -69,13 +69,13 @@ public:
     bool running() const;
 
     /**
-     * Start main thread and heartbeat thread and begin consuming messages from the MQTT server.
+     * Start consume and heartbeat threads and begin consuming messages from the MQTT server.
      * Will not block the current thread.
      */
-    std::thread Start();
+    void Start();
 
     /**
-     * Stop consuming messages and disable the heartbeat thread, allowing the client to be destroyed.
+     * Stop consuming messages and disable the heartbeat and consume threads, allowing the client to be destroyed.
      */
     void Stop();
 

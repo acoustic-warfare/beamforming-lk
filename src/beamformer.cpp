@@ -72,11 +72,8 @@ int main() {
                                                       to_string(duration)));
     });
 
-    thread client_thread;
-
-    if (sysops.use_wara_ps_) {
-        client_thread = client.Start();
-    }
+    if (sysops.use_wara_ps_)
+        client.Start();
 
     // Setup sigint i.e Ctrl-C
     signal(SIGINT, sig_handler);
@@ -217,14 +214,13 @@ cleanup:
         }
     }
 
-    if (sysops.use_wara_ps_) {
-        if(client.running())
-            client.Stop();
-        client_thread.join();
-    }
+    if (sysops.use_wara_ps_)
+        client.Stop();
 
     std::cout << "Exiting..." << std::endl;
 
     // Cleanup
     delete pipeline;
+
+    return 0;
 }
