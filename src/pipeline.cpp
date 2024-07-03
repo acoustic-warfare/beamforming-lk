@@ -1,19 +1,29 @@
 #include "pipeline.h"
 
+#include "options.h"
+
 using namespace std;
 
-Pipeline::Pipeline() {
-    streams = new Streams();
+Pipeline::Pipeline() : streams_dist(N_FPGAS) {
+    // streams = new Streams();
+
+    for (int i = 0; i < N_FPGAS; ++i) {
+        streams_dist[i] = new Streams();
+    }
 }
 
 Pipeline::~Pipeline() {
-    delete streams;
+    // delete streams;
+    for (int i = 0; i < N_FPGAS; ++i) {
+        delete streams_dist[i];
+    }
 }
 
 /**
  * Connect beamformer to antenna
  */
-int Pipeline::connect() {
+int Pipeline::connect(
+        std::vector<std::unique_ptr<BeamformingOptions>>& options) {
     if (connected) {
         cerr << "Beamformer is already connected" << endl;
         return -1;
@@ -24,14 +34,22 @@ int Pipeline::connect() {
 
     connected = 1;
 
-    for (int s = 0; s < number_of_sensors(); s++) {
-        this->streams->create_stream(s);
+    for (int i = 0; i < N_FPGAS; i++) {
+        options.emplace_back(std::make_unique<BeamformingOptions>());
+        BeamformingOptions* config = options.back().get();
+
+        int n = number_of_sensors(i, config);
+        std::cout << "\rn_sensors_ PIPELINE: " << config->n_sensors_ << std::endl;
+
+        for (int s = 0; s < n; s++) {
+            this->streams_dist[i]->create_stream(s);
+            std::cout << "\rAdding stream: " << s << "        ";
+        }
     }
 
     std::cout << std::endl;
 
-
-    connection = thread(&Pipeline::producer, this);
+    connection = thread(&Pipeline::producer, this, std::ref(options));
 
     return 0;
 }
@@ -83,9 +101,8 @@ void Pipeline::barrier() {
     barrier_condition.wait(lock, [&] { return barrier_count == 0; });
 }
 
-
-Streams *Pipeline::getStreams() {
-    return streams;
+Streams* Pipeline::getStreams(int streams_id) {
+    return streams_dist[streams_id];
 }
 
 /**
@@ -101,15 +118,18 @@ void Pipeline::release_barrier() {
 /**
  * The main distributer of data to the threads (this is also a thread)
  */
-void Pipeline::producer() {
+void Pipeline::producer(
+        std::vector<std::unique_ptr<BeamformingOptions>>& options) {
     while (isRunning()) {
-        //receive_offset(&rb); // Fill buffer
-        receive_exposure(streams);
+        // receive_offset(&rb); // Fill buffer
+        receive_exposure(streams_dist, options);
 
         {
             unique_lock<mutex> lock(barrier_mutex);
-            //offset_ring_buffer(&rb);
-            streams->forward();
+            // offset_ring_buffer(&rb);
+            for (int i = 0; i < N_FPGAS; i++) {
+                streams_dist[i]->forward();
+            }
         }
 
         release_barrier();
@@ -119,7 +139,7 @@ void Pipeline::producer() {
 ///**
 // * The main distributer of data to the threads (this is also a thread)
 // */
-//void Pipeline::producer() {
+// void Pipeline::producer() {
 //  while (isRunning()) {
 //    //receive_offset(&rb); // Fill buffer
 //

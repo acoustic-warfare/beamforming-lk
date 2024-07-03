@@ -27,14 +27,15 @@ public:
 
     Antenna &antenna;
     Streams *streams;
+    int n_sensors;
 
     //float (*objective_function)(float, float);
 
-    Particle(Antenna &antenna, Streams *streams);
+    Particle(Antenna &antenna, Streams *streams, int n_sensors);
 
     void random();
 
-    float compute(double theta, double phi);
+    float compute(double theta, double phi, int n_sensors);
 
     void update();
 };
@@ -48,6 +49,7 @@ public:
     int n_particles;
     Antenna &antenna;
     Streams *streams;
+    int n_sensors;
 
 
 #if USE_KALMAN_FILTER
@@ -56,7 +58,7 @@ public:
 
     //float (*objective_function)(float, float);
 
-    PSO(int n_particles, Antenna &antenna, Streams *streams);
+    PSO(int n_particles, Antenna &antenna, Streams *streams, int n_sensors);
 
     void initialize_particles();
 
@@ -66,6 +68,6 @@ public:
 };
 
 
-void pso_finder(Pipeline *pipeline);
+void pso_finder(Pipeline *pipeline, int stream_id, int n_arrays);
 
 #endif
