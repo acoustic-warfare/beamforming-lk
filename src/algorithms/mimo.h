@@ -23,7 +23,7 @@
  */
 void compute_scanning_window(int *offset_delays, float *fractional_delays,
                              const Antenna &antenna, float fov,
-                             int resolution_x, int resolution_y) {
+                             int resolution_x, int resolution_y, int n_sensors) {
 
     float half_x = (float) (resolution_x) / 2 - 0.5;
     float half_y = (float) (resolution_y) / 2 - 0.5;
@@ -50,8 +50,8 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
 
                 int offset = N_SAMPLES - (int) _offset;
                 // cout << del << endl;
-                fractional_delays[k * N_SENSORS + i] = fraction;
-                offset_delays[k * N_SENSORS + i] = offset;
+                fractional_delays[k * n_sensors + i] = fraction;
+                offset_delays[k * n_sensors + i] = offset;
                 i++;
             }
 
@@ -71,10 +71,10 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
  * @return power level
  */
 float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
-           Streams *streams) {
+           Streams *streams, int n_sensors) {
     float out[N_SAMPLES] = {0.0};
     int n = 0;
-    for (int s = 0; s < N_SENSORS; s++) {
+    for (int s = 0; s < n_sensors; s++) {
 
         // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
         //   continue;
@@ -109,15 +109,17 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
 /**
  * Beamforming as fast as possible on top of pipeline
  */
-void static_mimo_heatmap_worker(Pipeline *pipeline) {
-
+void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id,
+                                uint32_t n_sensors) {
     Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
-    float fractional_delays[X_RES * Y_RES * N_SENSORS];
-    int offset_delays[X_RES * Y_RES * N_SENSORS];
+    std::cout << "mimo: " << n_sensors << std::endl;
+
+    float fractional_delays[X_RES * Y_RES * n_sensors];
+    int offset_delays[X_RES * Y_RES * n_sensors];
 
     compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
-                            FOV, X_RES, Y_RES);
+                            FOV, X_RES, Y_RES, n_sensors);
 
     int max = X_RES * Y_RES;
 
@@ -133,7 +135,8 @@ void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
     float maxVal = 1.0;
 
-    Streams *streams = pipeline->getStreams();
+    Streams *streams = pipeline->getStreams(stream_id);
+    std::cout << "streams: " << streams << std::endl;
 
     while (pipeline->isRunning()) {
 
@@ -158,16 +161,14 @@ void static_mimo_heatmap_worker(Pipeline *pipeline) {
 
         // Repeat until new data or abort if new data arrives
         while ((pipeline->mostRecent() == newData) && (i < max)) {
-            //while ((i < max)) {
-
-            int task = pixel_index * N_SENSORS;
+            int task = pixel_index * n_sensors;
 
             xi = pixel_index % X_RES;
             yi = pixel_index / X_RES;
 
             // Get power level from direction
             float val = miso(0, pixel_index, &offset_delays[task],
-                             &fractional_delays[task], streams);
+                             &fractional_delays[task], streams, n_sensors);
 
             if (val > maxVal) {
                 maxVal = val;

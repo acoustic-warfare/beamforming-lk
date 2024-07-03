@@ -8,8 +8,12 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <vector>
+#include <memory>
 
 #include "config.h"
+#include "options.h"
+#include "pipeline.h"
 #include "streams.hpp"
 #define HEADER_SIZE 2
 
@@ -19,7 +23,7 @@ typedef struct __attribute__((__packed__)) _msg {
     uint8_t n_arrays;
     uint8_t version;
     uint32_t counter;
-    int32_t stream[N_SENSORS];
+    int32_t stream[MAX_N_SENSORS];
 } message;
 
 /**
@@ -40,8 +44,8 @@ int receive_offset(Streams *streams);
 /**
  * Put the latest frame into the ring_buffer
  */
-int number_of_sensors();
+int number_of_sensors(int id, BeamformingOptions *config);
 
-int receive_exposure(Streams *streams);
+int receive_exposure(std::vector<Streams *> streams_dists, std::vector<std::unique_ptr<BeamformingOptions>> &options);
 
 #endif

@@ -6,7 +6,7 @@
 
 #if USE_AUDIO
 #include "audio/audio_wrapper.h"
-#endif 
+#endif
 
 #include "config.h"
 #include "delay.h"
@@ -14,9 +14,7 @@
 #include "pipeline.h"
 
 #if USE_WARAPS
-
 #include <wara_ps_client.h>
-
 #endif
 
 #include <signal.h>
@@ -46,6 +44,7 @@ program.
 std::atomic_int canPlot = 0;
 
 Pipeline *pipeline;
+std::vector<std::thread> workers;
 
 // Intermediate heatmap used for beamforming (8-bit)
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
@@ -61,7 +60,7 @@ int main() {
     Eigen::MatrixXi lookup_table(90, 360);
     generate_lookup_table(dome, lookup_table);
 
-    BeamformingOptions options;
+    std::vector<std::unique_ptr<BeamformingOptions>> options;
 
 #if USE_WARAPS
 
@@ -89,17 +88,24 @@ int main() {
 
     std::cout << "Waiting for UDP stream..." << std::endl;
     // Connect to UDP stream
-    pipeline->connect();
+    pipeline->connect(options);
+    std::cout << "\rn_sensors_ 0 MAIN: " << options[0]->n_sensors_ << std::endl;
+    // std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
+    // std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
     pipeline->magnitudeHeatmap = &magnitudeHeatmap;// TODO in constructor?
 
-    std::cout << "Dispatching workers..." << std::endl;
+    for (int i = 0; i < N_FPGAS; i++) {
+        std::cout << "Dispatching workers..." << std::endl;
 #if USE_MIMO
-    thread worker(&static_mimo_heatmap_worker, pipeline);
+        // thread worker(&static_mimo_heatmap_worker, pipeline);
+        workers.emplace_back(static_mimo_heatmap_worker, pipeline, i,
+                             options[i]->n_sensors_);
 #else
-    thread worker(&pso_finder, pipeline);
+        // thread worker(&pso_finder, pipeline, i, options[i]->n_sensors_);
+        workers.emplace_back(&pso_finder, pipeline, i, options[i]->n_sensors_);
 #endif
-
+    }
 
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
@@ -111,7 +117,6 @@ int main() {
         audio.start_audio_playback();
     }
 #endif
-
 
 #if CAMERA
     cv::VideoCapture cap(CAMERA_PATH);// Open the default camera (change the
@@ -137,16 +142,15 @@ int main() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
 
 #if RESIZE_HEATMAP
-    cv::resize(frame, frame, cv::Size(), RESOLUTION_MULTIPLIER, RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
-    cv::resize(previous, previous, cv::Size(), RESOLUTION_MULTIPLIER, RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
+    cv::resize(frame, frame, cv::Size(), RESOLUTION_MULTIPLIER,
+               RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
+    cv::resize(previous, previous, cv::Size(), RESOLUTION_MULTIPLIER,
+               RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
 #endif
 
     std::cout << "Running..." << std::endl;
 
-
     while (pipeline->isRunning()) {
-
-
         if (pipeline->canPlot) {
             pipeline->canPlot = 0;
             cv::Mat smallFrame;
@@ -160,11 +164,12 @@ int main() {
 
 #if RESIZE_HEATMAP
             // Resize to smoothen
-            cv::resize(smallFrame, frame, cv::Size(), RESOLUTION_MULTIPLIER, RESOLUTION_MULTIPLIER,
-                       cv::INTER_LINEAR);
+            cv::resize(smallFrame, frame, cv::Size(), RESOLUTION_MULTIPLIER,
+                       RESOLUTION_MULTIPLIER, cv::INTER_LINEAR);
 #endif
             // Combine previous images for more smooth image
-            cv::addWeighted(frame, IMAGE_CURRENT_WEIGHTED_RATIO, previous, IMAGE_PREVIOUS_WEIGHTED_RATIO, 0, frame);
+            cv::addWeighted(frame, IMAGE_CURRENT_WEIGHTED_RATIO, previous,
+                            IMAGE_PREVIOUS_WEIGHTED_RATIO, 0, frame);
 
             // Update previous image
             previous = frame;
@@ -219,7 +224,13 @@ cleanup:
 
     std::cout << "Waiting for workers..." << std::endl;
     // Unite the proletariat
-    worker.join();
+    // worker.join();
+
+    for (auto &worker: workers) {
+        if (worker.joinable()) {
+            worker.join();
+        }
+    }
 
 #if USE_WARAPS
     client_thread.join();
