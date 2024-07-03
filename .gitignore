@@ -77,3 +77,6 @@ Mkfile.old
 dkms.conf
 
 .vscode/
+/cmake-build-debug/
+/CMakeFiles/
+/udp/recorded

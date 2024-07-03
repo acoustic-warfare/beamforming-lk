@@ -1,0 +1,8 @@
+CMakeFiles/
+build/
+.vscode/
+.github/
+udp/
+.clang-format
+tests/
+cmake-build-debug/

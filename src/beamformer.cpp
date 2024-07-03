@@ -1,24 +1,6 @@
-#include <Eigen/Dense>
-
-#include "algorithms/mimo.h"
-#include "algorithms/pso_seeker.h"
-#include "antenna.h"
-
-#if USE_AUDIO
-#include "audio/audio_wrapper.h"
-#endif
-
-#include "config.h"
-#include "delay.h"
-#include "options.h"
-#include "pipeline.h"
-
-#if USE_WARAPS
-#include <wara_ps_client.h>
-#endif
-
 #include <signal.h>
 
+#include <Eigen/Dense>
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
@@ -27,6 +9,16 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
+
+#include "algorithms/mimo.h"
+#include "algorithms/pso_seeker.h"
+#include "antenna.h"
+#include "audio/audio_wrapper.h"
+#include "config.h"
+#include "delay.h"
+#include "mqtt/wara_ps_client.h"
+#include "options.h"
+#include "pipeline.h"
 
 
 /**
@@ -56,13 +48,16 @@ void sig_handler(int sig) {
 }
 
 int main() {
-    Eigen::MatrixXf dome = generate_unit_dome(100);
-    Eigen::MatrixXi lookup_table(90, 360);
-    generate_lookup_table(dome, lookup_table);
-
     std::vector<std::unique_ptr<BeamformingOptions>> options;
 
-#if USE_WARAPS
+    typedef struct {
+        bool use_wara_ps_;
+        bool use_audio_;
+    } SystemOptions;
+
+    SystemOptions sysops;
+    sysops.use_wara_ps_ = USE_WARAPS;
+    sysops.use_audio_ = USE_AUDIO;
 
     WaraPSClient client = WaraPSClient(WARAPS_NAME, WARAPS_ADDRESS);
 
@@ -77,8 +72,11 @@ int main() {
                                                       to_string(duration)));
     });
 
-    thread client_thread = client.Start();
-#endif
+    thread client_thread;
+
+    if (sysops.use_wara_ps_) {
+        client_thread = client.Start();
+    }
 
     // Setup sigint i.e Ctrl-C
     signal(SIGINT, sig_handler);
@@ -90,8 +88,6 @@ int main() {
     // Connect to UDP stream
     pipeline->connect(options);
     std::cout << "\rn_sensors_ 0 MAIN: " << options[0]->n_sensors_ << std::endl;
-    // std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
-    // std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
     pipeline->magnitudeHeatmap = &magnitudeHeatmap;// TODO in constructor?
 
@@ -102,7 +98,6 @@ int main() {
         workers.emplace_back(static_mimo_heatmap_worker, pipeline, i,
                              options[i]->n_sensors_);
 #else
-        // thread worker(&pso_finder, pipeline, i, options[i]->n_sensors_);
         workers.emplace_back(&pso_finder, pipeline, i, options[i]->n_sensors_);
 #endif
     }
@@ -110,13 +105,10 @@ int main() {
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
-#if USE_AUDIO
-
-    AudioWrapper audio(*pipeline->getStreams());
-    if (options.audio_on_) {
+    AudioWrapper audio(*pipeline->getStreams(0));
+    if (sysops.use_audio_) {
         audio.start_audio_playback();
     }
-#endif
 
 #if CAMERA
     cv::VideoCapture cap(CAMERA_PATH);// Open the default camera (change the
@@ -191,11 +183,7 @@ int main() {
         cv::imshow(APPLICATION_NAME, frame);
 
         // Check for key press; if 'q' is pressed, break the loop
-#if USE_WARAPS
-        if (!client.running() || cv::waitKey(1) == 'q') {
-#else
-        if (cv::waitKey(1) == 'q') {
-#endif
+        if ((sysops.use_wara_ps_ && !client.running()) || cv::waitKey(1) == 'q') {
             std::cout << "Stopping application..." << std::endl;
             break;
         }
@@ -210,11 +198,9 @@ int main() {
     // Close application windows
     cv::destroyAllWindows();
 
-#if USE_AUDIO
-    if (options.audio_on_) {
+    if (sysops.use_audio_) {
         audio.stop_audio_playback();
     }
-#endif
 
 cleanup:
 
@@ -223,18 +209,19 @@ cleanup:
     pipeline->disconnect();
 
     std::cout << "Waiting for workers..." << std::endl;
-    // Unite the proletariat
-    // worker.join();
 
+    // Unite the proletariat
     for (auto &worker: workers) {
         if (worker.joinable()) {
             worker.join();
         }
     }
 
-#if USE_WARAPS
-    client_thread.join();
-#endif
+    if (sysops.use_wara_ps_) {
+        if(client.running())
+            client.Stop();
+        client_thread.join();
+    }
 
     std::cout << "Exiting..." << std::endl;
 

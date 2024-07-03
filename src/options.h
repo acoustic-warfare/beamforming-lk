@@ -44,16 +44,8 @@ class BeamformingOptions {
   std::uint32_t protocol_version_ = 2;
   std::uint32_t n_sensors_ = columns_ * rows_ * arrays_;
 
-  // Camera
-  float camera_fov_ = 80.0;
-  bool camera_on_ = false;
-  std::string camera_path_ = "/dev/video0";
-
-    // Audio
-    bool audio_on_ = AUDIO;
-
   // UDP
-  // std::string udp_address_ = "127.0.0.1";
+   // std::string udp_address_ = "127.0.0.1";
   std::string udp_address = "10.0.0.1";
   std::string udp_port_ = "21844";
   std::uint32_t network_taps_ = 32;

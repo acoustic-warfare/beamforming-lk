@@ -13,6 +13,8 @@ ENDIF ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -O3")
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
@@ -20,7 +22,6 @@ set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 # ---- Configuration ----
 set(CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml)
 set(CONFIG_MAKER "${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py")
-
 
 add_custom_command(
         DEPENDS ${CONFIG_FILE}
@@ -130,7 +131,7 @@ find_package(Eigen3 REQUIRED)
 
 # MQTT Communication
 find_package(nlohmann_json REQUIRED)
-find_package(WaraPSClient REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
 
 # Generating UUID:s
 find_package(Boost REQUIRED)
@@ -139,7 +140,10 @@ find_package(Boost REQUIRED)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
-#find_package(portaudio REQUIRED)
+
+find_library(portaudio
+    portaudio
+)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -167,9 +171,10 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
-        #${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
-        #${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mqtt/wara_ps_client.cpp
 )
 
 
@@ -182,10 +187,10 @@ add_executable(beamformer
 # Linking
 target_link_libraries(beamformer
         Eigen3::Eigen
-        WaraPSClient
+        PahoMqttCpp::paho-mqttpp3
         nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
-        #portaudio
+        portaudio
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
