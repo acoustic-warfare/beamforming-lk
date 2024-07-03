@@ -4,7 +4,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build-image:
     runs-on: ubuntu-latest
     steps:
@@ -12,7 +11,5 @@ jobs:
     - name: Build the Docker image
       run: docker build . --tag beamformer:latest
 
-    - name: Run cmake in the docker image
-      run: docker run --rm beamformer:latest cmake -S . -B build && cmake --build build
-
-    
+    - name: Run cmake in the Docker image
+      run: docker run --rm -w /usr/src/app beamformer:latest /bin/bash -c "cmake -S . -B /build && cmake --build /build"
