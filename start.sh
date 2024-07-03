@@ -23,6 +23,9 @@ fi
 if [ -z "$(uname -a | grep PREEMPT_RT)" ]; then
     echo -e "$Red[WARNING]$Color_Off System does not have Realtime kernel enabled"
     echo "Please install one: https://ubuntu.com/pro"
+    RT_ARGS=""
+else
+    RT_ARGS="--network=host --ulimit rtprio=99 --cpus=$(nproc) --cap-add=SYS_NICE"
 fi
 
 install_docker () {
@@ -59,7 +62,7 @@ fi
 
 # Starting the container
 docker run -it \
-    --network=host \
+    $RT_ARGS \
     -v $(pwd):/usr/src/app \
     -e DISPLAY=$DISPLAY  \
     -v /tmp/.X11-unix:/tmp/.X11-unix \

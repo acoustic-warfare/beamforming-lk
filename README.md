@@ -24,6 +24,27 @@ The program requires some modules to run:
 
 You may also use `Doxygen` to compile the documentation, see Documentation.
 
+### Realtime Kernel
+
+It is also good to have a realtime kernel. see https://ubuntu.com/pro.
+
+When you have a real time kernel:
+```bash
+sudo addgroup realtime
+sudo usermod -a -G realtime $(whoami)
+```
+
+Then edit the limit configuration `/etc/security/limits.conf`
+```bash
+# /etc/security/limits.conf
+@realtime     soft    rtprio          99
+@realtime     soft    priority        99
+@realtime     soft    memlock     102400
+@realtime     hard    rtprio          99
+@realtime     hard    priority        99
+@realtime     hard    memlock     102400
+```
+
 ## Prerequisites (Docker)
 
 The project may also be compiled and executed inside a Docker environment. A working Docker installation is required and Docker without root privileges is recommended. 
