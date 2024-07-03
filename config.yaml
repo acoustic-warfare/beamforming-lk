@@ -11,9 +11,9 @@
 # Beamforming 
 
 # Heatmap (MIMO)
-USE_MIMO: true
-X_RES: 20
-Y_RES: 20
+USE_MIMO: false
+X_RES: 128
+Y_RES: 128
 RESIZE_HEATMAP: true
 
 # Application
@@ -58,7 +58,7 @@ LOCAL_AREA_RATIO: 0.7
 GLOBAL_AREA_RATIO: 1.0 - LOCAL_AREA_RATIO
 
 # Camera
-FOV: 100.0 # How far we should look to the side
+FOV: 45.0 # How far we should look to the side
 CAMERA: false
 CAMERA_PATH: "/dev/video0"
 
@@ -69,12 +69,14 @@ IMAGE_PREVIOUS_WEIGHTED_RATIO: 1.0 - IMAGE_CURRENT_WEIGHTED_RATIO
 
 # Beamforming
 PI: 3.1415926535897
-ANGLE_LIMIT: FOV / 2.0 * PI / 180.0
+TWO_PI: 2.0 * PI
+ANGLE_LIMIT: FOV * PI / 180.0 #PI / 4.0 * 2.0
 
 USE_KALMAN_FILTER: true
 
 # Audio 
 AUDIO: false
+USE_AUDIO: AUDIO
 
 
 # Networking 

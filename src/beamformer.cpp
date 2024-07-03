@@ -1,21 +1,20 @@
+#include <Eigen/Dense>
+
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
+
+#if USE_AUDIO
+#include "audio/audio_wrapper.h"
+#endif 
+
 #include "config.h"
 #include "delay.h"
 #include "options.h"
 #include "pipeline.h"
 
-#if AUDIO
-#include "RtAudio.h"
-#endif
-
-#include <Eigen/Dense>
-
 #if USE_WARAPS
-
 #include <wara_ps_client.h>
-
 #endif
 
 #include <signal.h>
@@ -28,6 +27,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
+
 
 /**
 Main application for running beamformer program
@@ -49,17 +49,18 @@ std::vector<std::thread> workers;
 // Intermediate heatmap used for beamforming (8-bit)
 cv::Mat magnitudeHeatmap(Y_RES, X_RES, CV_8UC1);
 
+
 void sig_handler(int sig) {
   // Set the stop_processing flag to terminate worker threads gracefully
   pipeline->disconnect();
 }
 
 int main() {
-  MatrixXf dome = generate_unit_dome(100);
-  MatrixXi lookup_table(90, 360);
-  generate_lookup_table(dome, lookup_table);
+    Eigen::MatrixXf dome = generate_unit_dome(100);
+    Eigen::MatrixXi lookup_table(90, 360);
+    generate_lookup_table(dome, lookup_table);
 
-  std::vector<std::unique_ptr<BeamformingOptions>> options;
+    std::vector<std::unique_ptr<BeamformingOptions>> options;
 
 #if USE_WARAPS
 
@@ -89,10 +90,10 @@ int main() {
   // Connect to UDP stream
   pipeline->connect(options);
   std::cout << "\rn_sensors_ 0 MAIN: " << options[0]->n_sensors_ << std::endl;
-  //std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
+  // std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
   // std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
-  pipeline->magnitudeHeatmap = &magnitudeHeatmap;  // TODO: in constructor?
+    pipeline->magnitudeHeatmap = &magnitudeHeatmap;// TODO in constructor?
 
   for (int i = 0; i < N_FPGAS; i++) {
     std::cout << "Dispatching workers..." << std::endl;
@@ -109,18 +110,22 @@ int main() {
   // Initiate background image
   magnitudeHeatmap.setTo(cv::Scalar(0));
 
-#if AUDIO
-  init_audio_playback(pipeline);
+#if USE_AUDIO
+
+    AudioWrapper audio(*pipeline->getStreams());
+    if (options.audio_on_) {
+        audio.start_audio_playback();
+    }
 #endif
 
 #if CAMERA
-  cv::VideoCapture cap(CAMERA_PATH);  // Open the default camera (change the
+    cv::VideoCapture cap(CAMERA_PATH);// Open the default camera (change the
                                       // index if you have multiple cameras)
-  if (!cap.isOpened()) {
-    std::cerr << "Error: Unable to open the camera." << std::endl;
-    // goto cleanup;
-    exit(1);
-  }
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Unable to open the camera." << std::endl;
+        //goto cleanup;
+        exit(1);
+    }
 
   cv::Mat cameraFrame;
 #endif
@@ -129,10 +134,10 @@ int main() {
   cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
   cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
 
-  // Decay image onto previous frame
-  cv::Mat previous(Y_RES, X_RES, CV_8UC1);
-  previous.setTo(cv::Scalar(0));  // Set to zero
-  cv::applyColorMap(previous, previous, cv::COLORMAP_JET);
+    // Decay image onto previous frame
+    cv::Mat previous(Y_RES, X_RES, CV_8UC1);
+    previous.setTo(cv::Scalar(0));// Set to zero
+    cv::applyColorMap(previous, previous, cv::COLORMAP_JET);
 
   cv::Mat frame(Y_RES, X_RES, CV_8UC1);
 
@@ -166,21 +171,20 @@ int main() {
       cv::addWeighted(frame, IMAGE_CURRENT_WEIGHTED_RATIO, previous,
                       IMAGE_PREVIOUS_WEIGHTED_RATIO, 0, frame);
 
-      // Update previous image
-      previous = frame;
-    }
+            // Update previous image
+            previous = frame;
+        }
 
 #if CAMERA
-    cap >> cameraFrame;  // Capture a frame from the camera
+        cap >> cameraFrame;// Capture a frame from the camera
 
-    if (cameraFrame.empty()) {
-      std::cerr << "Error: Captured frame is empty." << std::endl;
-      break;
-    }
+        if (cameraFrame.empty()) {
+            std::cerr << "Error: Captured frame is empty." << std::endl;
+            break;
+        }
 
-    cv::resize(cameraFrame, cameraFrame, cv::Size(frame.cols, frame.rows), 0, 0,
-               cv::INTER_LINEAR);
-    cv::addWeighted(cameraFrame, 1.0, frame, 0.5, 0, frame);
+        cv::resize(cameraFrame, cameraFrame, cv::Size(frame.cols, frame.rows), 0, 0, cv::INTER_LINEAR);
+        cv::addWeighted(cameraFrame, 1.0, frame, 0.5, 0, frame);
 #endif
 
     // Output image to screen
@@ -190,7 +194,7 @@ int main() {
 #if USE_WARAPS
     if (!client.running() || cv::waitKey(1) == 'q') {
 #else
-    if (cv::waitKey(1) == 'q') {
+        if (cv::waitKey(1) == 'q') {
 #endif
       std::cout << "Stopping application..." << std::endl;
       break;
@@ -202,13 +206,15 @@ int main() {
   pipeline->save_pipeline("pipeline.bin");
 #endif
 
-#if AUDIO
-  stop_audio_playback();
-#endif
-
   std::cout << "Closing application..." << std::endl;
   // Close application windows
   cv::destroyAllWindows();
+
+#if USE_AUDIO
+    if (options.audio_on_) {
+        audio.stop_audio_playback();
+    }
+#endif
 
 cleanup:
 
@@ -217,7 +223,7 @@ cleanup:
   pipeline->disconnect();
 
   std::cout << "Waiting for workers..." << std::endl;
-  // Join the workers
+  // Unite the proletariat
   // worker.join();
 
   for (auto &worker : workers) {

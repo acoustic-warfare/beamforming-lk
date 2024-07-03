@@ -2070,7 +2070,7 @@ USE_PDFLATEX           = YES
 # Possible values are: NO same as ERROR_STOP, YES same as BATCH, BATCH In batch
 # mode nothing is printed on the terminal, errors are scrolled as if <return> is
 # hit at every error; missing files that TeX tries to input or request from
-# keyboard input (\read on a not open input stream) cause the job to abort,
+# keyboard input (\read on a not open input audio_stream_) cause the job to abort,
 # NON_STOP In nonstop mode the diagnostic message will appear on the terminal,
 # but there is no possibility of user interaction just like in batch mode,
 # SCROLL In scroll mode, TeX will stop only for missing files to input or if

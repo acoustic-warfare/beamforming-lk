@@ -7,13 +7,16 @@
 #define Y_INDEX 1
 #define Z_INDEX 2
 
+#define PI_HALF M_PI / 2.0
+
+#define TO_RADIANS(degree) degree * (M_PI / 180.0)
+
 #include "config.h"
 #include <Eigen/Dense>
 #include <cmath>
 
-using namespace Eigen;
 
-typedef Vector3f Position;
+typedef Eigen::Vector3f Position;
 
 /**
  * @brief Antenna that consists of points
@@ -23,11 +26,11 @@ typedef struct {
   /**
    * The 3D representation of the antenna
    */
-  MatrixXf points; // The 3D representation of the antenna
+  Eigen::MatrixXf points; // The 3D representation of the antenna
   int id;
 } Antenna;
 
-float to_radians(float degree);
+//float to_radians(float degree);
 
 /**
  * Find the center of antenna
@@ -61,7 +64,7 @@ Antenna create_antenna(const Position &position, const int columns,
  * @param antenna The antenna that will be used to compute the delays
  * @return a 1D vector of time delays
  */
-VectorXf compute_delays(const Antenna &antenna);
+Eigen::VectorXf compute_delays(const Antenna &antenna);
 
 /**
  * Perform a rotation of the antenna in 3D space. This rotation consist of 3
@@ -72,55 +75,35 @@ VectorXf compute_delays(const Antenna &antenna);
  * still keeping each element in the viscinity of its initial position. No
  * elements have crossed paths.
  */
-Antenna steer(const Antenna &antenna, const float azimuth, const float elevation);
-
+Antenna steer(const Antenna &antenna, const double theta, const double phi);
 
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
-Position spherical_to_cartesian(const float theta, const float phi, const float radius);
+Position spherical_to_cartesian(const double theta, const double phi, const double radius);
 
-
-VectorXf steering_vector_horizontal(const Antenna &antenna, float azimuth, float elevation);
+/**
+ * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation
+ * is up and down.
+ */
+Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation);
 
 /**
  * Calculate the delays when antenna is steered towards a specific point located
  * on the unitsphere on the positive Z axis. A point may also not be located on
  * the unitsphere, however it must have a Z value >= 0
  */
-VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point);
-
-VectorXf steering_vector_spherical(const Antenna &antenna, const float theta, const float phi);
-
-
-
-
-
-
-
-
-
-
-
-
-
+Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point);
 
 /**
- * Calculate the delays when antenna is steered towards angles theta and phi
+ * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
  */
-VectorXf steering_vector(const Antenna &antenna, float phi, float theta);
+Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi);
 
-/**
- * Calculate the delays when antenna is steered towards a specific point located
- * on the unitsphere on the positive Z axis. A point may also not be located on
- * the unitsphere, however it must have a Z value >= 0
- */
-VectorXf steering_vector(const Antenna &antenna, const Position point);
+Eigen::MatrixXf generate_unit_dome(const int n);
 
-MatrixXf generate_unit_dome(const int n);
+void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_table);
 
-void generate_lookup_table(const MatrixXf &dome, MatrixXi &lookup_table);
-
-void test_lookup_table(const MatrixXf &dome, const MatrixXi &lookup_table);
+void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &lookup_table);
 
 #endif

@@ -2,47 +2,25 @@
 #define STREAMS_H
 
 
-#include "config.h"
-
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/syscall.h>
-#include <linux/memfd.h>
-#include <fcntl.h>
-
-#include <unordered_map>
-#include <iostream>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdarg.h>
-#include <fcntl.h>
-#include <errno.h>
-
-#include <iostream>
-
-#include <linux/memfd.h>
-#include <sys/syscall.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-
-
-
 #include <assert.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/mman.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/memfd.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <iostream>
+#include <unordered_map>
+
+#include "config.h"
 
 #define PAGE_SIZE getpagesize()
 
@@ -52,17 +30,16 @@
 
 class Streams {
 public:
-    std::unordered_map<unsigned, float*> buffers;
+    std::unordered_map<unsigned, float *> buffers;
     unsigned position;
-    
-    
-    Streams() : position(0) {
 
-    };
+
+    Streams() : position(0){
+
+                };
 
     bool create_stream(unsigned index) {
-        if (this->buffers.find(index) != this->buffers.end())
-        {
+        if (this->buffers.find(index) != this->buffers.end()) {
             std::cout << "Stream: " << index << " already exists" << std::endl;
             return false;
         }
@@ -76,22 +53,23 @@ public:
         }
 
         return true;
+    }
 
-
-
+    float *get_signal(unsigned index, int offset) {
+        return (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float));
     }
 
     inline void write_stream(unsigned index, float *data) {
-        memcpy((char*)this->buffers[index] + this->position, data, BUFFER_BYTES);
+        memcpy((char *) this->buffers[index] + this->position, data, BUFFER_BYTES);
     }
 
     inline void read_stream(unsigned index, float *data, unsigned offset = 0) {
-        memcpy(data, (char*)this->buffers[index] + this->position + offset * sizeof(float), BUFFER_BYTES);
+        memcpy(data, (char *) this->buffers[index] + this->position + offset * sizeof(float), BUFFER_BYTES);
     }
 
-#if 1 // Only debugging
+#if 1// Only debugging
     void dump_stream(unsigned index, float *data) {
-        memcpy(data, (char*)this->buffers[index], PAGE_SIZE);
+        memcpy(data, (char *) this->buffers[index], PAGE_SIZE);
     }
 #endif
 
@@ -111,12 +89,8 @@ public:
     }
 
 
-
-    
 private:
-    
-    
-    float* allocate_buffer() {
+    float *allocate_buffer() {
         int fd = memfd_create("float", 0);
         if (fd == -1) {
             printf("Unable to create fd\n");
@@ -129,14 +103,14 @@ private:
         }
 
         // Create first region
-        float *pages = (float*)mmap(0, 2 * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd,  0);
+        float *pages = (float *) mmap(0, 2 * PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (pages == MAP_FAILED) {
             printf("Unable to create first region\n");
             close(fd);
             return nullptr;
         }
 
-        if (mmap((char*)pages + PAGE_SIZE, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) {
+        if (mmap((char *) pages + PAGE_SIZE, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) {
             printf("Unable to create reg1\n");
             close(fd);
             munmap(pages, PAGE_SIZE);
@@ -147,13 +121,7 @@ private:
 
         return pages;
     }
-    
-
-    
 };
-
-
-
 
 
 #endif

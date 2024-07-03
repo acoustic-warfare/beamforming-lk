@@ -1,13 +1,13 @@
 #ifndef MIMO_H
-#define MIMO_H 
+#define MIMO_H
 
-#include "../config.h"
+#include <Eigen/Dense>
+#include <atomic>
 
 #include "../antenna.h"
-#include "../streams.hpp"
+#include "../config.h"
 #include "../pipeline.h"
-
-#include <atomic>
+#include "../streams.hpp"
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
 
@@ -25,39 +25,39 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
                              const Antenna &antenna, float fov,
                              int resolution_x, int resolution_y, int n_sensors) {
 
-  float half_x = (float)(resolution_x) / 2 - 0.5;
-  float half_y = (float)(resolution_y) / 2 - 0.5;
-  int k = 0;
-  for (int x = 0; x < resolution_x; x++) {
-    for (int y = 0; y < resolution_y; y++) {
+    float half_x = (float) (resolution_x) / 2 - 0.5;
+    float half_y = (float) (resolution_y) / 2 - 0.5;
+    int k = 0;
+    for (int x = 0; x < resolution_x; x++) {
+        for (int y = 0; y < resolution_y; y++) {
 
-      // Imagine dome in spherical coordinates on the XY-plane with Z being
-      // height
-      float xo = (float)(x - half_x) / (resolution_x);
-      float yo = (float)(y - half_y) / (resolution_y);
-      float level = sqrt(xo * xo + yo * yo) / 1;
-      level = sqrt(1 - level * level);
-      Position point(xo, yo, level);
-      // cout << point << endl;
+            // Imagine dome in spherical coordinates on the XY-plane with Z being
+            // height
+            float xo = (float) (x - half_x) / (resolution_x);
+            float yo = (float) (y - half_y) / (resolution_y);
+            float level = sqrt(xo * xo + yo * yo) / 1;
+            level = sqrt(1 - level * level);
+            Position point(xo, yo, level);
+            // cout << point << endl;
 
-      VectorXf tmp_delays = steering_vector_cartesian(antenna, point);
-      int i = 0;
-      for (float del : tmp_delays) {
-        double _offset;
-        float fraction;
+            Eigen::VectorXf tmp_delays = steering_vector_cartesian(antenna, point);
+            int i = 0;
+            for (float del: tmp_delays) {
+                double _offset;
+                float fraction;
 
-        fraction = (float)modf((double)del, &_offset);
+                fraction = (float) modf((double) del, &_offset);
 
-        int offset = N_SAMPLES - (int)_offset;
-        // cout << del << endl;
-        fractional_delays[k * n_sensors + i] = fraction;
-        offset_delays[k * n_sensors + i] = offset;
-        i++;
-      }
+                int offset = N_SAMPLES - (int) _offset;
+                // cout << del << endl;
+                fractional_delays[k * n_sensors + i] = fraction;
+                offset_delays[k * n_sensors + i] = offset;
+                i++;
+            }
 
-      k++;
+            k++;
+        }
     }
-  }
 }
 
 
@@ -72,37 +72,37 @@ void compute_scanning_window(int *offset_delays, float *fractional_delays,
  */
 float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
            Streams *streams, int n_sensors) {
-  float out[N_SAMPLES] = {0.0};
-  int n = 0;
-  for (int s = 0; s < n_sensors; s++) {
+    float out[N_SAMPLES] = {0.0};
+    int n = 0;
+    for (int s = 0; s < n_sensors; s++) {
 
-    // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
-    //   continue;
-    // }
+        // if (!((s == 64) || (s == 64 + 8) || (s == 127 - 16) || (s == 127))) {
+        //   continue;
+        // }
 
-    if (VALID_SENSOR(s)) {
-      float fraction = fractional_delays[s - 64];
-      int offset = offset_delays[s - 64];
+        if (VALID_SENSOR(s)) {
+            float fraction = fractional_delays[s - 64];
+            int offset = offset_delays[s - 64];
 
-      float *signal = (float *)((char *)streams->buffers[s] +
-                                streams->position + offset * sizeof(float));
+            float *signal = (float *) ((char *) streams->buffers[s] +
+                                       streams->position + offset * sizeof(float));
 
-      for (int i = 0; i < N_SAMPLES; i++) {
-        out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
-      }
+            for (int i = 0; i < N_SAMPLES; i++) {
+                out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
+            }
 
-      n++;
+            n++;
+        }
     }
-  }
 
-  float power = 0.f;
-  float norm = 1 / (float)n;
-  for (int p = 0; p < N_SAMPLES; p++) {
+    float power = 0.f;
+    float norm = 1 / (float) n;
+    for (int p = 0; p < N_SAMPLES; p++) {
 
-    power += powf(out[p] * norm, 2);
-  }
+        power += powf(out[p] * norm, 2);
+    }
 
-  return power / (float)N_SAMPLES;
+    return power / (float) N_SAMPLES;
 }
 
 
@@ -111,109 +111,109 @@ float miso(int t_id, int task, int *offset_delays, float *fractional_delays,
  */
 void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id,
                                 uint32_t n_sensors) {
-  Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+    Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
 
-  std::cout << "mimo: " << n_sensors << std::endl;
+    std::cout << "mimo: " << n_sensors << std::endl;
 
-  float fractional_delays[X_RES * Y_RES * n_sensors];
-  int offset_delays[X_RES * Y_RES * n_sensors];
+    float fractional_delays[X_RES * Y_RES * n_sensors];
+    int offset_delays[X_RES * Y_RES * n_sensors];
 
-  compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
-                          FOV, X_RES, Y_RES, n_sensors);
+    compute_scanning_window(&offset_delays[0], &fractional_delays[0], antenna,
+                            FOV, X_RES, Y_RES, n_sensors);
 
-  int max = X_RES * Y_RES;
+    int max = X_RES * Y_RES;
 
-  float image[X_RES * Y_RES];
+    float image[X_RES * Y_RES];
 
-  int pixel_index = 0;
+    int pixel_index = 0;
 
-  int newData;
-  float power;
-  float threshold = 3e-8;
+    int newData;
+    float power;
+    float threshold = 3e-8;
 
-  float norm = 1 / 1e-05;
+    float norm = 1 / 1e-05;
 
-  float maxVal = 1.0;
+    float maxVal = 1.0;
 
-  Streams *streams = pipeline->getStreams(stream_id);
-  std::cout << "streams: " << streams << std::endl;
+    Streams *streams = pipeline->getStreams(stream_id);
+    std::cout << "streams: " << streams << std::endl;
 
-  while (pipeline->isRunning()) {
-    // Wait for incoming data
-    pipeline->barrier();
+    while (pipeline->isRunning()) {
 
-    // This loop may run until new data has been produced, meaning its up to
-    // the machine to run as fast as possible
-    newData = pipeline->mostRecent();
-    float maxVal = 0.0;
+        // Wait for incoming data
+        pipeline->barrier();
 
-    int i = 0;
-    float mean = 0.0;
+        // This loop may run until new data has been produced, meaning its up to
+        // the machine to run as fast as possible
+        newData = pipeline->mostRecent();
+        float maxVal = 0.0;
 
-    int xi, yi = 0;
-    float alpha = 1.0 / (float)(X_RES * Y_RES);
-    alpha = 0.02;
+        int i = 0;
+        float mean = 0.0;
 
-    float heatmap_data[X_RES * Y_RES];
+        int xi, yi = 0;
+        float alpha = 1.0 / (float) (X_RES * Y_RES);
+        alpha = 0.02;
 
-    float avgPower = 0.0;
+        float heatmap_data[X_RES * Y_RES];
 
-    // Repeat until new data or abort if new data arrives
-    while ((pipeline->mostRecent() == newData) && (i < max)) {
-      int task = pixel_index * n_sensors;
+        float avgPower = 0.0;
 
-      xi = pixel_index % X_RES;
-      yi = pixel_index / X_RES;
+        // Repeat until new data or abort if new data arrives
+        while ((pipeline->mostRecent() == newData) && (i < max)) {
+            int task = pixel_index * n_sensors;
 
-      // Get power level from direction
-      float val = miso(0, pixel_index, &offset_delays[task],
-                       &fractional_delays[task], streams, n_sensors);
+            xi = pixel_index % X_RES;
+            yi = pixel_index / X_RES;
 
-      if (val > maxVal) {
-        maxVal = val;
-      }
+            // Get power level from direction
+            float val = miso(0, pixel_index, &offset_delays[task],
+                             &fractional_delays[task], streams, n_sensors);
 
-      // power = val * 1e5;
+            if (val > maxVal) {
+                maxVal = val;
+            }
 
-      // power = val * norm * 0.9f + 1.0;
-      power = val + 1.0f;
-      power = powf(power, 15);
-      // power *= 1e9f;
+            // power = val * 1e5;
 
-      power = log(power) * 0.1f;
+            // power = val * norm * 0.9f + 1.0;
+            power = val + 1.0f;
+            power = powf(power, 15);
+            // power *= 1e9f;
 
-      power = power * norm * 0.9f;
+            power = log(power) * 0.1f;
 
-      if (power < 0.2) {
-        power = 0.0f;
-      } else if (power > 1.0) {
-        norm *= 0.95;
-        // cout << "Bigger value" << endl;
-        power = 1.0f;
-      } else if (power < 0.0) {
-        power = 0.0f;
-        // cout << "Negative value" << endl;
-      }
+            power = power * norm * 0.9f;
 
-      // Paint pixel
-      pipeline->magnitudeHeatmap->at<uchar>(yi, xi) = (uchar)(power * 255);
+            if (power < 0.2) {
+                power = 0.0f;
+            } else if (power > 1.0) {
+                norm *= 0.95;
+                // cout << "Bigger value" << endl;
+                power = 1.0f;
+            } else if (power < 0.0) {
+                power = 0.0f;
+                // cout << "Negative value" << endl;
+            }
 
-      pixel_index++;
-      pixel_index %= X_RES * Y_RES;
+            // Paint pixel
+            pipeline->magnitudeHeatmap->at<uchar>(yi, xi) = (uchar) (power * 255);
 
-      i++;
+            pixel_index++;
+            pixel_index %= X_RES * Y_RES;
+
+            i++;
+        }
+
+        pipeline->canPlot = 1;
+
+        norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
+
+        // norm = (1/maxVal) * 1.1f;
+
+        // cout << maxVal << endl;
     }
-
-    pipeline->canPlot = 1;
-
-    norm = (1 - alpha) * norm + alpha * (1 / (maxVal));
-
-    // norm = (1/maxVal) * 1.1f;
-
-    // cout << maxVal << endl;
-  }
 }
-
 
 
 #endif

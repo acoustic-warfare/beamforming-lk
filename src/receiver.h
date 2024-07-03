@@ -19,11 +19,11 @@
 
 // @brief FPGA Protocol Version 2
 typedef struct __attribute__((__packed__)) _msg {
-  uint16_t frequency;
-  uint8_t n_arrays;
-  uint8_t version;
-  uint32_t counter;
-  int32_t stream[MAX_N_SENSORS];
+    uint16_t frequency;
+    uint8_t n_arrays;
+    uint8_t version;
+    uint32_t counter;
+    int32_t stream[MAX_N_SENSORS];
 } message;
 
 /**

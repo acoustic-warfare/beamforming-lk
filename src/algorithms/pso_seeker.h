@@ -1,14 +1,14 @@
 #ifndef PSO_H
 #define PSO_H
 
-#include <vector>
 #include <atomic>
-
-#include "../config.h"
+#include <vector>
 
 #include "../antenna.h"
-#include "../streams.hpp"
+#include "../config.h"
+#include "../delay.h"
 #include "../pipeline.h"
+#include "../streams.hpp"
 
 #if USE_KALMAN_FILTER
 #include "../kf.h"
@@ -20,51 +20,51 @@
 
 class Particle {
 public:
-  float azimuth, elevation;
-  float velocity_azimuth, velocity_elevation;
-  float best_azimuth, best_elevation;
-  float best_magnitude;
+    double theta, phi;
+    double velocity_theta, velocity_phi;
+    double best_theta, best_phi;
+    float best_magnitude;
 
-  Antenna &antenna;
-  Streams *streams;
-  int n_sensors;
+    Antenna &antenna;
+    Streams *streams;
+    int n_sensors;
 
-  //float (*objective_function)(float, float);
+    //float (*objective_function)(float, float);
 
-  Particle(Antenna &antenna, Streams *streams, int n_sensors);
+    Particle(Antenna &antenna, Streams *streams, int n_sensors);
 
-  void random();
+    void random();
 
-  float compute(float azimuth, float elevation, int n_sensors);
+    float compute(double theta, double phi, int n_sensors);
 
-  void update();
+    void update();
 };
-
 
 
 class PSO {
 public:
-  std::vector<Particle> particles;
-  float global_best_azimuth, global_best_elevation;
-  float global_best_magnitude;
-  int n_particles;
-  Antenna &antenna;
-  Streams *streams;
-  int n_sensors;
+    std::vector<Particle> particles;
+    double global_best_theta, global_best_phi;
+    float global_best_magnitude;
+    int n_particles;
+    Antenna &antenna;
+    Streams *streams;
+    int n_sensors;
+
 
 #if USE_KALMAN_FILTER
-  KalmanFilter3D kf;
+    KalmanFilter3D kf;
 #endif
 
-  //float (*objective_function)(float, float);
+    //float (*objective_function)(float, float);
 
-  PSO(int n_particles, Antenna &antenna, Streams *streams, int n_sensors);
+    PSO(int n_particles, Antenna &antenna, Streams *streams, int n_sensors);
 
-  void initialize_particles();
+    void initialize_particles();
 
-  void optimize(int iterations);
+    void optimize(int iterations);
 
-  Eigen::Vector3f sanitize();
+    Eigen::Vector3f sanitize();
 };
 
 

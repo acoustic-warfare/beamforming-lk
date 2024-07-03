@@ -11,6 +11,8 @@ IF (NOT PYTHON)
     find_program(PYTHON "python3")
 ENDIF ()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -O3")
+
 
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
@@ -137,8 +139,7 @@ find_package(Boost REQUIRED)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(RtAudio REQUIRED IMPORTED_TARGET rtaudio)
+#find_package(portaudio REQUIRED)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -165,26 +166,26 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
+        #${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        #${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
 )
 
 
 # Main program
 add_executable(beamformer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
-
         ${SOURCES}
 )
-
 
 # Linking
 target_link_libraries(beamformer
         Eigen3::Eigen
-        PkgConfig::RtAudio
-        WaraPSClient::WaraPSClient
+        WaraPSClient
         nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
+        #portaudio
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
