@@ -104,14 +104,18 @@ class C(ConfigBuilder):
 """
 
     def data(self, key: str, output: object) -> str:
-        return f"#define {key} {output}\n"
+        if key == "IP_ADDRESSES":
+            formatted_ips = ", ".join([f'"{ip}"' for ip in output])
+            return f"#define {key} {{{formatted_ips}}}\n"
+        else:
+            return f"#define {key} {output}\n"
 
     def footer(self):
         return "\n#endif\n"
 
     def convert(self, item):
         if isinstance(item, bool):
-            return 1*item
+            return 1 * item
         else:
             return item
 
@@ -199,6 +203,12 @@ if __name__ == "__main__":
             import yaml
 
             data = yaml.safe_load(file)
+            n_fpgas = data.get("N_FPGAS", 1)  # Default to 1 if N_FPGAS is not specified
+            if n_fpgas > len(data["IP_ADDRESSES"]):
+                raise ValueError(
+                    "N_FPGAS cannot be greater than the number of IP addresses"
+                )
+            data["IP_ADDRESSES"] = data["IP_ADDRESSES"][:n_fpgas]
         else:
             raise RuntimeError(USAGE)
 

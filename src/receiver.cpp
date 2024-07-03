@@ -7,15 +7,7 @@
 #define RECEIVER_DEBUG 0
 #define HEADER_SIZE 2
 
-#define DEBUG_IP 0
-
-//TODO: Add into config?
-#if DEBUG_IP
-const char *ip_addresses[] = {"10.0.0.1"};
-#else
-const char *ip_addresses[] = {"192.168.1.75", "192.168.1.76", "192.168.1.77",
-                              "192.168.1.78"};
-#endif
+const char *ip_addresses[N_FPGAS] = IP_ADDRESSES;
 
 #if RECEIVER_DEBUG
 
