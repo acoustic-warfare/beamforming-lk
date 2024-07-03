@@ -88,8 +88,6 @@ int main() {
     // Connect to UDP stream
     pipeline->connect(options);
     std::cout << "\rn_sensors_ 0 MAIN: " << options[0]->n_sensors_ << std::endl;
-    // std::cout << "\rn_sensors_ 1 MAIN: " << options[1]->n_sensors_ << std::endl;
-    // std::cout << "\rn_sensors_ MAIN: " << options[3]->n_sensors_ << std::endl;
 
     pipeline->magnitudeHeatmap = &magnitudeHeatmap;// TODO in constructor?
 
@@ -100,7 +98,6 @@ int main() {
         workers.emplace_back(static_mimo_heatmap_worker, pipeline, i,
                              options[i]->n_sensors_);
 #else
-        // thread worker(&pso_finder, pipeline, i, options[i]->n_sensors_);
         workers.emplace_back(&pso_finder, pipeline, i, options[i]->n_sensors_);
 #endif
     }
@@ -108,7 +105,7 @@ int main() {
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
-    AudioWrapper audio(*pipeline->getStreams());
+    AudioWrapper audio(*pipeline->getStreams(0));
     if (sysops.use_audio_) {
         audio.start_audio_playback();
     }
@@ -212,9 +209,8 @@ cleanup:
     pipeline->disconnect();
 
     std::cout << "Waiting for workers..." << std::endl;
-    // Unite the proletariat
-    // worker.join();
 
+    // Unite the proletariat
     for (auto &worker: workers) {
         if (worker.joinable()) {
             worker.join();
