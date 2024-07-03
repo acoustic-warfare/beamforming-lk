@@ -12,9 +12,9 @@
 
 # Heatmap (MIMO)
 USE_MIMO: false
-X_RES: 128
-Y_RES: 128
-RESIZE_HEATMAP: true
+X_RES: 1024
+Y_RES: 1024
+RESIZE_HEATMAP: false
 
 # Application
 APPLICATION_NAME: "Beamforming"
@@ -26,7 +26,7 @@ RESOLUTION_MULTIPLIER: 16 # times the initial resolution
 BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 
 # Waraps client
-USE_WARAPS: false
+USE_WARAPS: true
 WARAPS_NAME: "test"
 WARAPS_ADDRESS: "mqtt://test.mosquitto.org:1883"
 
@@ -43,12 +43,9 @@ DISTANCE: 0.02 # Distance between each element to the next
 SAMPLE_RATE: 48828.0 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
 MAX_N_SENSORS: ROWS * COLUMNS * 4 
-N_FPGAS: 2 # How many running FPGAs
+N_FPGAS: 1 # How many running FPGAs
 IP_ADDRESSES: # Does not need to be edited if N_FPGAS is edited, only if you have different src addresses fo the FPGAS
-  - '192.168.1.75'
-  - '192.168.1.76'
-  - '192.168.1.77'
-  - '192.168.1.78'
+  - '127.0.0.1'
 
 
 # Beamforming 
@@ -85,8 +82,8 @@ USE_AUDIO: AUDIO
 
 
 # Networking 
-UDP_ADDRESS: "10.0.0.1"
-#UDP_ADDRESS: "127.0.0.1"
+#UDP_ADDRESS: "10.0.0.1"
+UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
 UDP_PORT: 21844
 

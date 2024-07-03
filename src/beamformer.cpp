@@ -13,13 +13,18 @@
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
-#include "audio/audio_wrapper.h"
 #include "config.h"
 #include "delay.h"
-#include "mqtt/wara_ps_client.h"
 #include "options.h"
 #include "pipeline.h"
 
+#if USE_AUDIO
+#include "audio/audio_wrapper.h"
+#endif
+
+#if USE_WARAPS
+#include "mqtt/wara_ps_client.h"
+#endif
 
 /**
 Main application for running beamformer program
@@ -59,6 +64,7 @@ int main() {
     sysops.use_wara_ps_ = USE_WARAPS;
     sysops.use_audio_ = USE_AUDIO;
 
+#if USE_WARAPS
     WaraPSClient client = WaraPSClient(WARAPS_NAME, WARAPS_ADDRESS);
 
     client.SetCommandCallback("focus_bf", [&](const nlohmann::json &payload) {
@@ -77,6 +83,8 @@ int main() {
     if (sysops.use_wara_ps_) {
         client_thread = client.Start();
     }
+
+#endif
 
     // Setup sigint i.e Ctrl-C
     signal(SIGINT, sig_handler);
@@ -105,10 +113,12 @@ int main() {
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
+#if USE_AUDIO
     AudioWrapper audio(*pipeline->getStreams(0));
     if (sysops.use_audio_) {
         audio.start_audio_playback();
     }
+#endif
 
 #if CAMERA
     cv::VideoCapture cap(CAMERA_PATH);// Open the default camera (change the
@@ -145,14 +155,14 @@ int main() {
     while (pipeline->isRunning()) {
         if (pipeline->canPlot) {
             pipeline->canPlot = 0;
-            cv::Mat smallFrame;
+            cv::Mat smallFrame(Y_RES, X_RES, CV_8UC1);
 
             // Blur the image with a Gaussian kernel
-            cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap,
+            cv::GaussianBlur(magnitudeHeatmap, smallFrame,
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 
             // Apply color map
-            cv::applyColorMap(magnitudeHeatmap, smallFrame, cv::COLORMAP_JET);
+            cv::applyColorMap(smallFrame, frame, cv::COLORMAP_JET);
 
 #if RESIZE_HEATMAP
             // Resize to smoothen
@@ -183,7 +193,11 @@ int main() {
         cv::imshow(APPLICATION_NAME, frame);
 
         // Check for key press; if 'q' is pressed, break the loop
+#if USE_WARAPS
         if ((sysops.use_wara_ps_ && !client.running()) || cv::waitKey(1) == 'q') {
+#else
+        if (cv::waitKey(1) == 'q') {
+#endif
             std::cout << "Stopping application..." << std::endl;
             break;
         }
@@ -198,9 +212,11 @@ int main() {
     // Close application windows
     cv::destroyAllWindows();
 
+#if USE_AUDIO
     if (sysops.use_audio_) {
         audio.stop_audio_playback();
     }
+#endif
 
 cleanup:
 
@@ -217,11 +233,13 @@ cleanup:
         }
     }
 
+#if USE_WARAPS
     if (sysops.use_wara_ps_) {
         if(client.running())
             client.Stop();
         client_thread.join();
     }
+#endif
 
     std::cout << "Exiting..." << std::endl;
 
