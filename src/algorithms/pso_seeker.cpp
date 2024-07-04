@@ -218,7 +218,5 @@ void pso_finder(Pipeline *pipeline, int stream_id, int n_sensors_in) {
 
 
         pipeline->canPlot = 1;
-
-        //std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
     }
 }

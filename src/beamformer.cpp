@@ -13,8 +13,10 @@
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
+#include "audio/audio_wrapper.h"
 #include "config.h"
 #include "delay.h"
+#include "mqtt/wara_ps_client.h"
 #include "options.h"
 #include "pipeline.h"
 
@@ -24,6 +26,7 @@
 
 #if USE_WARAPS
 #include "mqtt/wara_ps_client.h"
+#include <libgpsmm.h>
 #endif
 
 /**
@@ -78,12 +81,18 @@ int main() {
                                                       to_string(duration)));
     });
 
-    thread client_thread;
+    if (sysops.use_wara_ps_)
+        client.Start();
 
-    if (sysops.use_wara_ps_) {
-        client_thread = client.Start();
+    gps_data_t gpsData{};
+
+    int gpsError = gps_open("localhost", "2947", &gpsData);
+    if (gpsError != 0) {
+        std::cerr << "GPS ERROR: " << gps_errstr(gpsError) << std::endl;
+        throw runtime_error("GPS ERROR");
     }
 
+    gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, nullptr);
 #endif
 
     // Setup sigint i.e Ctrl-C
@@ -152,6 +161,8 @@ int main() {
 
     std::cout << "Running..." << std::endl;
 
+    int loopCount = 0;
+
     while (pipeline->isRunning()) {
         if (pipeline->canPlot) {
             pipeline->canPlot = 0;
@@ -175,6 +186,20 @@ int main() {
 
             // Update previous image
             previous = frame;
+#if USE_WARAPS
+            if (loopCount++ > 100 && gpsError != -1) {
+                gpsError = gps_read(&gpsData, nullptr, 0);
+                if(gpsError == -1) {
+                    std::cerr << "Error occured while reading data: " << gps_errstr(gpsError) << std::endl;
+                }
+                loopCount = 0;
+                nlohmann::json message = {
+                        {"longitude:", to_string(gpsData.fix.longitude)},
+                        {"latitude:",  to_string(gpsData.fix.latitude)}
+                };
+                client.PublishMessage("SENSOR", message.dump(4));
+            }
+#endif // USE_WARAPS
         }
 
 #if CAMERA
@@ -218,8 +243,6 @@ int main() {
     }
 #endif
 
-cleanup:
-
     std::cout << "Disconnecting pipeline..." << std::endl;
     // Stop UDP stream
     pipeline->disconnect();
@@ -235,9 +258,7 @@ cleanup:
 
 #if USE_WARAPS
     if (sysops.use_wara_ps_) {
-        if(client.running())
-            client.Stop();
-        client_thread.join();
+        client.Stop();
     }
 #endif
 
