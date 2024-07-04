@@ -9,7 +9,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
-#include <libgpsmm.h>
 
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
@@ -21,6 +20,14 @@
 #include "options.h"
 #include "pipeline.h"
 
+#if USE_AUDIO
+#include "audio/audio_wrapper.h"
+#endif
+
+#if USE_WARAPS
+#include "mqtt/wara_ps_client.h"
+#include <libgpsmm.h>
+#endif
 
 /**
 Main application for running beamformer program
@@ -50,15 +57,6 @@ void sig_handler(int sig) {
 
 int main() {
     std::vector<std::unique_ptr<BeamformingOptions>> options;
-    gps_data_t gpsData{};
-
-    int gpsError = gps_open("localhost", "2947", &gpsData);
-    if (gpsError != 0) {
-        std::cerr << "GPS ERROR: " << gps_errstr(gpsError) << std::endl;
-        throw runtime_error("GPS ERROR");
-    }
-
-    gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, nullptr);
 
     typedef struct {
         bool use_wara_ps_;
@@ -69,6 +67,7 @@ int main() {
     sysops.use_wara_ps_ = USE_WARAPS;
     sysops.use_audio_ = USE_AUDIO;
 
+#if USE_WARAPS
     WaraPSClient client = WaraPSClient(WARAPS_NAME, WARAPS_ADDRESS);
 
     client.SetCommandCallback("focus_bf", [&](const nlohmann::json &payload) {
@@ -84,6 +83,17 @@ int main() {
 
     if (sysops.use_wara_ps_)
         client.Start();
+
+    gps_data_t gpsData{};
+
+    int gpsError = gps_open("localhost", "2947", &gpsData);
+    if (gpsError != 0) {
+        std::cerr << "GPS ERROR: " << gps_errstr(gpsError) << std::endl;
+        throw runtime_error("GPS ERROR");
+    }
+
+    gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, nullptr);
+#endif
 
     // Setup sigint i.e Ctrl-C
     signal(SIGINT, sig_handler);
@@ -112,10 +122,12 @@ int main() {
     // Initiate background image
     magnitudeHeatmap.setTo(cv::Scalar(0));
 
+#if USE_AUDIO
     AudioWrapper audio(*pipeline->getStreams(0));
     if (sysops.use_audio_) {
         audio.start_audio_playback();
     }
+#endif
 
 #if CAMERA
     cv::VideoCapture cap(CAMERA_PATH);// Open the default camera (change the
@@ -154,14 +166,14 @@ int main() {
     while (pipeline->isRunning()) {
         if (pipeline->canPlot) {
             pipeline->canPlot = 0;
-            cv::Mat smallFrame;
+            cv::Mat smallFrame(Y_RES, X_RES, CV_8UC1);
 
             // Blur the image with a Gaussian kernel
-            cv::GaussianBlur(magnitudeHeatmap, magnitudeHeatmap,
+            cv::GaussianBlur(magnitudeHeatmap, smallFrame,
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 
             // Apply color map
-            cv::applyColorMap(magnitudeHeatmap, smallFrame, cv::COLORMAP_JET);
+            cv::applyColorMap(smallFrame, frame, cv::COLORMAP_JET);
 
 #if RESIZE_HEATMAP
             // Resize to smoothen
@@ -174,7 +186,8 @@ int main() {
 
             // Update previous image
             previous = frame;
-            if (loopCount++ > 100 && gpsError != ) {
+#if USE_WARAPS
+            if (loopCount++ > 100 && gpsError != -1) {
                 gpsError = gps_read(&gpsData, nullptr, 0);
                 if(gpsError == -1) {
                     std::cerr << "Error occured while reading data: " << gps_errstr(gpsError) << std::endl;
@@ -186,6 +199,7 @@ int main() {
                 };
                 client.PublishMessage("SENSOR", message.dump(4));
             }
+#endif // USE_WARAPS
         }
 
 #if CAMERA
@@ -204,7 +218,11 @@ int main() {
         cv::imshow(APPLICATION_NAME, frame);
 
         // Check for key press; if 'q' is pressed, break the loop
+#if USE_WARAPS
         if ((sysops.use_wara_ps_ && !client.running()) || cv::waitKey(1) == 'q') {
+#else
+        if (cv::waitKey(1) == 'q') {
+#endif
             std::cout << "Stopping application..." << std::endl;
             break;
         }
@@ -219,11 +237,11 @@ int main() {
     // Close application windows
     cv::destroyAllWindows();
 
+#if USE_AUDIO
     if (sysops.use_audio_) {
         audio.stop_audio_playback();
     }
-
-    cleanup:
+#endif
 
     std::cout << "Disconnecting pipeline..." << std::endl;
     // Stop UDP stream
@@ -238,14 +256,14 @@ int main() {
         }
     }
 
-    if (sysops.use_wara_ps_)
+#if USE_WARAPS
+    if (sysops.use_wara_ps_) {
         client.Stop();
-
+    }
+#endif
 
     std::cout << "Exiting..." << std::endl;
 
     // Cleanup
     delete pipeline;
-
-    return 0;
 }

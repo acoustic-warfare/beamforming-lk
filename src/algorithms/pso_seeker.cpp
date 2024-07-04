@@ -72,7 +72,6 @@ float Particle::compute(double theta, double phi, int n_sensors) {
 
 void Particle::update() {
     float magnitude = compute(theta, phi, n_sensors);
-    best_magnitude *= 0.99;
     if (magnitude > best_magnitude) {
         best_magnitude = magnitude;
         best_theta = theta;
@@ -116,7 +115,8 @@ void PSO::optimize(int iterations) {
     double w = 0.5f, c1 = 2.0f, c2 = 2.0f;
     double amount = 10.0;
     double delta = TO_RADIANS(FOV / (double) iterations * 2.0) * amount;
-    global_best_magnitude *= 0.9f;
+    //global_best_magnitude *= 0.000000001f;
+    global_best_magnitude = 0.0f;
 
     for (int i = 0; i < iterations; i++) {
         for (auto &particle: particles) {
