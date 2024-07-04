@@ -2,6 +2,12 @@
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
 
+#define PSO_DECAY 0.6
+
+inline double drandom() {
+    return static_cast<double>(rand()) / RAND_MAX;
+}
+
 
 float beamform(Streams *streams, int *offset_delays, float *fractional_delays, int n_sensors) {
     float out[N_SAMPLES] = {0.0f};
@@ -31,8 +37,6 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays, i
 
 
 Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors) : antenna(antenna), streams(streams), n_sensors(n_sensors) {
-    //theta = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
-    //phi = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * ANGLE_LIMIT;
     random();
     velocity_theta = 0.0f;
     velocity_phi = 0.0f;
@@ -43,10 +47,8 @@ Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors) : antenna(
 
 
 void Particle::random() {
-    theta = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * (2.0 * PI);
-    phi = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 2.0 * PI_HALF;
-    //particle.theta = wrapAngle(particle.theta);
-    //particle.phi = clip(particle.phi, 0.0, PI_HALF);
+    theta = (drandom() - 0.5) * 2.0 * (2.0 * PI);
+    phi = (drandom() - 0.5) * 2.0 * PI_HALF;
 }
 
 float Particle::compute(double theta, double phi, int n_sensors) {
@@ -111,25 +113,35 @@ void PSO::initialize_particles() {
     }
 }
 
+
+/**
+ * Find maximum value and position using swarm search
+ */
 void PSO::optimize(int iterations) {
-    double w = 0.5f, c1 = 2.0f, c2 = 2.0f;
-    double amount = 10.0;
-    double delta = TO_RADIANS(FOV / (double) iterations * 2.0) * amount;
-    //global_best_magnitude *= 0.000000001f;
-    global_best_magnitude = 0.0f;
+
+    global_best_magnitude *= PSO_DECAY;
 
     for (int i = 0; i < iterations; i++) {
         for (auto &particle: particles) {
-            particle.velocity_theta = w * particle.velocity_theta + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO;
-            particle.velocity_phi = w * particle.velocity_phi + c1 * static_cast<double>(rand()) / RAND_MAX * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + c2 * static_cast<double>(rand()) / RAND_MAX * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO;
+
+            // Compute new velocities based on distance to local best and global best
+            particle.velocity_theta = current_velocity_weight * particle.velocity_theta \
+                                      + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
+            particle.velocity_phi = current_velocity_weight * particle.velocity_phi \
+                                     + new_velocity_weight * (drandom() * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + drandom() * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO);
+
+            // Move based on velocity
             particle.theta += particle.velocity_theta * delta;
             particle.phi += particle.velocity_phi * delta;
 
+            // Limit the search area
             particle.theta = wrapAngle(particle.theta);
             particle.phi = clip(particle.phi, 0.0, PI_HALF);
 
+            // Search using new positions
             particle.update();
 
+            // Update global best
             if (particle.best_magnitude > global_best_magnitude) {
                 global_best_magnitude = particle.best_magnitude;
                 global_best_theta = particle.best_theta;
@@ -139,6 +151,9 @@ void PSO::optimize(int iterations) {
     }
 }
 
+/**
+ * Sanitize best global position by smoothing noise using Kalman filter
+ */
 Eigen::Vector3f PSO::sanitize() {
     Eigen::Vector3f sample(global_best_theta, global_best_phi, 0.0);
 
@@ -155,7 +170,7 @@ void pso_finder(Pipeline *pipeline, int stream_id, int n_sensors_in) {
     Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
     Streams *streams = pipeline->getStreams(stream_id);
 
-    PSO pso(100, antenna, streams, n_sensors_in);
+    PSO pso(SWARM_SIZE, antenna, streams, n_sensors_in);
 
     int newData;
 
@@ -171,10 +186,13 @@ void pso_finder(Pipeline *pipeline, int stream_id, int n_sensors_in) {
         // the machine to run as fast as possible
         newData = pipeline->mostRecent();
 
+        // Place particles on dome
         pso.initialize_particles();
 
-        pso.optimize(30);
+        // Optimize to find sources
+        pso.optimize(SWARM_ITERATIONS);
 
+        // Reset heatmap
         pipeline->magnitudeHeatmap->setTo(cv::Scalar(0));
 
 #if 1
@@ -201,6 +219,6 @@ void pso_finder(Pipeline *pipeline, int stream_id, int n_sensors_in) {
 
         pipeline->canPlot = 1;
 
-        std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
+        //std::cout << "Theta: " << pso.global_best_theta << " Phi: " << pso.global_best_phi << std::endl;
     }
 }
