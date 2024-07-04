@@ -142,7 +142,13 @@ find_package(OpenCV REQUIRED)
 
 
 find_library(portaudio
-    portaudio
+        portaudio
+        REQUIRED
+)
+
+find_library(libgps
+        gps
+        REQUIRED
 )
 
 # Include directories for OpenCV
@@ -191,6 +197,7 @@ target_link_libraries(beamformer
         nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
         portaudio
+        gps
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})

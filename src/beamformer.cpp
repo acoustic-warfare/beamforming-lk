@@ -9,6 +9,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include <libgpsmm.h>
 
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
@@ -49,6 +50,15 @@ void sig_handler(int sig) {
 
 int main() {
     std::vector<std::unique_ptr<BeamformingOptions>> options;
+    gps_data_t gpsData{};
+
+    int gpsError = gps_open("localhost", "2947", &gpsData);
+    if (gpsError != 0) {
+        std::cerr << "GPS ERROR: " << gps_errstr(gpsError) << std::endl;
+        throw runtime_error("GPS ERROR");
+    }
+
+    gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, nullptr);
 
     typedef struct {
         bool use_wara_ps_;
@@ -139,6 +149,8 @@ int main() {
 
     std::cout << "Running..." << std::endl;
 
+    int loopCount = 0;
+
     while (pipeline->isRunning()) {
         if (pipeline->canPlot) {
             pipeline->canPlot = 0;
@@ -162,6 +174,18 @@ int main() {
 
             // Update previous image
             previous = frame;
+            if (loopCount++ > 100 && gpsError != ) {
+                gpsError = gps_read(&gpsData, nullptr, 0);
+                if(gpsError == -1) {
+                    std::cerr << "Error occured while reading data: " << gps_errstr(gpsError) << std::endl;
+                }
+                loopCount = 0;
+                nlohmann::json message = {
+                        {"longitude:", to_string(gpsData.fix.longitude)},
+                        {"latitude:",  to_string(gpsData.fix.latitude)}
+                };
+                client.PublishMessage("SENSOR", message.dump(4));
+            }
         }
 
 #if CAMERA
@@ -199,7 +223,7 @@ int main() {
         audio.stop_audio_playback();
     }
 
-cleanup:
+    cleanup:
 
     std::cout << "Disconnecting pipeline..." << std::endl;
     // Stop UDP stream
@@ -216,6 +240,7 @@ cleanup:
 
     if (sysops.use_wara_ps_)
         client.Stop();
+
 
     std::cout << "Exiting..." << std::endl;
 

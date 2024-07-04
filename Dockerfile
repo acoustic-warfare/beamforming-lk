@@ -49,7 +49,9 @@ RUN apt-get install -y \
     git \
     libboost-dev \
     libssl-dev \
-    nlohmann-json3-dev
+    nlohmann-json3-dev \
+    libgps-dev \
+    libgps28
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
