@@ -51,6 +51,10 @@ public:
     Streams *streams;
     int n_sensors;
 
+    double current_velocity_weight = 0.25;// Wight for current velocity
+    double new_velocity_weight = 2.0;
+    double delta = 0.5;
+
 
 #if USE_KALMAN_FILTER
     KalmanFilter3D kf;
