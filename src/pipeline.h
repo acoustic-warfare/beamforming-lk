@@ -33,12 +33,12 @@ class Pipeline {
 public:
     std::atomic_int canPlot = 0;
     cv::Mat *magnitudeHeatmap;
-    Pipeline();
+    Pipeline(const char *ip_address_fpga);
     ~Pipeline();
     /**
    * Connect beamformer to antenna
    */
-    int connect(std::vector<std::unique_ptr<BeamformingOptions>> &options);
+    int connect();
 
     /**
    * Disconnect beamformer from antenna
@@ -60,14 +60,17 @@ public:
    */
     void barrier();
 
-    Streams *getStreams(int stream_id);
+    //Streams *getStreams(int stream_id);
+    Streams *getStreams();
+
+    int get_n_sensors() { return this->n_sensors; };
 
     int save_pipeline(std::string path);
 
 private:
-    //Streams *streams;
-    std::vector<Streams *> streams_dist;
-    std::string ipAddress;
+    int n_sensors;
+    Streams *streams;
+    const char *ip_address_fpga;
     int connected = 0;
     mutex pool_mutex;
     mutex barrier_mutex;
@@ -80,8 +83,6 @@ private:
 
     int p = 0;
 
-    //float buffer[N_SAMPLES * N_SENSORS * 2];
-
     /**
    * Allow the worker threads to continue
    */
@@ -90,7 +91,7 @@ private:
     /**
    * The main distributer of data to the threads (this is also a thread)
    */
-    void producer(std::vector<std::unique_ptr<BeamformingOptions>> &options);
+    void producer(int n_sensors);//, int fpga_id);
 };
 
 #endif

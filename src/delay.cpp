@@ -1,19 +1,25 @@
 #include "delay.h"
 
-#ifndef __AVX2__
-
 void delay(float *out, const float *signal, const float fraction) {
     for (int i = 0; i < N_SAMPLES; i++) {
         out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
     }
 }
 
+#ifndef __AVX2__
+
+//void delay(float *out, const float *signal, const float fraction) {
+//    for (int i = 0; i < N_SAMPLES; i++) {
+//        out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
+//    }
+//}
+
 #else
 
 #define ALIGNMENT 32
 #define AVX_SIMD_LENGTH 8
 
-void delay(float *out, const float *signal, const float fraction) {
+void _delay(float *out, const float *signal, const float fraction) {
     __m256 fraction_block = _mm256_broadcast_ss(&fraction);
 
     __m256 accumulator = _mm256_setzero_ps();

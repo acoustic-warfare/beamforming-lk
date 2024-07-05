@@ -4,52 +4,40 @@
 
 using namespace std;
 
-Pipeline::Pipeline() : streams_dist(N_FPGAS) {
-    // streams = new Streams();
-
-    for (int i = 0; i < N_FPGAS; ++i) {
-        streams_dist[i] = new Streams();
-    }
+Pipeline::Pipeline(const char *ip_address_fpga) {
+    streams = new Streams();
+    this->ip_address_fpga = ip_address_fpga;
 }
 
 Pipeline::~Pipeline() {
-    // delete streams;
-    for (int i = 0; i < N_FPGAS; ++i) {
-        delete streams_dist[i];
-    }
+    delete streams;
 }
 
 /**
  * Connect beamformer to antenna
  */
-int Pipeline::connect(
-        std::vector<std::unique_ptr<BeamformingOptions>>& options) {
+int Pipeline::connect() {
+
     if (connected) {
         cerr << "Beamformer is already connected" << endl;
         return -1;
-    } else if (init_receiver() == -1) {
+    } else if (init_receiver(ip_address_fpga) == -1) {
         cerr << "Unable to establish a connection to antenna" << endl;
         return -1;
     }
 
     connected = 1;
 
-    for (int i = 0; i < N_FPGAS; i++) {
-        options.emplace_back(std::make_unique<BeamformingOptions>());
-        BeamformingOptions* config = options.back().get();
+    this->n_sensors = number_of_sensors();//i, config
 
-        int n = number_of_sensors(i, config);
-        std::cout << "\rn_sensors_ PIPELINE: " << config->n_sensors_ << std::endl;
-
-        for (int s = 0; s < n; s++) {
-            this->streams_dist[i]->create_stream(s);
-            std::cout << "\rAdding stream: " << s << "        ";
-        }
+    for (int s = 0; s < n_sensors; s++) {
+        this->streams->create_stream(s);
+        std::cout << "\rAdding stream: " << s << "        ";
     }
 
     std::cout << std::endl;
 
-    connection = thread(&Pipeline::producer, this, std::ref(options));
+    connection = thread(&Pipeline::producer, this, n_sensors);//, options[i]->n_sensors_, i);
 
     return 0;
 }
@@ -70,10 +58,15 @@ int Pipeline::disconnect() {
     }
 
     connection.join();
+    std::cout << "Disconnected connection" << std::endl;
 
     release_barrier();
 
+    std::cout << "Barrier released for pipeline" << std::endl;
+
     stop_receiving();
+
+    std::cout << "Destroyed pipeline" << std::endl;
 
     return 0;
 }
@@ -101,8 +94,8 @@ void Pipeline::barrier() {
     barrier_condition.wait(lock, [&] { return barrier_count == 0; });
 }
 
-Streams* Pipeline::getStreams(int streams_id) {
-    return streams_dist[streams_id];
+Streams *Pipeline::getStreams() {
+    return streams;
 }
 
 /**
@@ -118,18 +111,14 @@ void Pipeline::release_barrier() {
 /**
  * The main distributer of data to the threads (this is also a thread)
  */
-void Pipeline::producer(
-        std::vector<std::unique_ptr<BeamformingOptions>>& options) {
+void Pipeline::producer(int n_sensors) {//int n_sensors, int fpga_id) {
     while (isRunning()) {
-        // receive_offset(&rb); // Fill buffer
-        receive_exposure(streams_dist, options);
+
+        receive_exposure(streams, n_sensors);
 
         {
             unique_lock<mutex> lock(barrier_mutex);
-            // offset_ring_buffer(&rb);
-            for (int i = 0; i < N_FPGAS; i++) {
-                streams_dist[i]->forward();
-            }
+            streams->forward();
         }
 
         release_barrier();

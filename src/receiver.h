@@ -8,8 +8,8 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "config.h"
 #include "options.h"
@@ -34,7 +34,7 @@ void stop_receiving();
 /**
  * Start the UDP receiver
  */
-int init_receiver();
+int init_receiver(const char *ip_address_fpga);
 
 /**
  * Receive an entire frame and add it to ringbuffer with an offset
@@ -44,8 +44,8 @@ int receive_offset(Streams *streams);
 /**
  * Put the latest frame into the ring_buffer
  */
-int number_of_sensors(int id, BeamformingOptions *config);
+int number_of_sensors();
 
-int receive_exposure(std::vector<Streams *> streams_dists, std::vector<std::unique_ptr<BeamformingOptions>> &options);
+int receive_exposure(Streams *streams, int n_sensors);
 
 #endif

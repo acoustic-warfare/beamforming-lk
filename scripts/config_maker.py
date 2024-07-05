@@ -107,6 +107,9 @@ class C(ConfigBuilder):
         if key == "IP_ADDRESSES":
             formatted_ips = ", ".join([f'"{ip}"' for ip in output])
             return f"#define {key} {{{formatted_ips}}}\n"
+        elif key == "UDP_PORTS":
+            formatted_ports = ", ".join([str(port) for port in output[:data["N_FPGAS"]]])
+            return f"#define {key} {{{formatted_ports}}}\n"
         else:
             return f"#define {key} {output}\n"
 
@@ -204,11 +207,12 @@ if __name__ == "__main__":
 
             data = yaml.safe_load(file)
             n_fpgas = data.get("N_FPGAS", 1)  # Default to 1 if N_FPGAS is not specified
-            if n_fpgas > len(data["IP_ADDRESSES"]):
+            if n_fpgas > len(data["IP_ADDRESSES"]) or n_fpgas > len(data["UDP_PORTS"]):
                 raise ValueError(
-                    "N_FPGAS cannot be greater than the number of IP addresses"
+                    "N_FPGAS cannot be greater than the number of IP addresses or udp ports"
                 )
             data["IP_ADDRESSES"] = data["IP_ADDRESSES"][:n_fpgas]
+            data["UDP_PORTS"] = data["UDP_PORTS"][:n_fpgas]
         else:
             raise RuntimeError(USAGE)
 
