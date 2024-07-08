@@ -1,16 +1,17 @@
 #include "pipeline.h"
 
-#include "options.h"
-
-using namespace std;
-
-Pipeline::Pipeline(const char *ip_address_fpga) {
+Pipeline::Pipeline(const char *address, const int port) : address(address), port(port) {
     streams = new Streams();
-    this->ip_address_fpga = ip_address_fpga;
 }
 
 Pipeline::~Pipeline() {
     delete streams;
+
+    for (int sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
+        delete[] exposure_buffer[sensor_index];
+    }
+
+    delete[] exposure_buffer;
 }
 
 /**
@@ -19,25 +20,40 @@ Pipeline::~Pipeline() {
 int Pipeline::connect() {
 
     if (connected) {
-        cerr << "Beamformer is already connected" << endl;
-        return -1;
-    } else if (init_receiver(ip_address_fpga) == -1) {
-        cerr << "Unable to establish a connection to antenna" << endl;
+        std::cerr << "Beamformer is already connected" << std::endl;
         return -1;
     }
 
-    connected = 1;
+    socket_desc = init_receiver(address, port);
 
-    this->n_sensors = number_of_sensors();//i, config
-
-    for (int s = 0; s < n_sensors; s++) {
-        this->streams->create_stream(s);
-        std::cout << "\rAdding stream: " << s << "        ";
+    if (socket_desc == -1) {
+        std::cerr << "Unable to establish a connection to antenna" << std::endl;
+        return -1;
+    }
+    else {
+        connected = 1;
     }
 
-    std::cout << std::endl;
+    if (receive_message(socket_desc, &msg) < 0) {
+        std::cerr << "Unable to receive message" << std::endl;
+    }
 
-    connection = thread(&Pipeline::producer, this, n_sensors);//, options[i]->n_sensors_, i);
+    // Populating configs
+    n_sensors = msg.n_arrays * ELEMENTS;
+
+    // Allocate memory for UDP packet data
+    exposure_buffer = new float*[n_sensors];
+
+    for (int sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
+        exposure_buffer[sensor_index] = new float[N_SAMPLES];
+        this->streams->create_stream(sensor_index);
+
+#if DEBUG_PIPELINE
+        std::cout << "[Pipeline] Adding stream: " << sensor_index << std::endl;
+#endif
+    }
+
+    receiver_thread = std::thread(&Pipeline::producer, this);//, options[i]->n_sensors_, i);
 
     return 0;
 }
@@ -47,32 +63,35 @@ int Pipeline::connect() {
  */
 int Pipeline::disconnect() {
     if (!connected) {
-        cerr << "Beamformer is not connected" << endl;
+        std::cerr << "Beamformer is not connected" << std::endl;
         return -1;
     }
 
     {
-        unique_lock<mutex> lock(pool_mutex);
+        std::unique_lock<std::mutex> lock(pool_mutex);
 
         connected = 0;
     }
 
-    connection.join();
+    receiver_thread.join();
     std::cout << "Disconnected connection" << std::endl;
 
     release_barrier();
 
     std::cout << "Barrier released for pipeline" << std::endl;
 
-    stop_receiving();
+    close(socket_desc);
 
     std::cout << "Destroyed pipeline" << std::endl;
 
     return 0;
 }
 
+/**
+ * Check if the producer thread is generating data
+ */
 int Pipeline::isRunning() {
-    unique_lock<mutex> lock(pool_mutex);
+    std::unique_lock<std::mutex> lock(pool_mutex);
     return connected;
 }
 
@@ -80,7 +99,7 @@ int Pipeline::isRunning() {
  * check if no new data has been added
  */
 int Pipeline::mostRecent() {
-    unique_lock<mutex> lock(barrier_mutex);
+    std::unique_lock<std::mutex> lock(barrier_mutex);
     return modified;
 }
 
@@ -88,7 +107,7 @@ int Pipeline::mostRecent() {
  * @brief Wait until a release is dispatched
  */
 void Pipeline::barrier() {
-    unique_lock<mutex> lock(barrier_mutex);
+    std::unique_lock<std::mutex> lock(barrier_mutex);
     barrier_count++;
 
     barrier_condition.wait(lock, [&] { return barrier_count == 0; });
@@ -102,7 +121,7 @@ Streams *Pipeline::getStreams() {
  * Allow the worker threads to continue
  */
 void Pipeline::release_barrier() {
-    unique_lock<mutex> lock(barrier_mutex);
+    std::unique_lock<std::mutex> lock(barrier_mutex);
     barrier_count = 0;
     modified++;
     barrier_condition.notify_all();
@@ -111,13 +130,13 @@ void Pipeline::release_barrier() {
 /**
  * The main distributer of data to the threads (this is also a thread)
  */
-void Pipeline::producer(int n_sensors) {//int n_sensors, int fpga_id) {
+void Pipeline::producer() {
     while (isRunning()) {
 
-        receive_exposure(streams, n_sensors);
+        receive_exposure();
 
         {
-            unique_lock<mutex> lock(barrier_mutex);
+            std::unique_lock<std::mutex> lock(barrier_mutex);
             streams->forward();
         }
 
@@ -125,24 +144,43 @@ void Pipeline::producer(int n_sensors) {//int n_sensors, int fpga_id) {
     }
 }
 
-///**
-// * The main distributer of data to the threads (this is also a thread)
-// */
-// void Pipeline::producer() {
-//  while (isRunning()) {
-//    //receive_offset(&rb); // Fill buffer
-//
-//    {
-//      unique_lock<mutex> lock(barrier_mutex);
-//      p = !p;
-//
-//      receive_exposure(&buffer[p * N_SENSORS * N_SAMPLES]);
-//      //offset_ring_buffer(&rb);
-//    }
-//
-//    release_barrier();
-//  }
-//}
+/**
+ * Receive a window to the streams buffers 
+ */
+void Pipeline::receive_exposure() {
+    for (int i = 0; i < N_SAMPLES; i++) {
+        if (receive_message(socket_desc, &msg) < 0) {
+            std::cerr << "Error exposure" << std::endl;
+            break;
+        }
+
+        // Flip columns
+        int inverted = 1;
+
+        // Actual microphone index
+        unsigned index; 
+
+        for (unsigned sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
+            // Arrays are daisy-chained so flip on columns
+            if (sensor_index % COLUMNS == 0) {
+                inverted = !inverted;
+            }
+
+            if (inverted) {
+                index = COLUMNS * (1 + sensor_index / COLUMNS) - sensor_index % COLUMNS;
+            } else {
+                index = sensor_index;
+            }
+
+            // Normalize mic data between -1.0 and 1.0
+            exposure_buffer[sensor_index][i] = (float) msg.stream[index] / (float) MAX_VALUE_FLOAT;
+        }
+    }
+
+    for (unsigned sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
+        streams->write_stream(sensor_index, &exposure_buffer[sensor_index][0]);
+    }
+}
 
 // Debugging
 int Pipeline::save_pipeline(std::string path) {

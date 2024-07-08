@@ -1,7 +1,7 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *ip_address) : ip_address(ip_address) {
-    this->pipeline = new Pipeline(ip_address);
+AWProcessingUnit::AWProcessingUnit(const char *ip_address, const int port) {
+    this->pipeline = new Pipeline(ip_address, port);
     this->pipeline->connect();
     this->running = false;
 }
@@ -75,11 +75,18 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
 
 #include <unistd.h>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 int main() {
 
     std::cout << "Connecting to FPGA" << std::endl;
-    AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1");
+#if 1
+    AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
+#else 
+    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
+#endif
 
     std::cout << "Connected to FPGA" << std::endl;
 
@@ -107,8 +114,6 @@ int main() {
             break;
         }
     }
-
-    //usleep(2e6);
 
     std::cout << "Pausing listening" << std::endl;
 

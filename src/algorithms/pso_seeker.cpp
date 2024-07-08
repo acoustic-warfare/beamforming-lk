@@ -28,16 +28,31 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays, i
     float out[N_SAMPLES] = {0.0f};
     unsigned n = 0;
 
-    for (unsigned s = 0; s < 64; s++) {
+    for (unsigned s = 0; s < n_sensors; s++) {
+#if 1
+        if (VALID_SENSOR(s)) {
+            float fraction = fractional_delays[s - 64];
+            int offset = offset_delays[s - 64];
+
+            //std::cout << "frac: " << fraction << " offset: " << offset << std::endl;
+
+            float *signal = streams->get_signal(s, offset);
+            delay(&out[0], signal, fraction);
+
+            n++;
+        }
+#else
         float fraction = fractional_delays[s];
         int offset = offset_delays[s];
 
         //std::cout << "frac: " << fraction << " offset: " << offset << std::endl;
 
-        float *signal = streams->get_signal(s + 64, offset);
+        float *signal = streams->get_signal(s, offset);
         delay(&out[0], signal, fraction);
 
         n++;
+
+#endif
     }
 
     float power = 0.0f;
@@ -169,6 +184,7 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
 
     for (Particle &particle: particles) {
         Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 1.0);
+        //Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 0.5);
         //std::cout << "Pos: " << position << " x_res: " << x_res << std::endl;
         //heatmap->at<int>(
         //        (int) (x_res * (position(0) / 2.0 + 0.5)),
@@ -176,6 +192,9 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
 
         int xi = (int) (x_res * (position(0) / 2.0 + 0.5));
         int yi = (int) (y_res * (position(1) / 2.0 + 0.5));
+
+        //int xi = (int) (x_res * (position(0) + 0.5));
+        //int yi = (int) (y_res * (position(1) + 0.5));
 
         heatmap->at<int>(xi, yi) = (255);
     }
@@ -189,18 +208,19 @@ void PSOWorker::loop() {
     while (looping && pipeline->isRunning()) {
         // Wait for incoming data
         //std::cout << "Barrier wait" << std::endl;
+
         pipeline->barrier();
-
         //std::cout << "Barrier release" << std::endl;
-
+        pso_lock.lock();
         // Place particles on dome
         initialize_particles();
 
         global_best_magnitude *= PSO_DECAY;
         global_best_magnitude = 0.0;
 
+        
         int start = this->pipeline->mostRecent();
-        pso_lock.lock();
+        
         for (int i = 0; i < iterations; i++) {
             // This loop may run until new data has been produced, meaning its up to
             // the machine to run as fast as possible

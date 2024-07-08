@@ -47,8 +47,8 @@ PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
 MAX_N_SENSORS: ROWS * COLUMNS * 4 # Can take max 4 arrays per FPGA
 N_FPGAS: 1 # How many running FPGAs
 IP_ADDRESSES: # Does not need to be edited if N_FPGAS is edited, only if you have different src addresses fo the FPGAS
-  - '10.0.0.1'
-  #- '127.0.0.1'
+  #- '10.0.0.1'
+  - '127.0.0.1'
   - '192.168.1.75'
   - '192.168.1.76'
   - '192.168.1.77'

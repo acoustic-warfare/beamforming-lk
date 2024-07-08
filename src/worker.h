@@ -1,6 +1,8 @@
 #ifndef WORKER_H
 #define WORKER_H
 
+#include <opencv2/opencv.hpp> // cv::Mat
+
 struct Direction {
     double azimuth;
     double elevation;
@@ -22,7 +24,6 @@ public:
     Worker(Pipeline *pipeline, bool *running) : looping(true), pipeline(pipeline), running(running) {};
 
     ~Worker(){
-        //*running = false;
         looping = false;
         std::cout << "Waiting for thread to return" << std::endl;
         thread_loop.join();
