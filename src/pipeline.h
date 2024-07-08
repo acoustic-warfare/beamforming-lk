@@ -1,12 +1,10 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-//#include "ring_buffer.h"
 #include "options.h"
 #include "receiver.h"
 #include "streams.hpp"
 
-//#include "ring_buffer.h"
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
@@ -15,13 +13,10 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/opencv.hpp>
 #include <string>
 #include <thread>
 
-using namespace std;
+#define DEBUG_PIPELINE 1
 
 /**
  * @class Pipeline
@@ -29,68 +24,99 @@ using namespace std;
  *
  */
 class Pipeline {
-
 public:
-    std::atomic_int canPlot = 0;
-    cv::Mat *magnitudeHeatmap;
-    Pipeline();
+    Pipeline(const char *address, const int port);
     ~Pipeline();
-    /**
-   * Connect beamformer to antenna
-   */
-    int connect(std::vector<std::unique_ptr<BeamformingOptions>> &options);
 
     /**
-   * Disconnect beamformer from antenna
-   */
+     * Connect beamformer to antenna
+     */
+    int connect();
+
+    /**
+     * Disconnect beamformer from antenna
+     */
     int disconnect();
 
     /**
-   * Checks if the pipeline is online
-   */
+     * Checks if the pipeline is online
+     */
     int isRunning();
 
     /**
-   * check if no new data has been added
-   */
+     * check if no new data has been added
+     */
     int mostRecent();
 
+
     /**
-   * Wait until release
-   */
+     * Wait until release
+     */
     void barrier();
 
-    Streams *getStreams(int stream_id);
+    Streams *getStreams();
+
+    int get_n_sensors() { return this->n_sensors; };
 
     int save_pipeline(std::string path);
 
 private:
-    //Streams *streams;
-    std::vector<Streams *> streams_dist;
-    std::string ipAddress;
+    // Buffer for storing incoming UDP mic data
+    float **exposure_buffer;
+
+    // UDP socket descriptor
+    int socket_desc;
+
+    // FPGA ip address
+    const char *address;
+
+    // FPGA port
+    const int port;
+
+    // Message for receiving UDP packet
+    message msg;
+
+    // Number of sensors in current constallation
+    int n_sensors;
+
+    // Ring buffer for storing data 
+    Streams *streams;
+
+    // Receiver thread
+    std::thread receiver_thread;
+
+    // If pipeline is connected to FPGA
     int connected = 0;
-    mutex pool_mutex;
-    mutex barrier_mutex;
-    condition_variable barrier_condition;
+
+    // Mutex for workers
+    std::mutex pool_mutex;
+
+    // Barrier for workers
+    std::mutex barrier_mutex;
+
+    // Status of barrier
+    std::condition_variable barrier_condition;
+
+    // Number of current stopped workers
     int barrier_count = 0;
 
-    thread connection;
-
+    // Check if new data was received
     int modified = 0;
 
-    int p = 0;
-
-    //float buffer[N_SAMPLES * N_SENSORS * 2];
-
     /**
-   * Allow the worker threads to continue
-   */
+     * Allow the worker threads to continue
+     */
     void release_barrier();
 
     /**
-   * The main distributer of data to the threads (this is also a thread)
-   */
-    void producer(std::vector<std::unique_ptr<BeamformingOptions>> &options);
+     * Receive and fill ring buffers of new data
+     */
+    void receive_exposure();
+
+    /**
+     * The main distributer of data to the threads (this is also a thread)
+     */
+    void producer();
 };
 
 #endif
