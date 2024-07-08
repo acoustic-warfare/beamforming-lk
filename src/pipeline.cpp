@@ -53,7 +53,7 @@ int Pipeline::connect() {
 #endif
     }
 
-    receiver_thread = std::thread(&Pipeline::producer, this);//, options[i]->n_sensors_, i);
+    receiver_thread = std::thread(&Pipeline::producer, this);
 
     return 0;
 }

@@ -16,7 +16,7 @@
 #include <string>
 #include <thread>
 
-#define DEBUG_PIPELINE 0
+#define DEBUG_PIPELINE 1
 
 /**
  * @class Pipeline

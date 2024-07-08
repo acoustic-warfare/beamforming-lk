@@ -8,7 +8,7 @@ struct Direction {
     double elevation;
 };
 
-typedef enum worker_t {
+enum worker_t {
 
     PSO,
     MIMO,
