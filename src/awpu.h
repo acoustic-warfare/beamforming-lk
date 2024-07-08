@@ -8,7 +8,7 @@
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *ip_address, const int port);
+    AWProcessingUnit(const char *address, const int port, int verbose);
     ~AWProcessingUnit();
 
     bool start(const worker_t worker);
@@ -19,7 +19,7 @@ public:
 
 
 protected:
-    //const char *ip_address;
+    int verbose;
     std::vector<Worker *> workers;
     Pipeline *pipeline;
     bool running;

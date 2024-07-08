@@ -120,7 +120,7 @@ inline Antenna steer(const Antenna &antenna, const double theta, const double ph
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
-Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0f) {
+Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0) {
     Position point;
 
     point(X_INDEX) = (float) (radius * (cos(theta) * sin(phi)));

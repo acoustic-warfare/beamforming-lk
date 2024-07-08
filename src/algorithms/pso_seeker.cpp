@@ -78,7 +78,9 @@ Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors) : antenna(
 
 void Particle::random() {
     theta = drandom() * (2.0 * PI);
+    //theta = 0.0;
     phi = drandom() * PI_HALF;
+    //phi = 0.0;
 }
 
 float Particle::compute(double theta, double phi, int n_sensors) {
@@ -137,7 +139,12 @@ inline float clip(const double n, const double lower, const double upper) {
 }
 
 inline double wrapAngle(const double angle) {
-    return angle - TWO_PI * floor(angle / TWO_PI);
+    return fmod(angle, TWO_PI);
+    //return angle - TWO_PI * floor(angle / TWO_PI);
+}
+
+double smallestAngle(const double target, const double current) {
+    return atan2(sin(target-current), cos(target-current));
 }
 
 
@@ -183,20 +190,23 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
     pso_lock.lock();
 
     for (Particle &particle: particles) {
+        // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
+        // 0.5 to get the sphere in the first sector in the cartesian coordinate system
         Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 1.0);
         //Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 0.5);
-        //std::cout << "Pos: " << position << " x_res: " << x_res << std::endl;
-        //heatmap->at<int>(
-        //        (int) (x_res * (position(0) / 2.0 + 0.5)),
-        //        (int) (y_res * (position(1) / 2.0 + 0.5))) = (uchar) 255;
 
-        int xi = (int) (x_res * (position(0) / 2.0 + 0.5));
-        int yi = (int) (y_res * (position(1) / 2.0 + 0.5));
+        // Use the position values to plot over the heatmap
+        int x = (int) (x_res * (position(X_INDEX) / 2.0 + 0.5));
+        int y = (int) (y_res * (position(Y_INDEX) / 2.0 + 0.5));
 
-        //int xi = (int) (x_res * (position(0) + 0.5));
-        //int yi = (int) (y_res * (position(1) + 0.5));
+#if 0
+        if ((x < 0) || (x > x_res - 1) || (y < 0) || (y > y_res - 1)) {
+            std::cout << "Invalid pos: (" << position(X_INDEX) << "," << position(Y_INDEX) << ") (" << x << ", " << y << ") " << std::endl;
+        }
+#endif
+        
 
-        heatmap->at<int>(xi, yi) = (255);
+        heatmap->at<uchar>(x, y) = (255);
     }
 
     pso_lock.unlock();
@@ -206,12 +216,12 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
 void PSOWorker::loop() {
     std::cout << "Starting loop" << std::endl;
     while (looping && pipeline->isRunning()) {
+        
         // Wait for incoming data
-        //std::cout << "Barrier wait" << std::endl;
-
         pipeline->barrier();
-        //std::cout << "Barrier release" << std::endl;
+
         pso_lock.lock();
+        
         // Place particles on dome
         initialize_particles();
 
@@ -231,13 +241,16 @@ void PSOWorker::loop() {
             for (auto &particle: particles) {
 
                 // Compute new velocities based on distance to local best and global best
-                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
+                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * smallestAngle(particle.best_theta, particle.theta) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_theta, particle.theta) * GLOBAL_AREA_RATIO);
                 particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + drandom() * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO);
+                //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
+
 
                 // Move based on velocity
-                particle.theta += particle.velocity_theta * delta;
+                particle.theta += particle.velocity_theta * delta;// * sin(particle.phi / 2.0);
                 particle.phi += particle.velocity_phi * delta;
-
+                
+                
                 // Limit the search area
                 particle.theta = wrapAngle(particle.theta);
                 particle.phi = clip(particle.phi, 0.0, PI_HALF);
@@ -252,13 +265,9 @@ void PSOWorker::loop() {
                     global_best_phi = particle.best_phi;
                 }
             }
-
-
-            //std::cout << "Best magnitude: " << global_best_magnitude << std::endl;
         }
 
         pso_lock.unlock();
-        //std::cout << "Theta: " << global_best_theta << " Phi: " << global_best_phi << std::endl;
     }
 
     std::cout << "Done loop" << std::endl;

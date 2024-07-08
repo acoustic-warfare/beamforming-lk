@@ -114,8 +114,8 @@ private:
     int n_particles;
 
     double current_velocity_weight = 0.25;// Wight for current velocity
-    double new_velocity_weight = 2.0;
-    double delta = 1.5;
+    double new_velocity_weight = 1.0;
+    double delta = 1.0;
 };
 
 #endif

@@ -1,13 +1,19 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *ip_address, const int port) {
-    this->pipeline = new Pipeline(ip_address, port);
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose = 1) : verbose(verbose) {
+    // Allocate memory for pipeline
+    this->pipeline = new Pipeline(address, port);
+
+    // Connect to FPGA
     this->pipeline->connect();
     this->running = false;
 }
 
 AWProcessingUnit::~AWProcessingUnit() {
-    std::cout << "Destructing AWPU" << std::endl;
+    if (verbose) {
+        std::cout << "Destructing AWPU" << std::endl;
+    }
+    
     pipeline->disconnect();
     delete pipeline;
 
@@ -58,15 +64,11 @@ bool AWProcessingUnit::stop(const worker_t worker) {
 }
 
 void AWProcessingUnit::pause() {
-    if (this->running) {
-        this->running = false;
-    }
+    this->running = false;
 }
 
 void AWProcessingUnit::resume() {
-    if (!this->running) {
-        this->running = true;
-    }
+    this->running = true;
 }
 
 void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
@@ -94,21 +96,23 @@ int main() {
     awpu.start(PSO);
 
     std::cout << "Starting listening" << std::endl;
-    awpu.resume();
+    //awpu.resume();
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
+    cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
     while (1) {
         awpu.draw_heatmap(&frame);
         // Apply color map
         // Blur the image with a Gaussian kernel
-        cv::GaussianBlur(frame, frame,
+
+        cv::GaussianBlur(frame, colorFrame,
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-        cv::applyColorMap(frame, frame, cv::COLORMAP_JET);
-        cv::imshow(APPLICATION_NAME, frame);
+        cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
+        cv::imshow(APPLICATION_NAME, colorFrame);
         if (cv::waitKey(1) == 'q') {
             std::cout << "Stopping application..." << std::endl;
             break;
