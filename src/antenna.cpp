@@ -3,6 +3,7 @@
  *
  * This file contains functions for creating, moving, rotating, combining DAA's
  *
+ * We use the physics convention where theta \in [0, pi/2] and \phi \in [0, 2*pi)
  */
 
 #include "antenna.h"
@@ -97,14 +98,14 @@ Eigen::VectorXf compute_delays(const Antenna &antenna) {
 inline Antenna steer(const Antenna &antenna, const double theta, const double phi) {
     Eigen::Matrix3f Rz1, Rx, Rz2;
 
-    Rz1 << (float) cos(theta), -(float) sin(theta), 0.0f,
-            (float) sin(theta), (float) cos(theta), 0.0f,
+    Rz1 << (float) cos(phi), -(float) sin(phi), 0.0f,
+            (float) sin(phi), (float) cos(phi), 0.0f,
             0.0f, 0.0f, 1.0f;
     Rx << 1.0f, 0.0f, 0.0f,
-            0.0f, (float) cos(phi), -(float) sin(phi),
-            0.0f, (float) sin(phi), (float) cos(phi);
-    Rz2 << (float) cos(-theta), -(float) sin(-theta), 0.0f,
-            (float) sin(-theta), (float) cos(-theta), 0.0f,
+            0.0f, (float) cos(theta), -(float) sin(theta),
+            0.0f, (float) sin(theta), (float) cos(theta);
+    Rz2 << (float) cos(-phi), -(float) sin(-phi), 0.0f,
+            (float) sin(-phi), (float) cos(-phi), 0.0f,
             0.0f, 0.0f, 1.0f;
 
     // Perform the rotation. Order of operations are important
@@ -123,9 +124,9 @@ inline Antenna steer(const Antenna &antenna, const double theta, const double ph
 Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0) {
     Position point;
 
-    point(X_INDEX) = (float) (radius * (cos(theta) * sin(phi)));
+    point(X_INDEX) = (float) (radius * (sin(theta) * cos(phi)));
     point(Y_INDEX) = (float) (radius * (sin(theta) * sin(phi)));
-    point(Z_INDEX) = (float) (radius * (cos(phi)));
+    point(Z_INDEX) = (float) (radius * (cos(theta)));
 
     return point;
 }
@@ -137,8 +138,8 @@ Position spherical_to_cartesian(const double theta, const double phi, const doub
 Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation) {
     double x = sin(azimuth);
     double y = sin(elevation);
-    double theta = atan2(y, x);
-    double phi = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
+    double phi = atan2(y, x);
+    double theta = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
 
     Antenna steered = steer(antenna, theta, phi);
     return compute_delays(steered);

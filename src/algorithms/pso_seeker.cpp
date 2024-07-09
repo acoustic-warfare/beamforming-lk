@@ -77,9 +77,9 @@ Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors) : antenna(
 
 
 void Particle::random() {
-    theta = drandom() * (2.0 * PI);
+    phi = drandom() * (2.0 * PI);
     //theta = 0.0;
-    phi = drandom() * PI_HALF;
+    theta = drandom() * PI_HALF;
     //phi = 0.0;
 }
 
@@ -241,19 +241,22 @@ void PSOWorker::loop() {
             for (auto &particle: particles) {
 
                 // Compute new velocities based on distance to local best and global best
-                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * smallestAngle(particle.best_theta, particle.theta) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_theta, particle.theta) * GLOBAL_AREA_RATIO);
-                particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + drandom() * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO);
+                //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * smallestAngle(particle.best_theta, particle.theta) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_theta, particle.theta) * GLOBAL_AREA_RATIO);
+                //particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + drandom() * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO);
                 //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
-
+                particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * smallestAngle(particle.best_phi, particle.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_phi, particle.phi) * GLOBAL_AREA_RATIO);
+                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
 
                 // Move based on velocity
-                particle.theta += particle.velocity_theta * delta;// * sin(particle.phi / 2.0);
-                particle.phi += particle.velocity_phi * delta;
+                particle.theta += particle.velocity_theta * delta;
+                particle.phi += particle.velocity_phi * delta; // * sin(particle.theta);
                 
                 
                 // Limit the search area
-                particle.theta = wrapAngle(particle.theta);
-                particle.phi = clip(particle.phi, 0.0, PI_HALF);
+                //particle.theta = wrapAngle(particle.theta);
+                //particle.phi = clip(particle.phi, 0.0, PI_HALF);
+                particle.phi = wrapAngle(particle.phi);
+                particle.theta = clip(particle.theta, 0.0, PI_HALF);
 
                 // Search using new positions
                 particle.update();
