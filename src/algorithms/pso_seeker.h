@@ -29,10 +29,11 @@ public:
     Antenna &antenna;
     Streams *streams;
     int n_sensors;
+    int id;
 
     //float (*objective_function)(float, float);
 
-    Particle(Antenna &antenna, Streams *streams, int n_sensors);
+    Particle(Antenna &antenna, Streams *streams, int n_sensors, int id);
 
     void random();
 

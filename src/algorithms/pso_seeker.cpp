@@ -1,12 +1,20 @@
 #include "pso_seeker.h"
 
+#if 0
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
+#else
+#define VALID_SENSOR(i) (i < 64)
+#endif
+
 
 #define USE_LUT 0
 
 inline double drandom() {
     return static_cast<double>(rand()) / RAND_MAX;
 }
+
+
+//#define IN_FIRST_SECTOR(i) ((i < 28) && )
 
 #if USE_LUT
 
@@ -23,7 +31,7 @@ Eigen::MatrixXi lookup_table(90, 360);
 float beamform(Streams *streams, int index) {
 
 #else
-float beamform(Streams *streams, int *offset_delays, float *fractional_delays, int n_sensors) {
+float beamform(Streams *streams, int *offset_delays, float *fractional_delays, int n_sensors, int id) {
 #endif
     float out[N_SAMPLES] = {0.0f};
     unsigned n = 0;
@@ -31,8 +39,35 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays, i
     for (unsigned s = 0; s < n_sensors; s++) {
 #if 1
         if (VALID_SENSOR(s)) {
-            float fraction = fractional_delays[s - 64];
-            int offset = offset_delays[s - 64];
+#if 0
+            int i = s - 64;
+
+            const int *sector;
+
+            switch (id) {
+                case 0:
+                    sector = &first_sector[0];
+                    break;
+                case 1:
+                    sector = &second_sector[0];
+                    break;
+                case 2:
+                    sector = &third_sector[0];
+                    break;
+                default:
+                    sector = &fourth_sector[0];
+                    break;
+            }
+
+            if (!in_sector(sector, i)) {
+                continue;
+            }
+#endif
+
+            int i = s % ELEMENTS;
+
+            float fraction = fractional_delays[i];
+            int offset = offset_delays[i];
 
             //std::cout << "frac: " << fraction << " offset: " << offset << std::endl;
 
@@ -65,8 +100,91 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays, i
     return power / (float) N_SAMPLES;
 }
 
+float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, int n_sensors) {
+    float out[4][N_SAMPLES] = {0.0};
 
-Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors) : antenna(antenna), streams(streams), n_sensors(n_sensors) {
+    unsigned n = 0;
+
+    for (unsigned s = 0; s < n_sensors; s++) {
+        if (VALID_SENSOR(s)) {
+            
+        
+        
+        int i = s % ELEMENTS;
+
+        //float fraction = fractional_delays[i];
+        //int offset = offset_delays[i];
+
+        //std::cout << "frac: " << fraction << " offset: " << offset << std::endl;
+
+        //float *signal = streams->get_signal(s, offset);
+        float *signal = streams->get_signal(s, offset_delays[i]);
+
+        int sector;
+        if (in_sector(&first_sector[0], i)) {
+            sector = 0;
+        } else if (in_sector(&second_sector[0], i)) {
+            sector = 1;
+        } else if (in_sector(&third_sector[0], i)) {
+            sector = 2;
+        } else {
+            sector = 3;
+        }
+        delay(&out[sector][0], signal, fractional_delays[i]);
+        //delay(&out[sector][0], signal, fraction);
+        }
+    }
+
+    const float norm = 1.0 / 16.0;
+    float power[4] = {0.0, 0.0, 0.0, 0.0}; 
+    for (int sector_index = 0; sector_index < 4; sector_index++) {
+        for (int i = 0; i < N_SAMPLES; i++) {
+            power[sector_index] += powf(out[sector_index][i] * norm, 2);
+        }
+    }
+
+    double azimuth_error = (double)(power[0] - power[1]);
+    double elevation_error = (double)(power[0] - power[3]);
+
+    
+    //double theta = PI_HALF - elevation_error;
+    //double phi = azimuth_error;
+    //if (theta > PI_HALF) {
+    //    phi += PI;
+    //    theta -= PI_HALF;
+    //}
+
+    
+
+    double error = sqrt(powf(azimuth_error, 2) + powf(elevation_error, 2));
+
+    //double azimuth = phi;
+    //double elevation = PI_HALF - theta;
+    double x = sin(azimuth_error);
+    double y = sin(elevation_error);
+
+    double xc = cos(azimuth_error);
+    double yc = cos(elevation_error);
+    //double phi = 
+    double phi = atan2(y, x);
+    ////double theta = cos(azimuth) 
+    //double theta = acos(1.0 - )
+
+
+
+    double theta = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
+
+    //std::cout << "Error: " << error << std::endl;
+
+    return (power[0] + power[1] + power[2] + power[3]) / (float)N_SAMPLES + (error * 0.000001);
+
+    //double phi, theta;
+
+
+}
+
+
+Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors, int id) : antenna(antenna), streams(streams), n_sensors(n_sensors), id(id) {
     random();
     velocity_theta = drandom() - 0.5;
     velocity_phi = drandom() - 0.5;
@@ -117,15 +235,14 @@ float Particle::compute(double theta, double phi, int n_sensors) {
         i++;
     }
 
-
-    return beamform(streams, &offset_delays[0], &fractional_delays[0], n_sensors);
+    //return monopulse(streams, &offset_delays[0], &fractional_delays[0], n_sensors);
+    return beamform(streams, &offset_delays[0], &fractional_delays[0], n_sensors, id);
 
 #endif
 }
 
 void Particle::update() {
     float magnitude = compute(theta, phi, n_sensors);
-    //best_magnitude *= 0.99;
     if (magnitude > best_magnitude) {
         best_magnitude = magnitude;
         best_theta = theta;
@@ -164,7 +281,7 @@ worker_t Worker::get_type() {
 void PSOWorker::initialize_particles() {
     particles.clear();
     for (int i = 0; i < swarm_size; i++) {
-        particles.emplace_back(this->antenna, pipeline->getStreams(), pipeline->get_n_sensors());
+        particles.emplace_back(this->antenna, pipeline->getStreams(), pipeline->get_n_sensors(), i%4);
 
         Particle &particle = particles.back();
 
@@ -244,8 +361,11 @@ void PSOWorker::loop() {
                 //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * smallestAngle(particle.best_theta, particle.theta) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_theta, particle.theta) * GLOBAL_AREA_RATIO);
                 //particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + drandom() * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO);
                 //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
-                particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * smallestAngle(particle.best_phi, particle.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_phi, particle.phi) * GLOBAL_AREA_RATIO);
-                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
+                //particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * smallestAngle(particle.best_phi, particle.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_phi, particle.phi) * GLOBAL_AREA_RATIO);
+                //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
+
+                particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (smallestAngle(particle.best_phi, particle.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_phi, particle.phi) * GLOBAL_AREA_RATIO);
+                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * ((particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
 
                 // Move based on velocity
                 particle.theta += particle.velocity_theta * delta;
