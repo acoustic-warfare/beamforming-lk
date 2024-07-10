@@ -18,19 +18,81 @@
 
 typedef Eigen::Vector3f Position;
 
+const int second_sector[16] = {0, 1, 2, 3,
+                               8, 9, 10, 11,
+                               16, 17, 18, 19,
+                               24, 25, 26, 27};
+
+const int first_sector[16] = {4, 5, 6, 7,
+                              12, 13, 14, 15,
+                              20, 21, 22, 23,
+                              28, 29, 30, 31};
+
+const int third_sector[16] = {32, 33, 34, 35,
+                              40, 41, 42, 43,
+                              48, 49, 50, 51,
+                              56, 57, 58, 59};
+
+const int fourth_sector[16] = {36, 37, 38, 39,
+                               44, 45, 46, 47,
+                               52, 53, 54, 55,
+                               60, 61, 62, 63};
+
+bool in_sector(const int *sector, const int i);
+
+bool in_sector(const int sector_index, const int i);
+
+struct Sector {
+  int sector; // 1, 2, 3, 4
+  int usable = 0;
+  int index[16];
+
+  //void construct_sector(const int *sensors, const int n, int sector) : sector(sector) {
+  //  for (int i = 0; i < n; i++) {
+  //    if (in_sector(sector, i)) {
+  //      this->index[this->usable++] = sensors[i];
+  //    }
+  //  }
+  //}
+
+};
+
 /**
  * @brief Antenna that consists of points
  */
-typedef struct {
+struct Antenna {
 
   /**
    * The 3D representation of the antenna
    */
   Eigen::MatrixXf points; // The 3D representation of the antenna
   int id;
-} Antenna;
+  int usable = 0; // Number of usable elements;
+  int *index; // Index of usable element
+  float *power_correction_mask; // Correction of microphone to reach some value
+  float mean; // Pseudo valid metrics for checking the power level of antenna during auto calibration
+  float median;
 
-//float to_radians(float degree);
+
+  // TODO calculate angle correction
+  float *angle_correction_mask; // How much to compensate for non-isotropic elements
+  int angle_resolution;
+
+  //Sector sectors[4];
+
+  ~Antenna() {
+    if (usable > 0) {
+      delete[] index;
+      delete[] power_correction_mask;
+    }
+  }
+
+  //void setup_sectors() {
+  //  for (int i = 0; i < 4; i++) {
+  //    sectors[i].construct_sector(this->index, usable, i);
+  //  }
+  //}
+};
 
 /**
  * Find the center of antenna

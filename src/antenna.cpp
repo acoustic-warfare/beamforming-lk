@@ -10,13 +10,48 @@
 
 #include <iostream>
 
+bool in_sector(const int *sector, const int i) {
+    return (((sector[0] <= i) && (i <= sector[3])) ||
+            ((sector[4] <= i) && (i <= sector[7])) ||
+            ((sector[8] <= i) && (i <= sector[11])) ||
+            ((sector[12] <= i) && (i <= sector[15])));
+}
+
+bool in_sector(const int sector_index, const int i) {
+    const int *sector;
+
+    switch (sector_index) {
+        case 0:
+            sector = &first_sector[0];
+            break;
+        case 1:
+            sector = &second_sector[0];
+            break;
+        case 2:
+            sector = &third_sector[0];
+            break;
+        default:
+            sector = &fourth_sector[0];
+            break;
+    }
+
+    return in_sector(sector, i);
+}
+
 /**
- * @brief Convert degree to radians
- *
- * @param degree The angle to be converted
- * @return angle as radian
+ * Spherical distance between two directions in spherical coordinates
  */
-//double to_radians(float degree) { return degree * (M_PI / 180.0); }
+inline double spherical_distance(const double target_theta,
+                                 const double target_phi,
+                                 const double current_theta,
+                                 const double current_phi) 
+{
+    double north_target_theta = PI_HALF - target_theta;
+    double north_current_theta = PI_HALF - current_theta;
+    return acos(sin(north_target_theta) * sin(north_current_theta) + cos(north_target_theta) * cos(north_current_theta) * cos(fabs(target_phi - current_phi)));
+}
+
+
 
 /**
  * @brief Helper function to return the middle point of the antenna
