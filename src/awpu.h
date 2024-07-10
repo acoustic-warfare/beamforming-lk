@@ -1,6 +1,8 @@
 #ifndef AWPU_H
 #define AWPU_H
 
+#include <algorithm>
+
 #include "algorithms/pso_seeker.h"
 #include "pipeline.h"
 #include "worker.h"
@@ -16,6 +18,7 @@ public:
     void pause();
     void resume();
     void draw_heatmap(cv::Mat *heatmap);
+    void calibrate(const float reference_power_level);
 
 
 protected:
@@ -23,6 +26,8 @@ protected:
     std::vector<Worker *> workers;
     Pipeline *pipeline;
     bool running;
+
+    std::vector<Antenna> antennas;
 };
 
 #endif
