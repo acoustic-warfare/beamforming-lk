@@ -14,6 +14,8 @@
 
 void delay(float *out, const float *signal, const float fraction);
 
+void delay_corrected(float *out, const float *signal, const float fraction, const float correction);
+
 void delay_naive(float *out, const float *signal, const float fraction);
 
 #ifdef __AVX2__

@@ -6,6 +6,13 @@ void delay(float *out, const float *signal, const float fraction) {
     }
 }
 
+void delay_corrected(float *out, const float *signal, const float fraction, const float correction = 1.0) {
+    for (int i = 0; i < N_SAMPLES; i++) {
+        out[i] += correction * (signal[i + 1] + fraction * (signal[i] - signal[i + 1]));
+    }
+}
+
+
 #ifndef __AVX2__
 
 //void delay(float *out, const float *signal, const float fraction) {
