@@ -155,7 +155,7 @@ void Pipeline::receive_exposure() {
         }
 
         // Flip columns
-        int inverted = 1;
+        int inverted = 0;
 
         // Actual microphone index
         unsigned index; 
@@ -167,7 +167,7 @@ void Pipeline::receive_exposure() {
             }
 
             if (inverted) {
-                index = COLUMNS * (1 + sensor_index / COLUMNS) - sensor_index % COLUMNS;
+                index = COLUMNS * (1 + sensor_index / COLUMNS) - 1 - sensor_index % COLUMNS;
             } else {
                 index = sensor_index;
             }
