@@ -9,7 +9,9 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verb
     this->running = false;
 
     for (int a = 0; a < this->pipeline->get_n_sensors() / ELEMENTS; a++) {
-        antennas.emplace_back();
+        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+        //antennas.emplace_back();
+        antennas.push_back(antenna);
     }
 }
 
@@ -31,7 +33,7 @@ bool AWProcessingUnit::start(const worker_t worker) {
     switch (worker) {
         case PSO:
 
-            job = (Worker *) new PSOWorker(pipeline, &running, SWARM_SIZE, SWARM_ITERATIONS);
+            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
             break;
         case MIMO:
             job = nullptr;
@@ -54,9 +56,10 @@ bool AWProcessingUnit::start(const worker_t worker) {
 
 /**
  * Autocalibrate antennas by referencing each element and check if its too big or small 
- * and calculates how to compensate for it. 
+ * and calculates how to compensate for it. Remember that the correction is only valid for what is in the buffers
+ * this is not an absolute measure and should be used accordingly
  */
-void AWProcessingUnit::calibrate(const float reference_power_level = 1e-4) {
+void AWProcessingUnit::calibrate(const float reference_power_level = 1e-5) {
     Streams *streams = pipeline->getStreams();
 
 
@@ -92,7 +95,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level = 1e-4) {
             power[s] = power_value;
         }
 
-        // Find out the median
+        // Find out the median we assume the median is ok
         float medians[ELEMENTS];
 
         memcpy(&medians[0], &power[0], sizeof(float) * ELEMENTS);
@@ -211,8 +214,12 @@ int main() {
 
     std::cout << "Connected to FPGA" << std::endl;
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    awpu5.calibrate();
+    awpu8.calibrate();
+
     std::cout << "Starting PSO" << std::endl;
-    awpu5.start(PSO);
+    //awpu5.start(PSO);
     awpu8.start(PSO);
 
     std::cout << "Starting listening" << std::endl;
@@ -224,11 +231,15 @@ int main() {
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
+
+    
     while (1) {
-        awpu5.draw_heatmap(&frame);
-        //awpu8.draw_heatmap(&frame);
+        //awpu5.draw_heatmap(&frame);
+        awpu8.draw_heatmap(&frame);
         // Apply color map
         // Blur the image with a Gaussian kernel
+
+        
 
         cv::GaussianBlur(frame, colorFrame,
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
