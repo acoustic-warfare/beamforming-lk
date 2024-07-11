@@ -100,6 +100,33 @@ float beamform(Streams *streams, int *offset_delays, float *fractional_delays, i
     return power / (float) N_SAMPLES;
 }
 
+
+float adaptive(Streams *streams, Antenna &antenna, int *offset_delays, float *fractional_delays) {
+    float out[N_SAMPLES] = {0.0};
+
+    //std::cout << "Usable: " << antenna.usable << std::endl;
+
+    for (unsigned s = 0; s < antenna.usable; s++) {
+        
+        int i = antenna.index[s]; 
+        float fraction = fractional_delays[i];
+
+        //std::cout << "Using index: " << i << std::endl;
+
+        float *signal = streams->get_signal(i, offset_delays[i]);
+        delay_corrected(&out[0], signal, fraction, antenna.power_correction_mask[s]);
+    }
+
+    float power = 0.0f;
+    float norm = 1 / (float) antenna.usable;
+
+    for (int i = 0; i < N_SAMPLES; i++) {
+        power += powf(out[i] * norm, 2);
+    }
+
+    return power / (float) N_SAMPLES;
+}
+
 float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, int n_sensors) {
     float out[4][N_SAMPLES] = {0.0};
 
@@ -235,8 +262,10 @@ float Particle::compute(double theta, double phi, int n_sensors) {
         i++;
     }
 
-    //return monopulse(streams, &offset_delays[0], &fractional_delays[0], n_sensors);
-    return beamform(streams, &offset_delays[0], &fractional_delays[0], n_sensors, id);
+    return adaptive(streams, antenna, &offset_delays[0], &fractional_delays[0]);
+
+            //return monopulse(streams, &offset_delays[0], &fractional_delays[0], n_sensors);
+            //return beamform(streams, &offset_delays[0], &fractional_delays[0], n_sensors, id);
 
 #endif
 }
@@ -265,11 +294,11 @@ double smallestAngle(const double target, const double current) {
 }
 
 
-PSOWorker::PSOWorker(Pipeline *pipeline, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, running), swarm_size(swarm_size), iterations(iterations) {
+PSOWorker::PSOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, running), swarm_size(swarm_size), iterations(iterations) {
     this->global_best_magnitude = 0.0f;
     // Create antenna at origo
-    this->antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-
+    //this->antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+    this->antenna = antenna;
     //this->thread_loop = std::thread(this->loop);
     thread_loop = std::thread(&PSOWorker::loop, this);
 }
@@ -326,6 +355,11 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
         heatmap->at<uchar>(x, y) = (255);
     }
 
+    Position position = spherical_to_cartesian(global_best_theta, global_best_phi, 1.0);
+    int x = (int) (x_res * (position(X_INDEX) / 2.0 + 0.5));
+    int y = (int) (y_res * (position(Y_INDEX) / 2.0 + 0.5));
+    cv::circle(*heatmap, cv::Point(y,x), 3, cv::Scalar(255, 255, 255), cv::FILLED, 8, 0);
+
     pso_lock.unlock();
 }
 
@@ -353,7 +387,7 @@ void PSOWorker::loop() {
             // the machine to run as fast as possible
             if (this->pipeline->mostRecent() != start) {
                 //std::cout << "Too slow: " << i + 1 << "/" << iterations << std::endl;
-                //break;// Too slow!
+                break;// Too slow!
             }
             for (auto &particle: particles) {
 

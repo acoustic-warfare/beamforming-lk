@@ -78,7 +78,7 @@ public:
 #include <mutex>
 class PSOWorker : public Worker {
 public:
-    PSOWorker(Pipeline *pipeline, bool *running, std::size_t swarm_size, std::size_t iterations);
+    PSOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations);
 
     //~PSOWorker();
     //worker_t get_type() {

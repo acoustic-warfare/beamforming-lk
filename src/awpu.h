@@ -6,6 +6,7 @@
 #include "algorithms/pso_seeker.h"
 #include "pipeline.h"
 #include "worker.h"
+#include "antenna.h"
 
 
 class AWProcessingUnit {
