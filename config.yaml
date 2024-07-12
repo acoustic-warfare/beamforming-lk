@@ -29,7 +29,8 @@ BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 USE_WARAPS: true
 WARAPS_NAME: "test"
 WARAPS_ADDRESS: "mqtt://test.mosquitto.org:1883"
-
+GPS_ADDRESS: "localhost"
+GPS_PORT: "2947"
 
 
 # Antenna

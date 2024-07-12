@@ -4,6 +4,9 @@
 
 #define PSO_DECAY 0.6
 
+#define SWARM_SIZE 100
+#define SWARM_ITERATIONS
+
 inline double drandom() {
     return static_cast<double>(rand()) / RAND_MAX;
 }
@@ -190,7 +193,6 @@ void pso_finder(Pipeline *pipeline, int stream_id, int n_sensors_in) {
         pso.initialize_particles();
 
         // Optimize to find sources
-        pso.optimize(SWARM_ITERATIONS);
 
         // Reset heatmap
         pipeline->magnitudeHeatmap->setTo(cv::Scalar(0));

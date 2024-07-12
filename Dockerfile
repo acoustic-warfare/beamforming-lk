@@ -36,9 +36,6 @@ RUN apt-get install -y \
     portaudio19-dev
 
 
-
-
-
 RUN apt-get install -y \
     python3-yaml
 
