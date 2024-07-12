@@ -3,11 +3,6 @@
 
 #include <opencv2/opencv.hpp> // cv::Mat
 
-struct Direction {
-    double azimuth;
-    double elevation;
-};
-
 enum worker_t {
 
     PSO,

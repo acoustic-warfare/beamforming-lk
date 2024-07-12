@@ -16,6 +16,14 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verb
 }
 
 AWProcessingUnit::~AWProcessingUnit() {
+
+    pause();
+
+    for (auto it = workers.begin(); it != workers.end();) {
+        it = workers.erase(it);
+        delete (*it);
+    }
+
     if (verbose) {
         std::cout << "Destructing AWPU" << std::endl;
     }
@@ -208,19 +216,21 @@ int main() {
 #if 0
     AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
 #else 
-    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
-    AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
+    //AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
+    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21878);
 #endif
 
     std::cout << "Connected to FPGA" << std::endl;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    awpu5.calibrate();
-    awpu8.calibrate();
+    awpu.calibrate();
+    //awpu5.calibrate();
+    //awpu8.calibrate();
 
     std::cout << "Starting PSO" << std::endl;
+    awpu.start(PSO);
     //awpu5.start(PSO);
-    awpu8.start(PSO);
+    //awpu8.start(PSO);
 
     std::cout << "Starting listening" << std::endl;
     //awpu.resume();
@@ -235,7 +245,8 @@ int main() {
     
     while (1) {
         //awpu5.draw_heatmap(&frame);
-        awpu8.draw_heatmap(&frame);
+        //awpu8.draw_heatmap(&frame);
+        awpu.draw_heatmap(&frame);
         // Apply color map
         // Blur the image with a Gaussian kernel
 
@@ -253,20 +264,23 @@ int main() {
 
     std::cout << "Pausing listening" << std::endl;
 
-    awpu5.pause();
-    awpu8.pause();
+    //awpu5.pause();
+    //awpu8.pause();
+    //awpu.pause();
 
     std::cout << "Stopping PSO" << std::endl;
 
-    awpu5.stop(PSO);
-    awpu8.stop(PSO);
+    //awpu.stop(PSO);
+
+    //awpu5.stop(PSO);
+    //awpu8.stop(PSO);
 
     std::cout << "Stopping program" << std::endl;
 
     return 0;
 }
 
-#else 
+#elif 0
 
 
 int main() {

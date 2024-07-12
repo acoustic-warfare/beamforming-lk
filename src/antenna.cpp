@@ -10,6 +10,114 @@
 
 #include <iostream>
 
+typedef double Radian;
+
+/**
+ * Compute the distance between two spherical directions
+ */
+double Spherical::distanceTo(const Spherical &spherical) {
+    return sqrt(
+        2.0 - 2.0 * (
+            sin(this->theta) * sin(spherical.theta) * cos(this->phi - spherical.phi) + cos(this->theta) * cos(spherical.theta)
+        )
+    );
+}
+
+Spherical Horizontal::toSpherical(const Horizontal &horizontal) {
+    double x = sin(horizontal.azimuth);
+    double y = sin(horizontal.elevation);
+    double phi = atan2(y, x);
+
+    // We assume elevation 0 is horizontal
+    double flipped_theta = PI_HALF - horizontal.elevation;
+
+    // z
+    double z_height = sin(flipped_theta) * cos(horizontal.azimuth);
+    double theta = PI_HALF - asin(z_height);
+
+    return Spherical(theta, phi);
+}
+
+Horizontal Spherical::toHorizontal(const Spherical &spherical) {
+    Position position = spherical_to_cartesian(spherical.theta, spherical.phi, 1.0);
+    double elevation = asin(position(Y_INDEX));
+    double azimuth = asin(position(X_INDEX));
+
+    return Horizontal(azimuth, elevation);
+}
+
+
+///**
+// * Convert spherical coordinates to cartesian coordinates
+// */
+//Position Spherical::toCartesian(const Spherical &spherical, const double radius = 1.0) {
+//    Position point;
+//
+//    point(X_INDEX) = (float) (radius * (sin(spherical.theta) * cos(spherical.phi)));
+//    point(Y_INDEX) = (float) (radius * (sin(spherical.theta) * sin(spherical.phi)));
+//    point(Z_INDEX) = (float) (radius * (cos(spherical.theta)));
+//
+//    return point;
+//}
+
+
+Cartesian Cartesian::convert(const Spherical &spherical, const double radius = 1.0) {
+    Cartesian point;
+
+    point.x = (radius * (sin(spherical.theta) * cos(spherical.phi)));
+    point.y = (radius * (sin(spherical.theta) * sin(spherical.phi)));
+    point.z = (radius * (cos(spherical.theta)));
+
+    return point;
+}
+
+
+/**
+ * return np.sqrt(
+        2
+        - 2
+        * (
+            np.sin(direction1[0])
+            * np.sin(direction2[0])
+            * np.cos(direction1[1] - direction2[1])
+            + np.cos(direction1[0]) * np.cos(direction2[0])
+        )
+    )
+ */
+//double Direction::distanceTo(const double theta, const double phi) {
+//    return sqrt(
+//        2.0 - 2.0 * (
+//            sin(this->theta) * sin(theta) * cos(this->phi - phi) + cos(this->theta) * cos(theta)
+//        )
+//    );
+//}
+//
+//double Direction::distanceTo(const Direction &direction) {
+//    return this->distanceTo(direction.theta, direction.phi);
+//}
+
+//double Direction::distanceTo(const Direction &direction) {
+//
+//}
+//Direction Direction::directionTo(const Direction &direction, const float step) {
+//
+//}
+
+Direction test(double azimuth, double elevation) {
+    double x = sin(azimuth);
+    double y = sin(elevation);
+    double phi = atan2(y, x);
+
+    // We assume elevation 0 is horizontal
+    double flipped_theta = PI_HALF - elevation;
+
+    // z
+    double z_height = sin(flipped_theta) * cos(azimuth);
+    double theta = PI_HALF - asin(z_height);
+
+    return Direction(theta, phi);
+}
+
 bool in_sector(const int *sector, const int i) {
     return (((sector[0] <= i) && (i <= sector[3])) ||
             ((sector[4] <= i) && (i <= sector[7])) ||
@@ -277,3 +385,56 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
     }
     std::cout << "Completed " << TEST_CASES - failed_tests << "/" << TEST_CASES << " tests" << std::endl;
 }
+
+#if 0
+
+
+
+//void printSpherical(const Spherical &direction) {
+//    std::cout << "Spherical: θ=" << degrees(direction.theta) << " φ=" << degrees(direction.phi) << " " << std::endl;
+//}
+//
+//void printHorizontal(const Horizontal &direction) {
+//    std::cout << "Spherical: x=" << degrees(direction.azimuth) << " y=" << degrees(direction.elevation) << " " << std::endl;
+//}
+
+int main() {
+
+    double theta1 = TO_RADIANS(45);
+    double phi1 = TO_RADIANS(10);
+
+    double theta2 = TO_RADIANS(45);
+    double phi2 = TO_RADIANS(11);
+
+    Spherical direction(theta1, phi1);
+
+    std::cout << "second " << direction << std::endl;
+
+    Spherical other(theta2, phi2);
+
+    std::cout << "first " << other << std::endl;
+
+    double azimuth = TO_RADIANS(30);
+    double elevation = TO_RADIANS(-10);
+    Horizontal horizontal(azimuth, elevation);
+
+    Spherical spherical = Horizontal::toSpherical(horizontal);
+
+    Horizontal h2 = Spherical::toHorizontal(spherical);
+
+    std::cout << horizontal << " -> " << spherical << std::endl;
+
+    std::cout << spherical << " -> " << h2 << std::endl;
+
+    //double distance = direction.distanceTo(other);
+
+    //std::cout << "Distance to: " << distance << std::endl;
+
+    //Horizontal newd = test(TO_RADIANS(0), TO_RADIANS(1));
+    //std::cout << "New " << newd << std::endl;
+
+
+    return 0;
+}
+
+#endif

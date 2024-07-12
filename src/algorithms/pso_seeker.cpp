@@ -114,7 +114,8 @@ float adaptive(Streams *streams, Antenna &antenna, int *offset_delays, float *fr
         //std::cout << "Using index: " << i << std::endl;
 
         float *signal = streams->get_signal(i, offset_delays[i]);
-        delay_corrected(&out[0], signal, fraction, antenna.power_correction_mask[s]);
+        delay(&out[0], signal, fraction);
+        //delay_corrected(&out[0], signal, fraction, antenna.power_correction_mask[s]);
     }
 
     float power = 0.0f;
@@ -205,49 +206,24 @@ float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, 
 
     return (power[0] + power[1] + power[2] + power[3]) / (float)N_SAMPLES + (error * 0.000001);
 
-    //double phi, theta;
-
 
 }
 
 
-Particle::Particle(Antenna &antenna, Streams *streams, int n_sensors, int id) : antenna(antenna), streams(streams), n_sensors(n_sensors), id(id) {
+Particle::Particle(Antenna &antenna, Streams *streams, int id) : antenna(antenna), streams(streams), id(id) {
     random();
-    velocity_theta = drandom() - 0.5;
-    velocity_phi = drandom() - 0.5;
-    best_theta = theta;
-    best_phi = phi;
-    best_magnitude = compute(theta, phi, n_sensors);
+    this->velocity.theta = drandom() - 0.5;
+    this->velocity.phi = drandom() - 0.5;
+    this->best_magnitude = compute();
 }
 
 
 void Particle::random() {
-    phi = drandom() * (2.0 * PI);
-    //theta = 0.0;
-    theta = drandom() * PI_HALF;
-    //phi = 0.0;
+    direction_current.phi = drandom() * (2.0 * PI);
+    direction_current.theta = drandom() * PI_HALF;
 }
-
-float Particle::compute(double theta, double phi, int n_sensors) {
-#if USE_LUT
-    int itheta = (int) (phi * 180.0 / M_PI);
-    int iphi = (int) (theta * 180.0 / M_PI);
-    int index = lookup_table(90 - iphi, itheta);
-
-    //return beamform(streams, index);
-
-    //std::cout << "INdex: " << index << std::endl;
-
-    if ((index < 0) || (index >= CHECK)) {
-        std::cout << "WRONG: " << index << " theta: " << itheta << " phi: " << iphi << std::endl;
-        return 0.0;
-    } else {
-        return beamform(streams, index);
-    }
-
-#else
-
-    Eigen::VectorXf tmp_delays = steering_vector_spherical(antenna, theta, phi);
+float Particle::compute() {
+    Eigen::VectorXf tmp_delays = steering_vector_spherical(antenna, direction_current.theta, direction_current.phi);
 
     float fractional_delays[ELEMENTS];
     int offset_delays[ELEMENTS];
@@ -263,19 +239,13 @@ float Particle::compute(double theta, double phi, int n_sensors) {
     }
 
     return adaptive(streams, antenna, &offset_delays[0], &fractional_delays[0]);
-
-            //return monopulse(streams, &offset_delays[0], &fractional_delays[0], n_sensors);
-            //return beamform(streams, &offset_delays[0], &fractional_delays[0], n_sensors, id);
-
-#endif
 }
 
 void Particle::update() {
-    float magnitude = compute(theta, phi, n_sensors);
+    float magnitude = compute();
     if (magnitude > best_magnitude) {
         best_magnitude = magnitude;
-        best_theta = theta;
-        best_phi = phi;
+        direction_best = direction_current;
     }
 }
 
@@ -286,7 +256,6 @@ inline float clip(const double n, const double lower, const double upper) {
 
 inline double wrapAngle(const double angle) {
     return fmod(angle, TWO_PI);
-    //return angle - TWO_PI * floor(angle / TWO_PI);
 }
 
 double smallestAngle(const double target, const double current) {
@@ -297,9 +266,7 @@ double smallestAngle(const double target, const double current) {
 PSOWorker::PSOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, running), swarm_size(swarm_size), iterations(iterations) {
     this->global_best_magnitude = 0.0f;
     // Create antenna at origo
-    //this->antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
     this->antenna = antenna;
-    //this->thread_loop = std::thread(this->loop);
     thread_loop = std::thread(&PSOWorker::loop, this);
 }
 
@@ -310,14 +277,13 @@ worker_t Worker::get_type() {
 void PSOWorker::initialize_particles() {
     particles.clear();
     for (int i = 0; i < swarm_size; i++) {
-        particles.emplace_back(this->antenna, pipeline->getStreams(), pipeline->get_n_sensors(), i%4);
+        particles.emplace_back(this->antenna, pipeline->getStreams(), i%4);
 
         Particle &particle = particles.back();
 
         if (particle.best_magnitude > global_best_magnitude) {
             global_best_magnitude = particle.best_magnitude;
-            global_best_theta = particle.best_theta;
-            global_best_phi = particle.best_phi;
+            global_best_direction = particle.direction_best;
         }
     }
 }
@@ -338,26 +304,20 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
     for (Particle &particle: particles) {
         // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
         // 0.5 to get the sphere in the first sector in the cartesian coordinate system
-        Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 1.0);
-        //Position position = spherical_to_cartesian(particle.best_theta, particle.best_phi, 0.5);
+        Cartesian position = Cartesian::convert(particle.direction_best, 1.0);
 
         // Use the position values to plot over the heatmap
-        int x = (int) (x_res * (position(X_INDEX) / 2.0 + 0.5));
-        int y = (int) (y_res * (position(Y_INDEX) / 2.0 + 0.5));
+        int x = (int) (x_res * (position.x / 2.0 + 0.5));
+        int y = (int) (y_res * (position.y / 2.0 + 0.5));
 
-#if 0
-        if ((x < 0) || (x > x_res - 1) || (y < 0) || (y > y_res - 1)) {
-            std::cout << "Invalid pos: (" << position(X_INDEX) << "," << position(Y_INDEX) << ") (" << x << ", " << y << ") " << std::endl;
-        }
-#endif
-        
 
-        heatmap->at<uchar>(x, y) = (255);
+        heatmap->at<uchar>(x, y) = 255;
     }
 
-    Position position = spherical_to_cartesian(global_best_theta, global_best_phi, 1.0);
-    int x = (int) (x_res * (position(X_INDEX) / 2.0 + 0.5));
-    int y = (int) (y_res * (position(Y_INDEX) / 2.0 + 0.5));
+    Cartesian position = Cartesian::convert(global_best_direction, 1.0);
+    //Position position = spherical_to_cartesian(global_best_theta, global_best_phi, 1.0);
+    int x = (int) (x_res * (position.x / 2.0 + 0.5));
+    int y = (int) (y_res * (position.y / 2.0 + 0.5));
     cv::circle(*heatmap, cv::Point(y,x), 3, cv::Scalar(255, 255, 255), cv::FILLED, 8, 0);
 
     pso_lock.unlock();
@@ -387,30 +347,21 @@ void PSOWorker::loop() {
             // the machine to run as fast as possible
             if (this->pipeline->mostRecent() != start) {
                 //std::cout << "Too slow: " << i + 1 << "/" << iterations << std::endl;
-                break;// Too slow!
+                //break;// Too slow!
             }
             for (auto &particle: particles) {
 
                 // Compute new velocities based on distance to local best and global best
-                //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * smallestAngle(particle.best_theta, particle.theta) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_theta, particle.theta) * GLOBAL_AREA_RATIO);
-                //particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * (particle.best_phi - particle.phi) * LOCAL_AREA_RATIO + drandom() * (global_best_phi - particle.phi) * GLOBAL_AREA_RATIO);
-                //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
-                //particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (drandom() * smallestAngle(particle.best_phi, particle.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_phi, particle.phi) * GLOBAL_AREA_RATIO);
-                //particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * (drandom() * (particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
-
-                particle.velocity_phi = current_velocity_weight * particle.velocity_phi + new_velocity_weight * (smallestAngle(particle.best_phi, particle.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_phi, particle.phi) * GLOBAL_AREA_RATIO);
-                particle.velocity_theta = current_velocity_weight * particle.velocity_theta + new_velocity_weight * ((particle.best_theta - particle.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_theta - particle.theta) * GLOBAL_AREA_RATIO);
+                particle.velocity.phi = current_velocity_weight * particle.velocity.phi + new_velocity_weight * (smallestAngle(particle.direction_best.phi, particle.direction_current.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_direction.phi, particle.direction_current.phi) * GLOBAL_AREA_RATIO);
+                particle.velocity.theta = current_velocity_weight * particle.velocity.theta + new_velocity_weight * ((particle.direction_best.theta - particle.direction_current.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_direction.theta - particle.direction_current.theta) * GLOBAL_AREA_RATIO);
 
                 // Move based on velocity
-                particle.theta += particle.velocity_theta * delta;
-                particle.phi += particle.velocity_phi * delta; // * sin(particle.theta);
-                
-                
+                particle.direction_current.theta += particle.velocity.theta * delta;
+                particle.direction_current.phi += particle.velocity.phi * delta;// * sin(particle.theta);
+
                 // Limit the search area
-                //particle.theta = wrapAngle(particle.theta);
-                //particle.phi = clip(particle.phi, 0.0, PI_HALF);
-                particle.phi = wrapAngle(particle.phi);
-                particle.theta = clip(particle.theta, 0.0, PI_HALF);
+                particle.direction_current.phi = wrapAngle(particle.direction_current.phi);
+                particle.direction_current.theta = clip(particle.direction_current.theta, 0.0, PI_HALF);
 
                 // Search using new positions
                 particle.update();
@@ -418,8 +369,7 @@ void PSOWorker::loop() {
                 // Update global best
                 if (particle.best_magnitude > global_best_magnitude) {
                     global_best_magnitude = particle.best_magnitude;
-                    global_best_theta = particle.best_theta;
-                    global_best_phi = particle.best_phi;
+                    global_best_direction = particle.direction_best;
                 }
             }
         }
