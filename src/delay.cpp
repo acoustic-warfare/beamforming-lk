@@ -23,12 +23,12 @@ void delay_filtered(float *out, const float *signal, const float fraction,  int 
     // delay is (ntaps - 1) / 2 = 27 samples. Considering ntaps = 55 and the first zero is there for symmetry and for it to be a multiple of 8. 
 
 
-    for (int i = 0; i < 55; ++i){
+    for (int i = 0; i < 56; ++i){
        filter_coos[i] = filter_coeffs[mode - 1][delay_integer][i] * correction;
     }
 
 
-    for(int n = 55; n < N_SAMPLES; ++n){
+    for(int n = 56; n < N_SAMPLES; ++n){
         for(int c = -28; c < 27; ++c){
             out[n] +=  filter_coos[c + 28] * signal[n-c];
         }
