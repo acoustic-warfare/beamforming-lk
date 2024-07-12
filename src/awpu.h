@@ -13,7 +13,7 @@
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *address, const int port, int verbose);
+    AWProcessingUnit(const char *address, const int port, int verbose = 1);
     ~AWProcessingUnit();
 
     bool start(const worker_t worker);
@@ -21,7 +21,7 @@ public:
     void pause();
     void resume();
     void draw_heatmap(cv::Mat *heatmap);
-    void calibrate(const float reference_power_level);
+    void calibrate(const float reference_power_level = 1e-5);
 
 
 protected:
