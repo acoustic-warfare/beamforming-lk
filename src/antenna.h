@@ -15,22 +15,178 @@
 #include <Eigen/Dense>
 #include <cmath>
 
-
 typedef Eigen::Vector3f Position;
+
+struct Spherical;
+struct Horizontal; // Horizontal with a 90degree rotation on y-axis
+
+inline double degrees(const double angle) {
+    return angle * 180.0 / M_PI;
+}
+
+struct Direction {
+    double theta, phi;
+
+    Direction(){};
+    Direction(double theta, double phi) : theta(theta), phi(phi){};
+};
+
+/**
+ * This is the flipped spherical version where the [x, y, z] -> [x, z, y]
+ */
+struct Spherical {
+    double theta, phi;
+
+    Spherical(const Spherical &) = default;
+    Spherical(Spherical &&) = default;
+    Spherical &operator=(const Spherical &) & = default;
+    Spherical &operator=(Spherical &&) & = default;
+
+    Spherical() = default;
+    Spherical(double theta, double phi) : theta(theta), phi(phi) {};
+    //Spherical(Spherical &&spherical) = default;
+    //constexpr Spherical& operator=(const Spherical&);
+    //{
+    //  this->theta = spherical.theta;
+    //  this->phi = spherical.phi;
+    //};
+
+    double distanceTo(const Horizontal &horizontal);
+    double distanceTo(const Spherical &spherical);
+
+    static Horizontal toHorizontal(const Spherical &spherical);
+    static Position toCartesian(const Spherical &spherical, const double radius);
+
+    //std::ostream &operator<<(std::ostream &out) {
+    //    out << "Spherical: θ=" << degrees(theta) << " φ=" << degrees(phi);
+    //    return out;
+    //}
+
+    //double distanceTo(const double theta, const double phi);
+    //double distanceTo(const Spherical &direction);
+    //Spherical directionTo(const Spherical &direction, const float step);
+
+    friend std::ostream &operator<<(std::ostream &out, const Spherical &direction) {
+        out << "Spherical: θ=" << degrees(direction.theta) << " φ=" << degrees(direction.phi);
+        return out;
+    }
+};
+
+struct Horizontal {
+  double azimuth, elevation;
+  Horizontal() {};
+  Horizontal(double azimuth, double elevation) : azimuth(azimuth), elevation(elevation) {};
+
+  static Spherical toSpherical(const Horizontal &horizontal);
+
+  double distanceTo(const Horizontal &horizontal);
+  double distanceTo(const Spherical &spherical);
+
+  //std::ostream &operator<<(std::ostream &out) {
+  //    out << "Horizontal: azimuth=" << degrees(azimuth) << " elevation=" << degrees(elevation);
+  //    return out;
+  //}
+
+  friend std::ostream &operator<<(std::ostream &out, const Horizontal &direction) {
+      out << "Horizontal: azimuth=" << degrees(direction.azimuth) << " elevation=" << degrees(direction.elevation);
+      return out;
+  }
+};
+
+struct Cartesian {
+    double x, y, z;
+    Cartesian(): x(0), y(0), z(0) {};
+    Cartesian(double x, double y, double z) : x(x), y(y), z(z) {};
+    Cartesian(Cartesian &position) {
+      x = position.x;
+      y = position.y;
+      z = position.z;
+    };
+    static Cartesian convert(const Spherical &spherical, const double radius);
+
+    friend std::ostream &operator<<(std::ostream &out, const Cartesian &position) {
+        out << "Cartesian: x=" << position.x << " y=" << position.y << " z=" << position.z;
+        return out;
+    }
+};
+
+
+
+const int second_sector[16] = {0, 1, 2, 3,
+                               8, 9, 10, 11,
+                               16, 17, 18, 19,
+                               24, 25, 26, 27};
+
+const int first_sector[16] = {4, 5, 6, 7,
+                              12, 13, 14, 15,
+                              20, 21, 22, 23,
+                              28, 29, 30, 31};
+
+const int third_sector[16] = {32, 33, 34, 35,
+                              40, 41, 42, 43,
+                              48, 49, 50, 51,
+                              56, 57, 58, 59};
+
+const int fourth_sector[16] = {36, 37, 38, 39,
+                               44, 45, 46, 47,
+                               52, 53, 54, 55,
+                               60, 61, 62, 63};
+
+bool in_sector(const int *sector, const int i);
+
+bool in_sector(const int sector_index, const int i);
+
+struct Sector {
+  int sector; // 1, 2, 3, 4
+  int usable = 0;
+  int index[16];
+
+  //void construct_sector(const int *sensors, const int n, int sector) : sector(sector) {
+  //  for (int i = 0; i < n; i++) {
+  //    if (in_sector(sector, i)) {
+  //      this->index[this->usable++] = sensors[i];
+  //    }
+  //  }
+  //}
+
+};
 
 /**
  * @brief Antenna that consists of points
  */
-typedef struct {
+struct Antenna {
 
   /**
    * The 3D representation of the antenna
    */
   Eigen::MatrixXf points; // The 3D representation of the antenna
   int id;
-} Antenna;
+  int usable = 0; // Number of usable elements;
+  int *index; // Index of usable element
+  float *power_correction_mask; // Correction of microphone to reach some value
+  float mean; // Pseudo valid metrics for checking the power level of antenna during auto calibration
+  float median;
 
-//float to_radians(float degree);
+
+  // TODO calculate angle correction
+  float *angle_correction_mask; // How much to compensate for non-isotropic elements
+  int angle_resolution;
+
+  //Sector sectors[4];
+
+  ~Antenna() {
+    if (usable > 0) {
+      delete[] index;
+      delete[] power_correction_mask;
+    }
+  }
+
+  //void setup_sectors() {
+  //  for (int i = 0; i < 4; i++) {
+  //    sectors[i].construct_sector(this->index, usable, i);
+  //  }
+  //}
+};
 
 /**
  * Find the center of antenna

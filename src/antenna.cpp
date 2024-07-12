@@ -3,19 +3,163 @@
  *
  * This file contains functions for creating, moving, rotating, combining DAA's
  *
+ * We use the physics convention where theta \in [0, pi/2] and \phi \in [0, 2*pi)
  */
 
 #include "antenna.h"
 
 #include <iostream>
 
+typedef double Radian;
+
 /**
- * @brief Convert degree to radians
- *
- * @param degree The angle to be converted
- * @return angle as radian
+ * Compute the distance between two spherical directions
  */
-//double to_radians(float degree) { return degree * (M_PI / 180.0); }
+double Spherical::distanceTo(const Spherical &spherical) {
+    return sqrt(
+        2.0 - 2.0 * (
+            sin(this->theta) * sin(spherical.theta) * cos(this->phi - spherical.phi) + cos(this->theta) * cos(spherical.theta)
+        )
+    );
+}
+
+Spherical Horizontal::toSpherical(const Horizontal &horizontal) {
+    double x = sin(horizontal.azimuth);
+    double y = sin(horizontal.elevation);
+    double phi = atan2(y, x);
+
+    // We assume elevation 0 is horizontal
+    double flipped_theta = PI_HALF - horizontal.elevation;
+
+    // z
+    double z_height = sin(flipped_theta) * cos(horizontal.azimuth);
+    double theta = PI_HALF - asin(z_height);
+
+    return Spherical(theta, phi);
+}
+
+Horizontal Spherical::toHorizontal(const Spherical &spherical) {
+    Position position = spherical_to_cartesian(spherical.theta, spherical.phi, 1.0);
+    double elevation = asin(position(Y_INDEX));
+    double azimuth = asin(position(X_INDEX));
+
+    return Horizontal(azimuth, elevation);
+}
+
+
+///**
+// * Convert spherical coordinates to cartesian coordinates
+// */
+//Position Spherical::toCartesian(const Spherical &spherical, const double radius = 1.0) {
+//    Position point;
+//
+//    point(X_INDEX) = (float) (radius * (sin(spherical.theta) * cos(spherical.phi)));
+//    point(Y_INDEX) = (float) (radius * (sin(spherical.theta) * sin(spherical.phi)));
+//    point(Z_INDEX) = (float) (radius * (cos(spherical.theta)));
+//
+//    return point;
+//}
+
+
+Cartesian Cartesian::convert(const Spherical &spherical, const double radius = 1.0) {
+    Cartesian point;
+
+    point.x = (radius * (sin(spherical.theta) * cos(spherical.phi)));
+    point.y = (radius * (sin(spherical.theta) * sin(spherical.phi)));
+    point.z = (radius * (cos(spherical.theta)));
+
+    return point;
+}
+
+
+/**
+ * return np.sqrt(
+        2
+        - 2
+        * (
+            np.sin(direction1[0])
+            * np.sin(direction2[0])
+            * np.cos(direction1[1] - direction2[1])
+            + np.cos(direction1[0]) * np.cos(direction2[0])
+        )
+    )
+ */
+//double Direction::distanceTo(const double theta, const double phi) {
+//    return sqrt(
+//        2.0 - 2.0 * (
+//            sin(this->theta) * sin(theta) * cos(this->phi - phi) + cos(this->theta) * cos(theta)
+//        )
+//    );
+//}
+//
+//double Direction::distanceTo(const Direction &direction) {
+//    return this->distanceTo(direction.theta, direction.phi);
+//}
+
+//double Direction::distanceTo(const Direction &direction) {
+//
+//}
+//Direction Direction::directionTo(const Direction &direction, const float step) {
+//
+//}
+
+Direction test(double azimuth, double elevation) {
+    double x = sin(azimuth);
+    double y = sin(elevation);
+    double phi = atan2(y, x);
+
+    // We assume elevation 0 is horizontal
+    double flipped_theta = PI_HALF - elevation;
+
+    // z
+    double z_height = sin(flipped_theta) * cos(azimuth);
+    double theta = PI_HALF - asin(z_height);
+
+    return Direction(theta, phi);
+}
+
+bool in_sector(const int *sector, const int i) {
+    return (((sector[0] <= i) && (i <= sector[3])) ||
+            ((sector[4] <= i) && (i <= sector[7])) ||
+            ((sector[8] <= i) && (i <= sector[11])) ||
+            ((sector[12] <= i) && (i <= sector[15])));
+}
+
+bool in_sector(const int sector_index, const int i) {
+    const int *sector;
+
+    switch (sector_index) {
+        case 0:
+            sector = &first_sector[0];
+            break;
+        case 1:
+            sector = &second_sector[0];
+            break;
+        case 2:
+            sector = &third_sector[0];
+            break;
+        default:
+            sector = &fourth_sector[0];
+            break;
+    }
+
+    return in_sector(sector, i);
+}
+
+/**
+ * Spherical distance between two directions in spherical coordinates
+ */
+inline double spherical_distance(const double target_theta,
+                                 const double target_phi,
+                                 const double current_theta,
+                                 const double current_phi) 
+{
+    double north_target_theta = PI_HALF - target_theta;
+    double north_current_theta = PI_HALF - current_theta;
+    return acos(sin(north_target_theta) * sin(north_current_theta) + cos(north_target_theta) * cos(north_current_theta) * cos(fabs(target_phi - current_phi)));
+}
+
+
 
 /**
  * @brief Helper function to return the middle point of the antenna
@@ -97,14 +241,14 @@ Eigen::VectorXf compute_delays(const Antenna &antenna) {
 inline Antenna steer(const Antenna &antenna, const double theta, const double phi) {
     Eigen::Matrix3f Rz1, Rx, Rz2;
 
-    Rz1 << (float) cos(theta), -(float) sin(theta), 0.0f,
-            (float) sin(theta), (float) cos(theta), 0.0f,
+    Rz1 << (float) cos(phi), -(float) sin(phi), 0.0f,
+            (float) sin(phi), (float) cos(phi), 0.0f,
             0.0f, 0.0f, 1.0f;
     Rx << 1.0f, 0.0f, 0.0f,
-            0.0f, (float) cos(phi), -(float) sin(phi),
-            0.0f, (float) sin(phi), (float) cos(phi);
-    Rz2 << (float) cos(-theta), -(float) sin(-theta), 0.0f,
-            (float) sin(-theta), (float) cos(-theta), 0.0f,
+            0.0f, (float) cos(theta), -(float) sin(theta),
+            0.0f, (float) sin(theta), (float) cos(theta);
+    Rz2 << (float) cos(-phi), -(float) sin(-phi), 0.0f,
+            (float) sin(-phi), (float) cos(-phi), 0.0f,
             0.0f, 0.0f, 1.0f;
 
     // Perform the rotation. Order of operations are important
@@ -120,12 +264,12 @@ inline Antenna steer(const Antenna &antenna, const double theta, const double ph
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
-Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0f) {
+Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0) {
     Position point;
 
-    point(X_INDEX) = (float) (radius * (cos(theta) * sin(phi)));
+    point(X_INDEX) = (float) (radius * (sin(theta) * cos(phi)));
     point(Y_INDEX) = (float) (radius * (sin(theta) * sin(phi)));
-    point(Z_INDEX) = (float) (radius * (cos(phi)));
+    point(Z_INDEX) = (float) (radius * (cos(theta)));
 
     return point;
 }
@@ -137,8 +281,8 @@ Position spherical_to_cartesian(const double theta, const double phi, const doub
 Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation) {
     double x = sin(azimuth);
     double y = sin(elevation);
-    double theta = atan2(y, x);
-    double phi = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
+    double phi = atan2(y, x);
+    double theta = PI_HALF - asin(1.0 - pow(x, 2) - pow(y, 2));
 
     Antenna steered = steer(antenna, theta, phi);
     return compute_delays(steered);
@@ -241,3 +385,56 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
     }
     std::cout << "Completed " << TEST_CASES - failed_tests << "/" << TEST_CASES << " tests" << std::endl;
 }
+
+#if 0
+
+
+
+//void printSpherical(const Spherical &direction) {
+//    std::cout << "Spherical: θ=" << degrees(direction.theta) << " φ=" << degrees(direction.phi) << " " << std::endl;
+//}
+//
+//void printHorizontal(const Horizontal &direction) {
+//    std::cout << "Spherical: x=" << degrees(direction.azimuth) << " y=" << degrees(direction.elevation) << " " << std::endl;
+//}
+
+int main() {
+
+    double theta1 = TO_RADIANS(45);
+    double phi1 = TO_RADIANS(10);
+
+    double theta2 = TO_RADIANS(45);
+    double phi2 = TO_RADIANS(11);
+
+    Spherical direction(theta1, phi1);
+
+    std::cout << "second " << direction << std::endl;
+
+    Spherical other(theta2, phi2);
+
+    std::cout << "first " << other << std::endl;
+
+    double azimuth = TO_RADIANS(30);
+    double elevation = TO_RADIANS(-10);
+    Horizontal horizontal(azimuth, elevation);
+
+    Spherical spherical = Horizontal::toSpherical(horizontal);
+
+    Horizontal h2 = Spherical::toHorizontal(spherical);
+
+    std::cout << horizontal << " -> " << spherical << std::endl;
+
+    std::cout << spherical << " -> " << h2 << std::endl;
+
+    //double distance = direction.distanceTo(other);
+
+    //std::cout << "Distance to: " << distance << std::endl;
+
+    //Horizontal newd = test(TO_RADIANS(0), TO_RADIANS(1));
+    //std::cout << "New " << newd << std::endl;
+
+
+    return 0;
+}
+
+#endif

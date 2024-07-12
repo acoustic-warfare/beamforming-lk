@@ -26,12 +26,14 @@ RESOLUTION_MULTIPLIER: 16 # times the initial resolution
 BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 
 # Waraps client
-USE_WARAPS: true
+USE_WARAPS: false
 WARAPS_NAME: "test"
 WARAPS_ADDRESS: "mqtt://test.mosquitto.org:1883"
 GPS_ADDRESS: "localhost"
 GPS_PORT: "2947"
-
+PSO_DECAY: 0.9
+SWARM_SIZE: 30
+SWARM_ITERATIONS: 40
 
 # Antenna
 COLUMNS: 8
@@ -43,10 +45,22 @@ DISTANCE: 0.02 # Distance between each element to the next
 # FPGA 
 SAMPLE_RATE: 48828.0 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
-MAX_N_SENSORS: ROWS * COLUMNS * 4 
+MAX_N_SENSORS: ROWS * COLUMNS * 4 # Can take max 4 arrays per FPGA
 N_FPGAS: 1 # How many running FPGAs
 IP_ADDRESSES: # Does not need to be edited if N_FPGAS is edited, only if you have different src addresses fo the FPGAS
+  #- '10.0.0.1'
   - '127.0.0.1'
+  - '192.168.1.75'
+  - '192.168.1.76'
+  - '192.168.1.77'
+  - '192.168.1.78'
+UDP_PORTS:
+  - 21844
+  - 21875
+  - 21876
+  - 21877
+  - 21878
+N_SENSORS_TMP: 256
 
 
 # Beamforming 
@@ -59,6 +73,7 @@ BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 # Optimizations
 LOCAL_AREA_RATIO: 0.7
 GLOBAL_AREA_RATIO: 1.0 - LOCAL_AREA_RATIO
+PSO_DECAY: 0.7
 
 # Camera
 FOV: 45.0 # How far we should look to the side
@@ -86,7 +101,7 @@ USE_AUDIO: AUDIO
 #UDP_ADDRESS: "10.0.0.1"
 UDP_ADDRESS: "127.0.0.1"
 #UDP_PORT: 12345
-UDP_PORT: 21844
+#UDP_PORT: 21844
 
 N_TAPS: 32 # Kernel size
 

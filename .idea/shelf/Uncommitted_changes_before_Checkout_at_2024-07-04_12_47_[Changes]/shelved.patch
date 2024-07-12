@@ -1,0 +1,55 @@
+Index: src/aw_control_unit.cpp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>//\n// Created by janne on 2024-07-04.\n//\n\n#include \"aw_control_unit.h\"\n
+===================================================================
+diff --git a/src/aw_control_unit.cpp b/src/aw_control_unit.cpp
+--- a/src/aw_control_unit.cpp	
++++ b/src/aw_control_unit.cpp	
+@@ -3,3 +3,7 @@
+ //
+ 
+ #include "aw_control_unit.h"
++
++void AwControlUnit::start() {
++
++}
+\ No newline at end of file
+Index: src/aw_control_unit.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>//\n// Created by janne on 2024-07-04.\n//\n\n#ifndef BEAMFORMER_AW_CONTROL_UNIT_H\n#define BEAMFORMER_AW_CONTROL_UNIT_H\n\n\nclass aw_control_unit {\n\n};\n\n\n#endif //BEAMFORMER_AW_CONTROL_UNIT_H\n
+===================================================================
+diff --git a/src/aw_control_unit.h b/src/aw_control_unit.h
+--- a/src/aw_control_unit.h	
++++ b/src/aw_control_unit.h	
+@@ -5,9 +5,28 @@
+ #ifndef BEAMFORMER_AW_CONTROL_UNIT_H
+ #define BEAMFORMER_AW_CONTROL_UNIT_H
+ 
++#include "mqtt/wara_ps_client.h"
++#include <libgpsmm.h>
++#include "awpu.h"
++#include "config.h"
++
++class AwControlUnit {
++private:
++    WaraPSClient client_;
++    gps_data_t gpsData_;
+ 
+-class aw_control_unit {
++    std::vector<aw_processing_unit> processingUnits_;
+ 
++    bool usingGps_ = false;
++    bool usingWaraPS_ = false;
++
++public:
++    AwControlUnit(const AwControlUnit&) = delete;
++    AwControlUnit(AwControlUnit&&) = delete;
++    AwControlUnit operator=(const AwControlUnit&) = delete;
++    AwControlUnit operator=(AwControlUnit&&) = delete;
++
++    void start();
+ };
+ 
+ 

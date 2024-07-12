@@ -145,10 +145,10 @@ find_library(portaudio
         REQUIRED
 )
 
-find_library(libgps
-        gps
-        REQUIRED
-)
+#find_library(libgps
+#        gps
+#        REQUIRED
+#)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -178,6 +178,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
+
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
 )
@@ -199,6 +201,26 @@ target_link_libraries(beamformer
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
+
+
+add_executable(awpu
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
+)
+
+# Linking
+target_link_libraries(awpu
+        Eigen3::Eigen
+        ${OpenCV_LIBS}
+)
+
 
 
 add_dependencies(beamformer config)
