@@ -21,56 +21,28 @@
 
 class Particle {
 public:
-    double theta, phi;
-    double velocity_theta, velocity_phi;
-    double best_theta, best_phi;
+    Spherical direction_current;
+    Spherical direction_best;
+    Spherical velocity;
     float best_magnitude;
 
     Antenna &antenna;
     Streams *streams;
-    int n_sensors;
     int id;
 
     //float (*objective_function)(float, float);
 
-    Particle(Antenna &antenna, Streams *streams, int n_sensors, int id);
+    //Particle() = delete;
+    //Particle(const Particle &) = delete;
+    //Particle(Particle &&) = default;
+    Particle(Antenna &antenna, Streams *streams, int id);
 
     void random();
 
     float compute(double theta, double phi, int n_sensors);
+    float compute();
 
     void update();
-};
-
-
-class PSO {
-public:
-    std::vector<Particle> particles;
-    double global_best_theta, global_best_phi;
-    float global_best_magnitude;
-    int n_particles;
-    Antenna &antenna;
-    Streams *streams;
-    int n_sensors;
-
-    double current_velocity_weight = 0.25;// Wight for current velocity
-    double new_velocity_weight = 2.0;
-    double delta = 0.5;
-
-
-#if USE_KALMAN_FILTER
-    KalmanFilter3D kf;
-#endif
-
-    //float (*objective_function)(float, float);
-
-    PSO(int n_particles, Antenna &antenna, Streams *streams, int n_sensors);
-
-    void initialize_particles();
-
-    void optimize(int iterations);
-
-    Eigen::Vector3f sanitize();
 };
 
 
@@ -79,11 +51,6 @@ public:
 class PSOWorker : public Worker {
 public:
     PSOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations);
-
-    //~PSOWorker();
-    //worker_t get_type() {
-    //    return worker_t::PSO;
-    //}
 
     void loop();
 
@@ -110,7 +77,7 @@ private:
     std::size_t iterations;
     std::vector<Particle> particles;
     Antenna antenna;
-    double global_best_theta, global_best_phi;
+    Spherical global_best_direction;
     float global_best_magnitude;
     int n_particles;
 
