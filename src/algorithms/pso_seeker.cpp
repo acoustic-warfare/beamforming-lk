@@ -250,19 +250,6 @@ void Particle::update() {
 }
 
 
-inline float clip(const double n, const double lower, const double upper) {
-    return std::max(lower, std::min(n, upper));
-}
-
-inline double wrapAngle(const double angle) {
-    return fmod(angle, TWO_PI);
-}
-
-double smallestAngle(const double target, const double current) {
-    return atan2(sin(target-current), cos(target-current));
-}
-
-
 PSOWorker::PSOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, running), swarm_size(swarm_size), iterations(iterations) {
     this->global_best_magnitude = 0.0f;
     // Create antenna at origo
@@ -283,7 +270,7 @@ void PSOWorker::initialize_particles() {
 
         if (particle.best_magnitude > global_best_magnitude) {
             global_best_magnitude = particle.best_magnitude;
-            global_best_direction = particle.direction_best;
+            direction = particle.direction_best;
         }
     }
 }
@@ -314,7 +301,7 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
         heatmap->at<uchar>(x, y) = 255;
     }
 
-    Cartesian position = Cartesian::convert(global_best_direction, 1.0);
+    Cartesian position = Cartesian::convert(direction, 1.0);
     //Position position = spherical_to_cartesian(global_best_theta, global_best_phi, 1.0);
     int x = (int) (x_res * (position.x / 2.0 + 0.5));
     int y = (int) (y_res * (position.y / 2.0 + 0.5));
@@ -352,8 +339,8 @@ void PSOWorker::loop() {
             for (auto &particle: particles) {
 
                 // Compute new velocities based on distance to local best and global best
-                particle.velocity.phi = current_velocity_weight * particle.velocity.phi + new_velocity_weight * (smallestAngle(particle.direction_best.phi, particle.direction_current.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(global_best_direction.phi, particle.direction_current.phi) * GLOBAL_AREA_RATIO);
-                particle.velocity.theta = current_velocity_weight * particle.velocity.theta + new_velocity_weight * ((particle.direction_best.theta - particle.direction_current.theta) * LOCAL_AREA_RATIO + drandom() * (global_best_direction.theta - particle.direction_current.theta) * GLOBAL_AREA_RATIO);
+                particle.velocity.phi = current_velocity_weight * particle.velocity.phi + new_velocity_weight * (smallestAngle(particle.direction_best.phi, particle.direction_current.phi) * LOCAL_AREA_RATIO + drandom() * smallestAngle(direction.phi, particle.direction_current.phi) * GLOBAL_AREA_RATIO);
+                particle.velocity.theta = current_velocity_weight * particle.velocity.theta + new_velocity_weight * ((particle.direction_best.theta - particle.direction_current.theta) * LOCAL_AREA_RATIO + drandom() * (direction.theta - particle.direction_current.theta) * GLOBAL_AREA_RATIO);
 
                 // Move based on velocity
                 particle.direction_current.theta += particle.velocity.theta * delta;
@@ -369,7 +356,7 @@ void PSOWorker::loop() {
                 // Update global best
                 if (particle.best_magnitude > global_best_magnitude) {
                     global_best_magnitude = particle.best_magnitude;
-                    global_best_direction = particle.direction_best;
+                    direction = particle.direction_best;
                 }
             }
         }
