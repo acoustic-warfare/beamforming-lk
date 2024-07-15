@@ -25,7 +25,7 @@ RUN apt-get update -y
 # Setting up build environment
 RUN apt-get install -y \
     build-essential \
-    cmake 
+    cmake
 
 # Installing libraries
 RUN apt-get install -y \
@@ -33,16 +33,8 @@ RUN apt-get install -y \
     libeigen3-dev \
     libasound-dev \
     libportaudiocpp0 \
-    portaudio19-dev
-
-
-RUN apt-get install -y \
-    python3-yaml
-
-# Setting up WARAPS
-
-# WARAPS deps
-RUN apt-get install -y \
+    portaudio19-dev \
+    python3-yaml \
     git \
     libboost-dev \
     libssl-dev \
@@ -50,24 +42,21 @@ RUN apt-get install -y \
     libgps-dev \
     libgps28
 
-RUN git clone https://github.com/eclipse/paho.mqtt.cpp
-WORKDIR /paho.mqtt.cpp
-RUN git submodule init \
-    && git submodule update \
-    && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON \
-    && cmake --build build/ --target install
+# Setting up WARAPS dependencies
+RUN git clone https://github.com/eclipse/paho.mqtt.cpp && \
+    cd paho.mqtt.cpp && \
+    git submodule init && \
+    git submodule update && \
+    cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON && \
+    cmake --build build/ --target install
 
+RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
+    mkdir -p pso-cpp/build && \
+    cd pso-cpp/build && \
+    cmake .. && make install
 
-WORKDIR /
-RUN git clone https://github.com/Rookfighter/pso-cpp.git
-RUN mkdir -p pso-cpp/build
-WORKDIR /pso-cpp/build 
-RUN cmake .. && make install
-
-# Create app directory
+# Create app directory (optional, since it will be mounted)
 RUN mkdir -p /usr/src/app
-COPY . /usr/src/app
-# Change working dir to /usr/src/app
+
+# Set working directory
 WORKDIR /usr/src/app
-
-

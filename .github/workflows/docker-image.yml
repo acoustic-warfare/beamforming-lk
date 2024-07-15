@@ -7,9 +7,10 @@ jobs:
   build-image:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker image pull karlkorv/beamformer:latest
+      - uses: actions/checkout@v4
 
-    - name: Run cmake in the Docker image
-      run: docker run --rm -w /usr/src/app karlkorv/beamformer:latest /bin/bash -c "cmake -S . -B /build && cmake --build /build"
+      - name: Pull the Docker image
+        run: docker image pull karlkorv/beamformer:latest
+
+      - name: Run cmake in the Docker image
+        run: docker run --rm -v ${{ github.workspace }}:/usr/src/app -w /usr/src/app karlkorv/beamformer:latest /bin/bash -c "cmake -S . -B /build && cmake --build /build"
