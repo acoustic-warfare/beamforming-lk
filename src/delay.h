@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "config.h"
+#include "filter.h"
 
 #ifdef __AVX2__
 #include <immintrin.h>
