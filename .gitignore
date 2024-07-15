@@ -80,3 +80,4 @@ dkms.conf
 /cmake-build-debug/
 /CMakeFiles/
 /udp/recorded
+/.env

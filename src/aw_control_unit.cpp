@@ -18,16 +18,30 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    while(client_.running()) {
+    while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
         std::unique_lock lock(pauseMutex_);
-        pausedCV_.wait(lock, [&]{return !paused_;});
+        pausedCV_.wait(lock, [&] { return !paused_; });
 
-        std::cout << "plotting" << std::endl;
+        if (usingGps_ && gps_waiting(&gpsData_, 1000) && usingWaraPS_) {
+            if (gps_read(&gpsData_, nullptr, 0) == -1) {
+                std::cerr << "GPS Read error" << std::endl;
+            } else {
+                sendGpsData(gpsData_);
+            }
+        }
+    }
+
+    if (usingGps_) {
+        gps_stream(&gpsData_, WATCH_DISABLE, nullptr);
+        gps_close(&gpsData_);
+    }
+    if (usingWaraPS_) {
+        client_.Stop();
     }
 }
 
-AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS) {
-    int gpsError = gps_open(GPS_ADDRESS, reinterpret_cast<const char *>(GPS_PORT), &gpsData_);
+AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"), std::getenv("MQTT_PASSWORD")) {
+    int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
     gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON,
                            nullptr); // We only want the stream data, not pure buffer data
 
@@ -55,10 +69,20 @@ AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS) {
         paused_ = true;
     });
 
-    client_.SetCommandCallback("unpause", [&](const nlohmann::json &payload){
+    client_.SetCommandCallback("unpause", [&](const nlohmann::json &payload) {
         std::unique_lock lock(pauseMutex_);
         paused_ = true;
         lock.unlock();
         pausedCV_.notify_all();
     });
+}
+
+void AWControlUnit::sendGpsData(gps_data_t data) {
+    nlohmann::json gpsJson = {
+            {"longitude", std::to_string(data.fix.longitude)},
+            {"latitude",  std::to_string(data.fix.latitude)},
+            {"altitude",  std::to_string(data.fix.altitude)},
+            {"type",      "GeoPoint"}
+    };
+    client_.PublishMessage("sensor/position", gpsJson.dump(4));
 }

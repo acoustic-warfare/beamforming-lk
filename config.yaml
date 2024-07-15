@@ -28,10 +28,9 @@ BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 # Waraps client
 USE_WARAPS: false
 WARAPS_NAME: "test"
-WARAPS_ADDRESS: "mqtt://test.mosquitto.org:1883"
+WARAPS_ADDRESS: "mqtts://broker.waraps.org:8883"
 GPS_ADDRESS: "localhost"
-GPS_PORT: "2947"
-PSO_DECAY: 0.9
+GPS_PORT: 2947
 SWARM_SIZE: 30
 SWARM_ITERATIONS: 40
 
@@ -39,7 +38,7 @@ SWARM_ITERATIONS: 40
 COLUMNS: 8
 ROWS: 8
 ELEMENTS: COLUMNS * ROWS
-DISTANCE: 0.02 # Distance between each element to the next
+DISTANCE: 0.02 # Distance between each element to the nextmasdhasdhashd
 
 
 # FPGA 

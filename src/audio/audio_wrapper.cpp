@@ -35,7 +35,7 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
         const int deviceAmt = Pa_GetDeviceCount();
         for (int i = 0; i < deviceAmt; ++i) {
             const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(i);
-            const string deviceName = Pa_GetHostApiInfo(deviceInfo->hostApi)->name;
+            const std::string deviceName = Pa_GetHostApiInfo(deviceInfo->hostApi)->name;
             std::cout << "Device: " << deviceInfo->name << " Api: " << deviceName << std::endl;
             std::cout << deviceInfo->defaultSampleRate << std::endl;
             std::cout << deviceInfo->maxOutputChannels << std::endl;

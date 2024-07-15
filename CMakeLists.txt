@@ -197,7 +197,7 @@ target_link_libraries(beamformer
         ${OpenCV_LIBS}
         portaudio
         gps
-        WaraPSClient
+        WaraPSClient::WaraPSClient
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
