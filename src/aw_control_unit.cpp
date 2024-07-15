@@ -14,7 +14,7 @@ void AWControlUnit::Start() {
         usingWaraPS_ = true;
     } catch (std::runtime_error &e) {
         std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
-        std::cerr << "Continuing without WARA PS Connection" << std::endl;
+        std::cout << "Continuing without WARA PS Connection" << std::endl;
         usingWaraPS_ = false;
     }
 
@@ -28,6 +28,9 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
+    // Used to time sensor publishing
+    auto timer = std::chrono::system_clock::now();
+
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
         awpu.draw_heatmap(&frame);
 
@@ -39,13 +42,9 @@ void AWControlUnit::Start() {
         std::unique_lock lock(pauseMutex_);
         pausedCV_.wait(lock, [&] { return !paused_; });
 
-        if (usingGps_ && gps_waiting(&gpsData_, 1000) && usingWaraPS_) {
-            if (gps_read(&gpsData_, nullptr, 0) == -1) {
-                std::cerr << "GPS Read error" << std::endl;
-            } else {
-                sendGpsData(gpsData_);
-            }
-        }
+        if(usingWaraPS_)
+            publishData(timer);
+
         if(cv::waitKey(1) == 'q' || (usingWaraPS_ && !client_.running())) {
             break;
         }
@@ -58,6 +57,32 @@ void AWControlUnit::Start() {
     if (usingWaraPS_) {
         client_.Stop();
     }
+}
+
+// Publishes data every second
+void AWControlUnit::publishData(std::chrono::time_point<std::chrono::system_clock> &timer) {
+    if(std::chrono::system_clock::now() - timer < std::chrono::seconds(1))
+        return;
+
+    timer = std::chrono::system_clock::now();
+
+    if (usingGps_ && gps_waiting(&gpsData_, 1000)) {
+        if (gps_read(&gpsData_, nullptr, 0) == -1) {
+            std::cerr << "GPS Read error" << std::endl;
+        } else {
+            nlohmann::json gpsJson = {
+                    {"longitude", std::to_string(gpsData_.fix.longitude)},
+                    {"latitude",  std::to_string(gpsData_.fix.latitude)},
+                    {"altitude",  std::to_string(gpsData_.fix.altitude)},
+                    {"type",      "GeoPoint"}
+            };
+            client_.PublishMessage("sensor/position", gpsJson.dump(4));
+        }
+    }
+
+    client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
+    client_.PublishMessage("sensor/course", std::to_string(0));
+    client_.PublishMessage("sensor/speed", std::to_string(0));
 }
 
 AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"), std::getenv("MQTT_PASSWORD")) {
@@ -95,14 +120,4 @@ AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS, std::geten
         lock.unlock();
         pausedCV_.notify_all();
     });
-}
-
-void AWControlUnit::sendGpsData(gps_data_t data) {
-    nlohmann::json gpsJson = {
-            {"longitude", std::to_string(data.fix.longitude)},
-            {"latitude",  std::to_string(data.fix.latitude)},
-            {"altitude",  std::to_string(data.fix.altitude)},
-            {"type",      "GeoPoint"}
-    };
-    client_.PublishMessage("sensor/position", gpsJson.dump(4));
 }
