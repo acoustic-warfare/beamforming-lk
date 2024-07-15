@@ -18,7 +18,24 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
+    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21878);
+    awpu.calibrate();
+    awpu.start(PSO);
+
+    cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
+
+    cv::Mat frame(Y_RES, X_RES, CV_8UC1);
+    cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
+
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
+        awpu.draw_heatmap(&frame);
+
+        cv::GaussianBlur(frame, colorFrame,
+                         cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+        cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
+        cv::imshow(APPLICATION_NAME, colorFrame);
+
         std::unique_lock lock(pauseMutex_);
         pausedCV_.wait(lock, [&] { return !paused_; });
 
@@ -28,6 +45,9 @@ void AWControlUnit::Start() {
             } else {
                 sendGpsData(gpsData_);
             }
+        }
+        if(cv::waitKey(1) == 'q' || (usingWaraPS_ && !client_.running())) {
+            break;
         }
     }
 
