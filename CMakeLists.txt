@@ -111,8 +111,8 @@ add_custom_command(DEPENDS ${PYTHON_VENV_DIR} ${MODULE_SOURCES}
         # Build modules
         COMMENT "Starting build"
         COMMAND ${PYTHON} ${SETUP_PY} build_ext
-        # COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext
-        #--build-lib=lib --build-temp=build
+        #COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext 
+        # --build-lib=lib --build-temp=build
 
         # Generate timestamp
         COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
@@ -215,6 +215,7 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
 )
 
 # Linking

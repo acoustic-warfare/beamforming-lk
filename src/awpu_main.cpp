@@ -3,6 +3,37 @@
 #include <opencv2/opencv.hpp>
 
 #include "awpu.h"
+#include "kf.h" 
+
+KalmanFilter3D kf(0.2);
+
+const Position start(3.0, 0.0, 1.4);
+
+
+void point3d(const Spherical& spherical1, const Spherical& spherical2, const double separation) {
+    double alpha = spherical1.phi - M_PI / 2.0;
+    double beta = 3.0 * M_PI / 2.0 - spherical2.phi;
+    double x = - separation*(sin(alpha) * sin(beta)) / sin(alpha + beta);
+
+    double y = -x / tan(alpha);
+
+    double alpha2 = M_PI / 2.0 - spherical1.theta;
+    double beta2 = M_PI / 2.0 - spherical2.theta;
+
+    double z = separation * sin(alpha2)*sin(beta2) / sin(alpha2 + beta2);
+
+    Position point(y, z, x);
+    point = point + start;
+
+    kf.update(point);
+
+    Position p = kf.getState();
+
+    //std::cout <<" P0 " << spherical1 << std::endl;
+    //std::cout << " P1 " << spherical2 << std::endl;
+
+    std::cout << "Point: (" <<p(0) << ", " << p(1) << ", " << p(2) <<")" << std::endl;
+}
 
 
 int main() {
@@ -11,39 +42,47 @@ int main() {
 #if 0
     AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
 #else
-    //AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
-    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21878);
+    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
+    AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
 #endif
 
     std::cout << "Connected to FPGA" << std::endl;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    awpu.calibrate();
-    //awpu5.calibrate();
-    //awpu8.calibrate();
+    //awpu.calibrate();
+    awpu5.calibrate();
+    awpu8.calibrate();
 
     std::cout << "Starting PSO" << std::endl;
-    awpu.start(PSO);
-    //awpu5.start(PSO);
-    //awpu8.start(PSO);
+    //awpu.start(PSO);
+    awpu5.start(PSO);
+    awpu8.start(PSO);
 
     std::cout << "Starting listening" << std::endl;
     //awpu.resume();
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
-    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
+    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH*2, APPLICATION_HEIGHT);
 
-    cv::Mat frame(Y_RES, X_RES, CV_8UC1);
-    cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
+    cv::Mat frame1(Y_RES, X_RES, CV_8UC1);
+    cv::Mat frame2(Y_RES, X_RES, CV_8UC1);
+    cv::Mat frame(Y_RES, X_RES*2, CV_8UC1);
+    cv::Mat colorFrame(Y_RES, X_RES*2, CV_8UC1);
 
 
     while (1) {
-        //awpu5.draw_heatmap(&frame);
-        //awpu8.draw_heatmap(&frame);
-        awpu.draw_heatmap(&frame);
+        awpu5.draw_heatmap(&frame1);
+        awpu8.draw_heatmap(&frame2);
+        Spherical a5 = awpu5.target();
+        Spherical a8 = awpu8.target();
+
+        point3d(a5, a8, 6.0);
+        //awpu.draw_heatmap(&frame);
+        //std::cout << "Best direction: " << awpu5.target() << std::endl;
         // Apply color map
         // Blur the image with a Gaussian kernel
+        hconcat(frame2,frame1,frame);
 
 
         cv::GaussianBlur(frame, colorFrame,
