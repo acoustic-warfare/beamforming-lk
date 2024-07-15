@@ -1,13 +1,15 @@
 #ifndef WORKER_H
 #define WORKER_H
 
+#include <mutex>
 #include <opencv2/opencv.hpp> // cv::Mat
 
 enum worker_t {
 
     PSO,
     MIMO,
-    SOUND
+    SOUND,
+    GRADIENT
 };
 
 class Worker {
@@ -29,8 +31,8 @@ public:
 
     worker_t get_type();
 
-    Direction getDirection() {
-        return Direction(0, 0);
+    Spherical getDirection() {
+        return direction;
     };
 
     virtual void draw_heatmap(cv::Mat *heatmap)
@@ -41,7 +43,8 @@ public:
     void loop() {};
 
 protected:
-    Direction direction;
+    Spherical direction;
+    std::mutex lock;
 };
 
 #endif

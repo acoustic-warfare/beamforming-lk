@@ -7,15 +7,16 @@
 #include "../antenna.h"
 #include "../config.h"
 #include "../delay.h"
+#include "../geometry.h"
 #include "../pipeline.h"
 #include "../streams.hpp"
 #include "../worker.h"
-
 #if USE_KALMAN_FILTER
 #include "../kf.h"
 #endif
 
 #include <Eigen/Dense>
+
 
 #define DIMENSIONS 2
 
@@ -71,13 +72,15 @@ public:
 
     std::size_t get_swarm_size() { return this->swarm_size; };
 
+    //Spherical getDirection();
+
 private:
     std::mutex pso_lock;
     std::size_t swarm_size;
     std::size_t iterations;
     std::vector<Particle> particles;
     Antenna antenna;
-    Spherical global_best_direction;
+    //Spherical global_best_direction;
     float global_best_magnitude;
     int n_particles;
 

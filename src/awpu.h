@@ -22,6 +22,7 @@ public:
     void resume();
     void draw_heatmap(cv::Mat *heatmap);
     void calibrate(const float reference_power_level = 1e-5);
+    Spherical target();
 
 
 protected:

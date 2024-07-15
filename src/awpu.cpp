@@ -203,4 +203,6 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
     workers[0]->draw_heatmap(heatmap);
 }
 
-#include <unistd.h>
+Spherical AWProcessingUnit::target() {
+    return workers[0]->getDirection();
+}
