@@ -26,7 +26,8 @@ private:
     std::mutex pauseMutex_;
 
     bool paused_ = false;
-    void sendGpsData(gps_data_t data);
+
+    void publishData(std::chrono::time_point<std::chrono::system_clock> &timer);
 public:
     AWControlUnit();
     AWControlUnit(const AWControlUnit&) = delete;
@@ -36,6 +37,7 @@ public:
      * Spools up the AW Control unit and blocks the current thread until it finished.
      */
     void Start();
+
 };
 
 

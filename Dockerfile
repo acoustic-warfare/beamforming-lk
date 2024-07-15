@@ -25,7 +25,23 @@ RUN apt-get update -y
 # Setting up build environment
 RUN apt-get install -y \
     build-essential \
-    cmake
+    wget
+
+# Setting up cmake
+# renovate: datasource=docker depName=gcc versioning=docker
+ARG GCC_VERSION=10
+
+# renovate: datasource=github-releases depName=Kitware/CMake
+ARG CMAKE_VERSION=3.23.0
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh \
+      && chmod u+x /tmp/cmake-install.sh \
+      && mkdir /usr/bin/cmake \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake \
+      && rm /tmp/cmake-install.sh
+
+ENV PATH="/usr/bin/cmake/bin:${PATH}"
 
 # Installing libraries
 RUN apt-get install -y \
@@ -42,13 +58,18 @@ RUN apt-get install -y \
     libgps-dev \
     libgps28
 
-# Setting up WARAPS dependencies
-RUN git clone https://github.com/eclipse/paho.mqtt.cpp && \
-    cd paho.mqtt.cpp && \
-    git submodule init && \
-    git submodule update && \
-    cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON && \
-    cmake --build build/ --target install
+RUN git clone https://github.com/eclipse/paho.mqtt.cpp
+WORKDIR /paho.mqtt.cpp
+RUN git submodule init \
+    && git submodule update \
+    && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON \
+    && cmake --build build/ --target install
+
+WORKDIR /
+RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
+WORKDIR /WARA-PS-MQTT-Agent
+RUN cmake -S . -B build \
+    && cmake --build build/ --target install
 
 RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
     mkdir -p pso-cpp/build && \
