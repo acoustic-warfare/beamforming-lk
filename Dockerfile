@@ -49,16 +49,8 @@ RUN apt-get install -y \
     libeigen3-dev \
     libasound-dev \
     libportaudiocpp0 \
-    portaudio19-dev
-
-
-RUN apt-get install -y \
-    python3-yaml
-
-# Setting up WARAPS
-
-# WARAPS deps
-RUN apt-get install -y \
+    portaudio19-dev \
+    python3-yaml \
     git \
     libboost-dev \
     libssl-dev \
@@ -79,17 +71,13 @@ WORKDIR /WARA-PS-MQTT-Agent
 RUN cmake -S . -B build \
     && cmake --build build/ --target install
 
+RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
+    mkdir -p pso-cpp/build && \
+    cd pso-cpp/build && \
+    cmake .. && make install
 
-WORKDIR /
-RUN git clone https://github.com/Rookfighter/pso-cpp.git
-RUN mkdir -p pso-cpp/build
-WORKDIR /pso-cpp/build 
-RUN cmake .. && make install
-
-# Create app directory
+# Create app directory (optional, since it will be mounted)
 RUN mkdir -p /usr/src/app
-COPY . /usr/src/app
-# Change working dir to /usr/src/app
+
+# Set working directory
 WORKDIR /usr/src/app
-
-
