@@ -4,6 +4,10 @@
 #include <mutex>
 #include <opencv2/opencv.hpp> // cv::Mat
 
+inline double drandom() {
+    return static_cast<double>(rand()) / RAND_MAX;
+}
+
 enum worker_t {
 
     PSO,
