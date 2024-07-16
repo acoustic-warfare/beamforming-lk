@@ -53,10 +53,12 @@ int main() {
     awpu5.calibrate();
     awpu8.calibrate();
 
-    std::cout << "Starting PSO" << std::endl;
-    //awpu.start(PSO);
-    awpu5.start(PSO);
-    awpu8.start(PSO);
+    std::cout << "Starting Gradient" << std::endl;
+    //awpu.start(GRADIENT);
+    //awpu5.start(PSO);
+    //awpu8.start(PSO);
+    awpu5.start(GRADIENT);
+    awpu8.start(GRADIENT);
 
     std::cout << "Starting listening" << std::endl;
     //awpu.resume();
@@ -74,10 +76,11 @@ int main() {
     while (1) {
         awpu5.draw_heatmap(&frame1);
         awpu8.draw_heatmap(&frame2);
+#if 0
         Spherical a5 = awpu5.target();
         Spherical a8 = awpu8.target();
-
         point3d(a5, a8, 6.0);
+#endif
         //awpu.draw_heatmap(&frame);
         //std::cout << "Best direction: " << awpu5.target() << std::endl;
         // Apply color map

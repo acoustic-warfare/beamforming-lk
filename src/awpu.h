@@ -5,10 +5,11 @@
 
 #include <algorithm>
 
+#include "algorithms/gradient_ascend.h"
 #include "algorithms/pso_seeker.h"
+#include "antenna.h"
 #include "pipeline.h"
 #include "worker.h"
-#include "antenna.h"
 
 
 class AWProcessingUnit {

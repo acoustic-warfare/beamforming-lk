@@ -49,7 +49,9 @@ bool AWProcessingUnit::start(const worker_t worker) {
         case SOUND:
             job = nullptr;
             break;
-
+        case GRADIENT:
+            job = (Worker *) new SphericalGradient(pipeline, antennas[0], &running, 10, 30);
+            break;
         default:
             return false;
     }

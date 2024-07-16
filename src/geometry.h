@@ -2,6 +2,7 @@
 #define GEOMETRY_H
 #include <Eigen/Dense>
 #include <cmath>
+#include <iostream>
 
 #include "config.h"
 #define X_INDEX 0
@@ -10,6 +11,7 @@
 #define PI_HALF M_PI / 2.0
 
 #define TO_RADIANS(degree) degree *(M_PI / 180.0)
+#define TO_DEGREES(radian) radian * (180.0 / M_PI)
 
 #define NORTH 0
 #define EAST 1
@@ -85,6 +87,37 @@ struct Spherical {
         return out;
     }
 };
+
+//Eigen::MatrixXd rotateTo(const Eigen::MatrixXd points, const double theta,
+//                         const double phi);
+//
+//struct Spherical {
+//    double theta;// Inclination angle
+//    double phi;  // Azimuth angle
+//    double radius;
+//
+//    Spherical(const Spherical &) = default;
+//    Spherical(Spherical &&) = default;
+//    Spherical &operator=(const Spherical &) & = default;
+//    Spherical &operator=(Spherical &&) & = default;
+//
+//    Spherical() = default;
+//    Spherical(double theta, double phi, double radius = 1.0);
+//
+//    double distanceTo(const Spherical &spherical);
+//    std::vector<Spherical> nearby(const double spread);
+//
+//    static Position toCartesian(const Spherical &spherical);
+//    Position toCartesian() const;
+//    Eigen::Vector3d toCartesian();
+//    friend std::ostream &operator<<(std::ostream &out,
+//                                    const Spherical &direction) {
+//        out << "Spherical: θ=" << TO_DEGREES(wrapAngle(direction.theta))
+//            << "° φ=" << TO_DEGREES(wrapAngle(direction.phi))
+//            << "° r=" << direction.radius;
+//        return out;
+//    }
+//};
 
 struct Horizontal {
     double azimuth, elevation;

@@ -9,10 +9,6 @@
 
 #define USE_LUT 0
 
-inline double drandom() {
-    return static_cast<double>(rand()) / RAND_MAX;
-}
-
 
 //#define IN_FIRST_SECTOR(i) ((i < 28) && )
 
