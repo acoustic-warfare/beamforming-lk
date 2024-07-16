@@ -79,13 +79,13 @@ void AWControlUnit::publishData() {
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
     }
-
     client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
+    client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
 }
 
-AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,"mqtt","Check") {
+AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,std::getenv("MQTT_USERNAME"),std::getenv("MQTT_PASSWORD")) {
     int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
     gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON,
                            nullptr); // We only want the stream data, not pure buffer data

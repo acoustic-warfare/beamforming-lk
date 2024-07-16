@@ -86,6 +86,8 @@ RUN mkdir -p pso-cpp/build
 WORKDIR /pso-cpp/build 
 RUN cmake .. && make install
 
+RUN ldconfig
+
 # Create app directory
 RUN mkdir -p /usr/src/app
 COPY . /usr/src/app
