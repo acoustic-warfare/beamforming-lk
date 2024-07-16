@@ -1,7 +1,9 @@
 name: Docker Image CI and CMake Checks
 on:
+  push:
   pull_request:
     branches: [ "main" ]
+  
 
 jobs:
   build-image:
