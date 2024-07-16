@@ -16,7 +16,7 @@ private:
     AudioWrapper(Streams &streams, bool debug);
     Streams _streams;
     std::thread producer_thread_;
-    atomic<bool> is_on_ = false;
+    std::atomic<bool> is_on_ = false;
     bool debug_ = false;
     PaStream *audio_stream_ = nullptr;
 

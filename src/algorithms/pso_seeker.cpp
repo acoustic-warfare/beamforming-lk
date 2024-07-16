@@ -9,6 +9,9 @@
 
 #define USE_LUT 0
 
+#define SWARM_SIZE 100
+#define SWARM_ITERATIONS
+
 
 //#define IN_FIRST_SECTOR(i) ((i < 28) && )
 
@@ -103,8 +106,8 @@ float adaptive(Streams *streams, Antenna &antenna, int *offset_delays, float *fr
     //std::cout << "Usable: " << antenna.usable << std::endl;
 
     for (unsigned s = 0; s < antenna.usable; s++) {
-        
-        int i = antenna.index[s]; 
+
+        int i = antenna.index[s];
         float fraction = fractional_delays[i];
 
         //std::cout << "Using index: " << i << std::endl;
@@ -131,9 +134,9 @@ float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, 
 
     for (unsigned s = 0; s < n_sensors; s++) {
         if (VALID_SENSOR(s)) {
-            
-        
-        
+
+
+
         int i = s % ELEMENTS;
 
         //float fraction = fractional_delays[i];
@@ -160,7 +163,7 @@ float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, 
     }
 
     const float norm = 1.0 / 16.0;
-    float power[4] = {0.0, 0.0, 0.0, 0.0}; 
+    float power[4] = {0.0, 0.0, 0.0, 0.0};
     for (int sector_index = 0; sector_index < 4; sector_index++) {
         for (int i = 0; i < N_SAMPLES; i++) {
             power[sector_index] += powf(out[sector_index][i] * norm, 2);
@@ -170,7 +173,7 @@ float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, 
     double azimuth_error = (double)(power[0] - power[1]);
     double elevation_error = (double)(power[0] - power[3]);
 
-    
+
     //double theta = PI_HALF - elevation_error;
     //double phi = azimuth_error;
     //if (theta > PI_HALF) {
@@ -178,7 +181,7 @@ float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, 
     //    theta -= PI_HALF;
     //}
 
-    
+
 
     double error = sqrt(powf(azimuth_error, 2) + powf(elevation_error, 2));
 
@@ -189,9 +192,9 @@ float monopulse(Streams *streams, int *offset_delays, float *fractional_delays, 
 
     double xc = cos(azimuth_error);
     double yc = cos(elevation_error);
-    //double phi = 
+    //double phi =
     double phi = atan2(y, x);
-    ////double theta = cos(azimuth) 
+    ////double theta = cos(azimuth)
     //double theta = acos(1.0 - )
 
 
@@ -310,21 +313,21 @@ void PSOWorker::draw_heatmap(cv::Mat *heatmap) {
 void PSOWorker::loop() {
     std::cout << "Starting loop" << std::endl;
     while (looping && pipeline->isRunning()) {
-        
+
         // Wait for incoming data
         pipeline->barrier();
 
         pso_lock.lock();
-        
+
         // Place particles on dome
         initialize_particles();
 
         global_best_magnitude *= PSO_DECAY;
         global_best_magnitude = 0.0;
 
-        
+
         int start = this->pipeline->mostRecent();
-        
+
         for (int i = 0; i < iterations; i++) {
             // This loop may run until new data has been produced, meaning its up to
             // the machine to run as fast as possible

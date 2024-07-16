@@ -130,8 +130,7 @@ add_custom_target(module DEPENDS ${PY_OUTPUT})
 find_package(Eigen3 REQUIRED)
 
 # MQTT Communication
-find_package(nlohmann_json REQUIRED)
-find_package(PahoMqttCpp REQUIRED)
+find_package(WaraPSClient REQUIRED)
 
 # Generating UUID:s
 find_package(Boost REQUIRED)
@@ -175,14 +174,14 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/beamformer.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/mqtt/wara_ps_client.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
 )
 
 
@@ -195,11 +194,10 @@ add_executable(beamformer
 # Linking
 target_link_libraries(beamformer
         Eigen3::Eigen
-        PahoMqttCpp::paho-mqttpp3
-        nlohmann_json::nlohmann_json
         ${OpenCV_LIBS}
         portaudio
         gps
+        WaraPSClient::WaraPSClient
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
@@ -214,7 +212,6 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
 )
 

@@ -25,7 +25,23 @@ RUN apt-get update -y
 # Setting up build environment
 RUN apt-get install -y \
     build-essential \
-    cmake 
+    wget
+
+# Setting up cmake
+# renovate: datasource=docker depName=gcc versioning=docker
+ARG GCC_VERSION=10
+
+# renovate: datasource=github-releases depName=Kitware/CMake
+ARG CMAKE_VERSION=3.23.0
+
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+      -q -O /tmp/cmake-install.sh \
+      && chmod u+x /tmp/cmake-install.sh \
+      && mkdir /usr/bin/cmake \
+      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake \
+      && rm /tmp/cmake-install.sh
+
+ENV PATH="/usr/bin/cmake/bin:${PATH}"
 
 # Installing libraries
 RUN apt-get install -y \
@@ -33,19 +49,8 @@ RUN apt-get install -y \
     libeigen3-dev \
     libasound-dev \
     libportaudiocpp0 \
-    portaudio19-dev
-
-
-
-
-
-RUN apt-get install -y \
-    python3-yaml
-
-# Setting up WARAPS
-
-# WARAPS deps
-RUN apt-get install -y \
+    portaudio19-dev \
+    python3-yaml \
     git \
     libboost-dev \
     libssl-dev \
@@ -60,17 +65,19 @@ RUN git submodule init \
     && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON \
     && cmake --build build/ --target install
 
-
 WORKDIR /
-RUN git clone https://github.com/Rookfighter/pso-cpp.git
-RUN mkdir -p pso-cpp/build
-WORKDIR /pso-cpp/build 
-RUN cmake .. && make install
+RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
+WORKDIR /WARA-PS-MQTT-Agent
+RUN cmake -S . -B build \
+    && cmake --build build/ --target install
 
-# Create app directory
+RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
+    mkdir -p pso-cpp/build && \
+    cd pso-cpp/build && \
+    cmake .. && make install
+
+# Create app directory (optional, since it will be mounted)
 RUN mkdir -p /usr/src/app
-COPY . /usr/src/app
-# Change working dir to /usr/src/app
+
+# Set working directory
 WORKDIR /usr/src/app
-
-
