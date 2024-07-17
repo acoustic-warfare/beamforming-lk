@@ -71,12 +71,6 @@ WORKDIR /WARA-PS-MQTT-Agent
 RUN cmake -S . -B build \
     && cmake --build build/ --target install
 
-WORKDIR /
-RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
-WORKDIR /WARA-PS-MQTT-Agent
-RUN cmake -S . -B build \
-    && cmake --build build/ --target install
-
 RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
     mkdir -p pso-cpp/build && \
     cd pso-cpp/build && \
