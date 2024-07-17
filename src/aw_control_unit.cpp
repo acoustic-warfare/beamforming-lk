@@ -28,9 +28,7 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
-    // Used to time sensor publishing
-    auto timer = std::chrono::system_clock::now();
-    if(usingWaraPS_)
+    if (usingWaraPS_)
         data_thread_ = std::thread([this] {
             while (client_.running()) {
                 publishData();
@@ -69,7 +67,10 @@ void AWControlUnit::publishData() {
     if (usingGps_ && gps_waiting(&gpsData_, 1000)) {
         if (gps_read(&gpsData_, nullptr, 0) == -1) {
             std::cerr << "GPS Read error" << std::endl;
-        } else {
+        } else if ((isfinite(gpsData_.fix.altitude) &&
+                    isfinite(gpsData_.fix.latitude) &&
+                    isfinite(gpsData_.fix.longitude))) { // Sending NaN breaks WARA PS Arena
+
             nlohmann::json gpsJson = {
                     {"longitude", std::to_string(gpsData_.fix.longitude)},
                     {"latitude",  std::to_string(gpsData_.fix.latitude)},
@@ -79,16 +80,18 @@ void AWControlUnit::publishData() {
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
     }
+
     client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
 }
 
-AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,std::getenv("MQTT_USERNAME"),std::getenv("MQTT_PASSWORD")) {
+AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,
+                                         std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
+                                         std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")) {
     int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
-    gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON,
-                           nullptr); // We only want the stream data, not pure buffer data
+    gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
 
     if (gpsError != 0) {
         std::cerr << "GPS Error: " << gps_errstr(gpsError) << std::endl;
@@ -97,16 +100,4 @@ AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,std::getenv
     } else {
         usingGps_ = true;
     }
-
-    client_.SetCommandCallback("pause", [&](const nlohmann::json &payload) {
-        std::unique_lock lock(pauseMutex_);
-        paused_ = true;
-    });
-
-    client_.SetCommandCallback("unpause", [&](const nlohmann::json &payload) {
-        std::unique_lock lock(pauseMutex_);
-        paused_ = true;
-        lock.unlock();
-        pausedCV_.notify_all();
-    });
 }
