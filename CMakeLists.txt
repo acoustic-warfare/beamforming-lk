@@ -183,6 +183,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.h
 )
 
 
