@@ -4,6 +4,8 @@
 #include "options.h"
 #include "receiver.h"
 #include "streams.hpp"
+#include "geometry.h"
+#include "antenna.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -59,6 +61,10 @@ public:
     int get_n_sensors() { return this->n_sensors; };
 
     int save_pipeline(std::string path);
+
+    void start_synthetic(const Spherical &angle);
+    void synthetic_producer(const Spherical &angle);
+
 
 private:
     // Buffer for storing incoming UDP mic data
