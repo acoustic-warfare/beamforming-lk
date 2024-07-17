@@ -89,7 +89,7 @@ void Pipeline::synthetic_producer(const Spherical &angle) {
     const std::chrono::milliseconds targetDuration(static_cast<int>(1000.0 * N_SAMPLES / SAMPLE_RATE));
     int p = 0;
     int p2 = 0;
-    constexpr float carrier = 4e3;
+    constexpr float carrier = 9e3;
     constexpr float carrier2 = 4e3;
     while (isRunning()) {
 
@@ -104,9 +104,9 @@ void Pipeline::synthetic_producer(const Spherical &angle) {
                 signals[s][i] = 0.0;
                 float t = static_cast<float>(p + i) / SAMPLE_RATE;// Time in seconds
                 signals[s][i] += sin(2 * M_PI * carrier * t + PHASE(delay1, carrier));
-                signals[s][i] += sin(2 * M_PI * carrier2 * t + PHASE(delay2, carrier2));
+                //signals[s][i] += sin(2 * M_PI * carrier2 * t + PHASE(delay2, carrier2));
 
-                signals[s][i] /= 10.0;
+                signals[s][i] *= 1e-2;
             }
             streams->write_stream(s, &signals[s][0]);
         }
