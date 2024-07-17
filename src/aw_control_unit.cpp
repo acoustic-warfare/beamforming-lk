@@ -9,6 +9,9 @@
 #include "aw_control_unit.h"
 
 void AWControlUnit::Start() {
+    Eigen::Vector2d targetPosition(0, 0);
+    WaraPS::Target target(targetPosition, gpsData_, 0);
+
     try {
         client_.Start();
         usingWaraPS_ = true;
@@ -29,12 +32,14 @@ void AWControlUnit::Start() {
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
     if (usingWaraPS_)
-        data_thread_ = std::thread([this] {
+        data_thread_ = std::thread([this, &targetPosition] {
             while (client_.running()) {
                 publishData();
+                targetPosition += Eigen::Vector2d {1,1};
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         });
+
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
         awpu.draw_heatmap(&frame);

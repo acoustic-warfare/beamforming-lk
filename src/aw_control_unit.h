@@ -12,6 +12,7 @@
 #include <wara_ps_client.h>
 #include "awpu.h"
 #include "config.h"
+#include "WaraPS/target.h"
 
 class AWControlUnit {
 private:
@@ -19,6 +20,8 @@ private:
     WaraPSClient client_;
     gps_data_t gpsData_{};
     std::thread data_thread_;
+
+    std::vector<WaraPS::Target*> targets_;
 
     bool usingGps_ = false;
     bool usingWaraPS_ = false;
