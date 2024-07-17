@@ -4,13 +4,22 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verb
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
 
+    
+
     // Connect to FPGA
+#if 1
     this->pipeline->connect();
+    int n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
+#else 
+    this->spherical.theta = TO_RADIANS(0);
+    this->spherical.phi = TO_RADIANS(0); // = Spherical(TO_RADIANS(30), TO_RADIANS(0));
+    this->pipeline->start_synthetic(this->spherical);
+    int n_sources = 1;
+#endif
     this->running = false;
 
-    for (int a = 0; a < this->pipeline->get_n_sensors() / ELEMENTS; a++) {
+    for (int a = 0; a < n_sources; a++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-        //antennas.emplace_back();
         antennas.push_back(antenna);
     }
 }
@@ -50,7 +59,7 @@ bool AWProcessingUnit::start(const worker_t worker) {
             job = nullptr;
             break;
         case GRADIENT:
-            job = (Worker *) new SphericalGradient(pipeline, antennas[0], &running, 10, 30);
+            job = (Worker *) new SphericalGradient(pipeline, antennas[0], &running, 50, 10);
             break;
         default:
             return false;
@@ -175,6 +184,25 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
     }
 }
 
+void AWProcessingUnit::synthetic_calibration() {
+    for (int a = 0; a < antennas.size(); a++) {
+        Antenna &antenna = antennas[a];
+        antenna.usable = ELEMENTS;
+        antenna.index = new int[antenna.usable];
+        for (int i = 0; i < ELEMENTS; i++) {
+            antenna.index[i] = i;
+        }
+
+        std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
+
+        for (int s = 0; s < antenna.usable; s++) {
+            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
+        }
+
+        std::cout << std::endl;
+    }
+}
+
 bool AWProcessingUnit::stop(const worker_t worker) {
     for (auto it = workers.begin(); it != workers.end();) {
         if ((*it)->get_type() == worker) {
@@ -205,6 +233,6 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
     workers[0]->draw_heatmap(heatmap);
 }
 
-Spherical AWProcessingUnit::target() {
-    return workers[0]->getDirection();
+std::vector<Target> AWProcessingUnit::targets() {
+    return workers[0]->getTargets();
 }
