@@ -35,7 +35,7 @@ void point3d(const Spherical& spherical1, const Spherical& spherical2, const dou
     std::cout << "Point: (" <<p(0) << ", " << p(1) << ", " << p(2) <<")" << std::endl;
 }
 
-
+#if 1
 int main() {
 
     std::cout << "Connecting to FPGA" << std::endl;
@@ -50,14 +50,19 @@ int main() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     //awpu.calibrate();
+#if 1
     awpu5.calibrate();
     awpu8.calibrate();
-
+#else
+    awpu5.synthetic_calibration();
+    awpu8.synthetic_calibration();
+#endif
     std::cout << "Starting Gradient" << std::endl;
     //awpu.start(GRADIENT);
     //awpu5.start(PSO);
     //awpu8.start(PSO);
     awpu5.start(GRADIENT);
+    //exit(0);
     awpu8.start(GRADIENT);
 
     std::cout << "Starting listening" << std::endl;
@@ -81,6 +86,12 @@ int main() {
         Spherical a8 = awpu8.target();
         point3d(a5, a8, 6.0);
 #endif
+
+        std::vector<Target> targets = awpu8.targets();
+
+        //std::cout << "Tracking: " << targets.size() << " objects" << std::endl;
+
+        //for ()
         //awpu.draw_heatmap(&frame);
         //std::cout << "Best direction: " << awpu5.target() << std::endl;
         // Apply color map
@@ -115,3 +126,19 @@ int main() {
 
     return 0;
 }
+
+#else 
+
+int main(int argc, char const *argv[])
+{
+    Spherical a(TO_RADIANS(90), TO_RADIANS(179));
+    Spherical b(TO_RADIANS(90), TO_RADIANS(0));
+
+    double theta = a.angle(b);
+
+    std::cout << theta << std::endl;
+
+    return 0;
+}
+
+#endif

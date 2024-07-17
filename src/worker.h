@@ -3,10 +3,17 @@
 
 #include <mutex>
 #include <opencv2/opencv.hpp> // cv::Mat
+#include "geometry.h"
 
 inline double drandom() {
     return static_cast<double>(rand()) / RAND_MAX;
 }
+
+struct Target {
+    Spherical direction;
+    float power;
+    float probability;
+};
 
 enum worker_t {
 
@@ -46,8 +53,11 @@ public:
 
     void loop() {};
 
+    std::vector<Target> getTargets() { return tracking;};
+
 protected:
     Spherical direction;
+    std::vector<Target> tracking;
     std::mutex lock;
 };
 

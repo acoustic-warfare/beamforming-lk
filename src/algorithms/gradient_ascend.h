@@ -12,11 +12,13 @@
 
 class GradientParticle {
 public:
+    bool tracking;
     Spherical directionCurrent;
     Spherical directionNearby[4];
     Spherical directionGradient;
     Spherical directionBest;
     float magnitude;
+    float gradient;
     Antenna &antenna;
     Streams *streams;
 
@@ -30,6 +32,7 @@ public:
 
     void nearby();
     void jump();
+    void step(double rate);
 
     void random();
     void update();
@@ -72,9 +75,9 @@ private:
     std::size_t iterations;
     std::size_t swarm_size;
     Streams *streams;
-    Antenna antenna;
+    Antenna &antenna;
     std::vector<GradientParticle> particles;
-
+    std::vector<GradientParticle> currentTrackers;
 };
 
 

@@ -23,7 +23,8 @@ public:
     void resume();
     void draw_heatmap(cv::Mat *heatmap);
     void calibrate(const float reference_power_level = 1e-5);
-    Spherical target();
+    void synthetic_calibration();
+    std::vector<Target> targets();
 
 
 protected:
@@ -31,6 +32,7 @@ protected:
     std::vector<Worker *> workers;
     Pipeline *pipeline;
     bool running;
+    Spherical spherical;
 
     std::vector<Antenna> antennas;
 };

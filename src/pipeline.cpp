@@ -58,6 +58,82 @@ int Pipeline::connect() {
     return 0;
 }
 
+void Pipeline::start_synthetic(const Spherical &angle) {
+    n_sensors = ELEMENTS;
+
+    // Allocate memory for UDP packet data
+    exposure_buffer = new float*[n_sensors];
+
+    for (int sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
+        exposure_buffer[sensor_index] = new float[N_SAMPLES];
+        this->streams->create_stream(sensor_index);
+
+#if DEBUG_PIPELINE
+        std::cout << "[Pipeline] Adding stream: " << sensor_index << std::endl;
+#endif
+    }
+
+    connected = 1;
+
+    receiver_thread = std::thread(&Pipeline::synthetic_producer, this, angle);
+}
+
+#define PHASE(delay, frequency) 2 * M_PI * frequency * delay 
+
+void Pipeline::synthetic_producer(const Spherical &angle) {
+    Antenna antenna = create_antenna(Position(0,0,0), COLUMNS, ROWS, DISTANCE);
+    //Spherical angle(TO_RADIANS(30), TO_RADIANS(0));
+    Eigen::VectorXf tmp_delays1 = steering_vector_spherical(antenna, angle.theta, angle.phi);
+    Eigen::VectorXf tmp_delays2 = steering_vector_spherical(antenna, angle.theta + TO_RADIANS(10), angle.phi);
+    std::cout << tmp_delays1 << std::endl;
+    
+    const std::chrono::milliseconds targetDuration(static_cast<int>(1000.0 * N_SAMPLES / SAMPLE_RATE));
+    int p = 0;
+    int p2 = 0;
+    constexpr float carrier = 4e3;
+    constexpr float carrier2 = 4e3;
+    while (isRunning()) {
+
+        auto start = std::chrono::steady_clock::now();
+
+        float signals[ELEMENTS][N_SAMPLES];
+
+        for (int s = 0; s < ELEMENTS; s++) {
+            float delay1 = tmp_delays1(s);
+            float delay2 = tmp_delays2(s);
+            for (int i = 0; i < N_SAMPLES; i++) {
+                signals[s][i] = 0.0;
+                float t = static_cast<float>(p + i) / SAMPLE_RATE;// Time in seconds
+                signals[s][i] += sin(2 * M_PI * carrier * t + PHASE(delay1, carrier));
+                signals[s][i] += sin(2 * M_PI * carrier2 * t + PHASE(delay2, carrier2));
+
+                signals[s][i] /= 10.0;
+            }
+            streams->write_stream(s, &signals[s][0]);
+        }
+
+        p += N_SAMPLES;
+        p2 += N_SAMPLES;
+
+
+        {
+            std::unique_lock<std::mutex> lock(barrier_mutex);
+            streams->forward();
+        }
+        // Measure time taken
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+        // Sleep if the elapsed time is less than 5 ms
+        if (elapsed < targetDuration) {
+            std::this_thread::sleep_for(targetDuration - elapsed);
+            //std::cout << "Sleeping: " << 0 << " " << streams->get_signal(0, 0)[5] << std::endl;
+        }
+
+        release_barrier();
+    }
+}
+
 /**
  * Disconnect beamformer from antenna
  */
