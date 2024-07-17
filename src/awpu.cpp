@@ -3,23 +3,34 @@
 AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug){
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
+    this->pipeline->connect();
 
-    
-    int n_sources;
-    // Connect to FPGA
-    if (debug) {
-        this->spherical.theta = TO_RADIANS(0);
-        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
-        this->pipeline->start_synthetic(this->spherical);
-        n_sources = 1;
-    } else {
-        this->pipeline->connect();
-        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
+    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
+        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+        antennas.push_back(antenna);
     }
-    
-    this->running = false;
+    //    int n_sources;
+    //    // Connect to FPGA
+    //    if (debug) {
+    //        this->spherical.theta = TO_RADIANS(0);
+    //        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
+    //        this->pipeline->start_synthetic(this->spherical);
+    //        n_sources = 1;
+    //    } else {
+    //        this->pipeline->connect();
+    //        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
+    //    }
+    //    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
+    //        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+    //        antennas.push_back(antenna);
+    //    }
 
-    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
+    calibrate();
+}
+
+AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool debug) : pipeline(pipeline), verbose(verbose), debug(debug) {
+    this->pipeline->connect();
+    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
         antennas.push_back(antenna);
     }
@@ -182,32 +193,17 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             antenna.power_correction_mask[s] = reference_power_level / current_valid_power;
         }
 
-        std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
+        if (verbose) {
+            std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
 
-        for (int s = 0; s < antenna.usable; s++) {
-            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl; 
+            for (int s = 0; s < antenna.usable; s++) {
+                std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
+            }
+
+            std::cout << std::endl;
         }
 
-        std::cout << std::endl;
-    }
-}
-
-void AWProcessingUnit::synthetic_calibration() {
-    for (int a = 0; a < antennas.size(); a++) {
-        Antenna &antenna = antennas[a];
-        antenna.usable = ELEMENTS;
-        antenna.index = new int[antenna.usable];
-        for (int i = 0; i < ELEMENTS; i++) {
-            antenna.index[i] = i;
-        }
-
-        std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
-
-        for (int s = 0; s < antenna.usable; s++) {
-            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
-        }
-
-        std::cout << std::endl;
+        
     }
 }
 

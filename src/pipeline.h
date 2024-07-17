@@ -27,7 +27,8 @@
  */
 class Pipeline {
 public:
-    Pipeline(const char *address, const int port);
+    Pipeline(const char *address, const int port, bool verbose = false);
+    Pipeline(float frequency, Spherical direction, bool verbose = false);
     ~Pipeline();
 
     /**
@@ -61,9 +62,6 @@ public:
     int get_n_sensors() { return this->n_sensors; };
 
     int save_pipeline(std::string path);
-
-    void start_synthetic(const Spherical &angle);
-    void synthetic_producer(const Spherical &angle);
 
 
 private:
@@ -109,6 +107,10 @@ private:
     // Check if new data was received
     int modified = 0;
 
+    bool verbose;
+
+    bool synthetic;
+
     /**
      * Allow the worker threads to continue
      */
@@ -123,6 +125,11 @@ private:
      * The main distributer of data to the threads (this is also a thread)
      */
     void producer();
+
+    int connect_real();
+    int connect_synthetic();
+
+    void synthetic_producer();
 };
 
 #endif

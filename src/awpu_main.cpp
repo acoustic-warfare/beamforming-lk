@@ -41,8 +41,12 @@ int main() {
     std::cout << "Connecting to FPGA" << std::endl;
 #if 0
     AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
+#elif 0
+    Pipeline pipeline(5000, Spherical(0, 0));
+    AWProcessingUnit awpu5(&pipeline);
+    AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
 #else
-    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875, 0, true);
+    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
 #endif
 
@@ -86,8 +90,8 @@ int main() {
         hconcat(frame2,frame1,frame);
 
         // Blur the image with a Gaussian kernel
-        //cv::GaussianBlur(frame, colorFrame,
-        //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+        cv::GaussianBlur(frame, colorFrame,
+                         cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
         cv::imshow(APPLICATION_NAME, colorFrame);
         if (cv::waitKey(1) == 'q') {
