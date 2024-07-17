@@ -27,6 +27,9 @@ double smallestAngle(const double target, const double current);
 
 typedef Eigen::Vector3f Position;
 
+Eigen::Matrix3f rotateZ(const float angle);
+Eigen::Matrix3f rotateY(const float angle);
+
 /**
  * Convert spherical coordinates to cartesian coordinates
  */
@@ -62,6 +65,7 @@ struct Spherical {
 
     double distanceTo(const Spherical &spherical);
     std::vector<Spherical> nearby(const double spread);
+    double angle(const Spherical &spherical);
 
     static Eigen::Vector3d toCartesian(const Spherical &spherical);
     Eigen::Vector3d toCartesian() const;

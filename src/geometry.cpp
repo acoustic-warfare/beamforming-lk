@@ -87,6 +87,26 @@ Eigen::Vector3d Spherical::toCartesian() {
     return cartesian;
 }
 
+Eigen::Vector3d Spherical::toCartesian() const {
+    Eigen::Vector3d cartesian;
+    cartesian(0) = radius * sin(theta) * cos(phi);
+    cartesian(1) = radius * sin(theta) * sin(phi);
+    cartesian(2) = radius * cos(theta);
+
+    return cartesian;
+}
+
+double Spherical::angle(const Spherical &spherical) {
+    // Function to compute the geodesic distance between two points on a sphere
+    double sin_theta1 = sin(M_PI / 2.0 - theta);
+    double sin_theta2 = sin(M_PI / 2.0 - spherical.theta);
+    double cos_theta1 = cos(M_PI / 2.0 - theta);
+    double cos_theta2 = cos(M_PI / 2.0 - spherical.theta);
+    double delta_phi = phi - spherical.phi;
+
+    return acos(sin_theta1 * sin_theta2 + cos_theta1 * cos_theta2 * cos(delta_phi));
+}
+
 Eigen::MatrixXd rotateTo(const Eigen::MatrixXd points, const double theta,
                          const double phi) {
     Eigen::Matrix3d Rz, Rx, Ry;
@@ -147,4 +167,20 @@ std::vector<Spherical> Spherical::nearby(const double spread) {
     }
 
     return near;
+}
+
+Eigen::Matrix3f rotateZ(const float angle) {
+    Eigen::Matrix3f Rz;
+    Rz << (float) cos((double)angle), -(float) sin((double)angle), 0.0f,
+            (float) sin((double)angle), (float) cos((double)angle), 0.0f,
+            0.0f, 0.0f, 1.0f;
+    return Rz;
+}
+
+Eigen::Matrix3f rotateY(const float angle) {
+    Eigen::Matrix3f Ry;
+    Ry << (float) cos((double)angle), 0.0, (float) sin((double)angle),//
+            0.0, 1.0, 0.0,                            //
+            -(float) sin((double)angle), 0.0, (float) cos((double)angle);
+    return Ry;
 }
