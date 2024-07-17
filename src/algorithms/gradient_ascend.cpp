@@ -106,7 +106,7 @@ void SphericalGradient::initialize_particles() {
     for (int i = 0; i < swarm_size; i++) {
         particles.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = particles.back();
-        particle.delta = TO_RADIANS(7.0);//1.0 + drandom() * 1.0);
+        particle.delta = TO_RADIANS(10.0);//1.0 + drandom() * 1.0);
     }
 }
 
@@ -122,7 +122,7 @@ void SphericalGradient::draw_heatmap(cv::Mat *heatmap) {
 
     lock.lock();
 
-#if 0
+#if 1
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
             continue;
@@ -149,6 +149,14 @@ void SphericalGradient::draw_heatmap(cv::Mat *heatmap) {
         heatmap->at<uchar>(y, x) = 255;
     }
 #else
+    float maxValue = 0.0;
+    for (GradientParticle &particle: particles) {
+        if (particle.magnitude > maxValue) {
+            maxValue = particle.magnitude;
+        }
+    }
+
+    //maxValue = 20 * std::log10(maxValue * 1e5);
     for (GradientParticle &particle: particles) {
         // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
         // 0.5 to get the sphere in the first sector in the cartesian coordinate system
@@ -162,7 +170,9 @@ void SphericalGradient::draw_heatmap(cv::Mat *heatmap) {
 
         heatmap->at<uchar>(x,y) = (255);
 
-        int m = (int)clip(particle.magnitude / 1e-6, 0.0, 255.0);
+        float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
+
+        int m = (int) (mag / maxValue * 255.0);
 
         cv::circle(*heatmap, cv::Point(y, x), 1 + (int)(gradient * 10.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
 
@@ -197,7 +207,7 @@ void SphericalGradient::loop() {
 
         lock.lock();
 
-        if (it % 500 == 0) {
+        if (it % 100 == 0) {
             initialize_particles();
         }
         it++;
@@ -243,7 +253,7 @@ void SphericalGradient::loop() {
             for (auto &particle: particles) {
                 particle.step(start_rate);
                 if (n_tracking < n_trackers) {
-                    if (particle.gradient < 1e-5) {
+                    if (particle.gradient < 1e-4) {
                         for (auto &tracker : currentTrackers) {
                             if (!tracker.tracking && tracker.directionCurrent.angle(particle.directionCurrent) > M_PI / 20.0) {
                                 tracker.tracking = true;

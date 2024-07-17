@@ -1,27 +1,30 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug){
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
 
     
-
+    int n_sources;
     // Connect to FPGA
-#if 1
-    this->pipeline->connect();
-    int n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
-#else 
-    this->spherical.theta = TO_RADIANS(0);
-    this->spherical.phi = TO_RADIANS(0); // = Spherical(TO_RADIANS(30), TO_RADIANS(0));
-    this->pipeline->start_synthetic(this->spherical);
-    int n_sources = 1;
-#endif
+    if (debug) {
+        this->spherical.theta = TO_RADIANS(0);
+        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
+        this->pipeline->start_synthetic(this->spherical);
+        n_sources = 1;
+    } else {
+        this->pipeline->connect();
+        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
+    }
+    
     this->running = false;
 
     for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
         antennas.push_back(antenna);
     }
+
+    calibrate();
 }
 
 AWProcessingUnit::~AWProcessingUnit() {
@@ -79,6 +82,11 @@ bool AWProcessingUnit::start(const worker_t worker) {
  * this is not an absolute measure and should be used accordingly
  */
 void AWProcessingUnit::calibrate(const float reference_power_level) {
+
+    // Wait for full buffers
+    for (int i = 0; i < N_ITEMS_BUFFER / N_SAMPLES; i++) {
+        pipeline->barrier();
+    }
     Streams *streams = pipeline->getStreams();
 
 

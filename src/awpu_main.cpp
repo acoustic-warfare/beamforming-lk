@@ -42,31 +42,18 @@ int main() {
 #if 0
     AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
 #else
-    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
+    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875, 0, true);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
 #endif
 
     std::cout << "Connected to FPGA" << std::endl;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    //awpu.calibrate();
-#if 1
-    awpu5.calibrate();
-    awpu8.calibrate();
-#else
-    awpu5.synthetic_calibration();
-    awpu8.synthetic_calibration();
-#endif
     std::cout << "Starting Gradient" << std::endl;
-    //awpu.start(GRADIENT);
-    //awpu5.start(PSO);
-    //awpu8.start(PSO);
+
     awpu5.start(GRADIENT);
-    //exit(0);
     awpu8.start(GRADIENT);
 
     std::cout << "Starting listening" << std::endl;
-    //awpu.resume();
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
@@ -95,12 +82,12 @@ int main() {
         //awpu.draw_heatmap(&frame);
         //std::cout << "Best direction: " << awpu5.target() << std::endl;
         // Apply color map
-        // Blur the image with a Gaussian kernel
+        
         hconcat(frame2,frame1,frame);
 
-
-        cv::GaussianBlur(frame, colorFrame,
-                         cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+        // Blur the image with a Gaussian kernel
+        //cv::GaussianBlur(frame, colorFrame,
+        //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
         cv::imshow(APPLICATION_NAME, colorFrame);
         if (cv::waitKey(1) == 'q') {
