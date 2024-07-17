@@ -1,12 +1,6 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-#include "options.h"
-#include "receiver.h"
-#include "streams.hpp"
-#include "geometry.h"
-#include "antenna.h"
-
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
@@ -17,6 +11,12 @@
 #include <mutex>
 #include <string>
 #include <thread>
+
+#include "antenna.h"
+#include "geometry.h"
+#include "options.h"
+#include "receiver.h"
+#include "streams.hpp"
 
 #define DEBUG_PIPELINE 1
 
@@ -85,7 +85,7 @@ private:
     // Number of sensors in current constallation
     int n_sensors;
 
-    // Ring buffer for storing data 
+    // Ring buffer for storing data
     Streams *streams;
 
     // Receiver thread

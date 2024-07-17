@@ -10,21 +10,9 @@
 
 #include <iostream>
 
-Direction test(double azimuth, double elevation) {
-    double x = sin(azimuth);
-    double y = sin(elevation);
-    double phi = atan2(y, x);
-
-    // We assume elevation 0 is horizontal
-    double flipped_theta = PI_HALF - elevation;
-
-    // z
-    double z_height = sin(flipped_theta) * cos(azimuth);
-    double theta = PI_HALF - asin(z_height);
-
-    return Direction(theta, phi);
-}
-
+/**
+ * Check if integer is in sector
+ */
 bool in_sector(const int *sector, const int i) {
     return (((sector[0] <= i) && (i <= sector[3])) ||
             ((sector[4] <= i) && (i <= sector[7])) ||
@@ -32,6 +20,9 @@ bool in_sector(const int *sector, const int i) {
             ((sector[12] <= i) && (i <= sector[15])));
 }
 
+/**
+ * Check if integer is in sector
+ */
 bool in_sector(const int sector_index, const int i) {
     const int *sector;
 
@@ -77,8 +68,6 @@ inline double spherical_distance(const double target_theta,
 inline Position find_middle(const Antenna &antenna) {
     return antenna.points.colwise().mean();
 }
-
-// ********** Antenna in space **********
 
 /**
  * Place the antenna by positioning the center @ new position

@@ -18,7 +18,7 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verb
 #endif
     this->running = false;
 
-    for (int a = 0; a < n_sources; a++) {
+    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
         antennas.push_back(antenna);
     }
