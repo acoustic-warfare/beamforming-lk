@@ -29,8 +29,7 @@ int Pipeline::connect() {
     if (socket_desc == -1) {
         std::cerr << "Unable to establish a connection to antenna" << std::endl;
         return -1;
-    }
-    else {
+    } else {
         connected = 1;
     }
 
@@ -42,7 +41,7 @@ int Pipeline::connect() {
     n_sensors = msg.n_arrays * ELEMENTS;
 
     // Allocate memory for UDP packet data
-    exposure_buffer = new float*[n_sensors];
+    exposure_buffer = new float *[n_sensors];
 
     for (int sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
         exposure_buffer[sensor_index] = new float[N_SAMPLES];
@@ -62,7 +61,7 @@ void Pipeline::start_synthetic(const Spherical &angle) {
     n_sensors = ELEMENTS;
 
     // Allocate memory for UDP packet data
-    exposure_buffer = new float*[n_sensors];
+    exposure_buffer = new float *[n_sensors];
 
     for (int sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
         exposure_buffer[sensor_index] = new float[N_SAMPLES];
@@ -78,15 +77,15 @@ void Pipeline::start_synthetic(const Spherical &angle) {
     receiver_thread = std::thread(&Pipeline::synthetic_producer, this, angle);
 }
 
-#define PHASE(delay, frequency) 2 * M_PI * frequency * delay 
+#define PHASE(delay, frequency) 2 * M_PI *frequency *delay
 
 void Pipeline::synthetic_producer(const Spherical &angle) {
-    Antenna antenna = create_antenna(Position(0,0,0), COLUMNS, ROWS, DISTANCE);
+    Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
     //Spherical angle(TO_RADIANS(30), TO_RADIANS(0));
     Eigen::VectorXf tmp_delays1 = steering_vector_spherical(antenna, angle.theta, angle.phi);
     Eigen::VectorXf tmp_delays2 = steering_vector_spherical(antenna, angle.theta + TO_RADIANS(10), angle.phi);
     std::cout << tmp_delays1 << std::endl;
-    
+
     const std::chrono::milliseconds targetDuration(static_cast<int>(1000.0 * N_SAMPLES / SAMPLE_RATE));
     int p = 0;
     int p2 = 0;
@@ -234,7 +233,7 @@ void Pipeline::receive_exposure() {
         int inverted = 0;
 
         // Actual microphone index
-        unsigned index; 
+        unsigned index;
 
         for (unsigned sensor_index = 0; sensor_index < n_sensors; sensor_index++) {
             // Arrays are daisy-chained so flip on columns
