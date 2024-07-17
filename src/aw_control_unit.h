@@ -18,6 +18,7 @@ private:
     std::vector<AWProcessingUnit> processingUnits;
     WaraPSClient client_;
     gps_data_t gpsData_{};
+    std::thread data_thread_;
 
     bool usingGps_ = false;
     bool usingWaraPS_ = false;
@@ -27,7 +28,7 @@ private:
 
     bool paused_ = false;
 
-    void publishData(std::chrono::time_point<std::chrono::system_clock> &timer);
+    void publishData();
 public:
     AWControlUnit();
     AWControlUnit(const AWControlUnit&) = delete;

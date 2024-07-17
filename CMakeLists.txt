@@ -181,7 +181,6 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
-
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
 )
