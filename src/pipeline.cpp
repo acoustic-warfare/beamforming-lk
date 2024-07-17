@@ -1,6 +1,10 @@
 #include "pipeline.h"
 
-Pipeline::Pipeline(const char *address, const int port) : address(address), port(port) {
+Pipeline::Pipeline(const char *address, const int port, bool verbose) : address(address), port(port), verbose(verbose), synthetic(false) {
+    streams = new Streams();
+}
+
+Pipeline::Pipeline(float frequency, Spherical direction, bool verbose) : verbose(verbose), synthetic(true), port(-1) {
     streams = new Streams();
 }
 
@@ -21,8 +25,18 @@ int Pipeline::connect() {
 
     if (connected) {
         std::cerr << "Beamformer is already connected" << std::endl;
+
         return -1;
     }
+
+    if (synthetic) {
+        return connect_synthetic();
+    } else {
+        return connect_real();
+    }
+}
+
+int Pipeline::connect_real() {
 
     socket_desc = init_receiver(address, port);
 
@@ -34,7 +48,10 @@ int Pipeline::connect() {
     }
 
     if (receive_message(socket_desc, &msg) < 0) {
+
         std::cerr << "Unable to receive message" << std::endl;
+
+        return -1;
     }
 
     // Populating configs
@@ -47,9 +64,10 @@ int Pipeline::connect() {
         exposure_buffer[sensor_index] = new float[N_SAMPLES];
         this->streams->create_stream(sensor_index);
 
-#if DEBUG_PIPELINE
-        std::cout << "[Pipeline] Adding stream: " << sensor_index << std::endl;
-#endif
+        if (verbose) {
+            std::cout << "[Pipeline] Adding stream: " << sensor_index << std::endl;
+        }
+        
     }
 
     receiver_thread = std::thread(&Pipeline::producer, this);
@@ -57,7 +75,7 @@ int Pipeline::connect() {
     return 0;
 }
 
-void Pipeline::start_synthetic(const Spherical &angle) {
+int Pipeline::connect_synthetic() {
     n_sensors = ELEMENTS;
 
     // Allocate memory for UDP packet data
@@ -67,21 +85,23 @@ void Pipeline::start_synthetic(const Spherical &angle) {
         exposure_buffer[sensor_index] = new float[N_SAMPLES];
         this->streams->create_stream(sensor_index);
 
-#if DEBUG_PIPELINE
-        std::cout << "[Pipeline] Adding stream: " << sensor_index << std::endl;
-#endif
-    }
+        if (verbose) {
+            std::cout << "[Pipeline] Adding Synthetic stream: " << sensor_index << std::endl;
+        }
+        }
 
     connected = 1;
 
-    receiver_thread = std::thread(&Pipeline::synthetic_producer, this, angle);
+    receiver_thread = std::thread(&Pipeline::synthetic_producer, this);
+
+    return 0;
 }
 
 #define PHASE(delay, frequency) 2 * M_PI *frequency *delay
 
-void Pipeline::synthetic_producer(const Spherical &angle) {
+void Pipeline::synthetic_producer() {
     Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-    //Spherical angle(TO_RADIANS(30), TO_RADIANS(0));
+    Spherical angle(TO_RADIANS(0), TO_RADIANS(0));
     Eigen::VectorXf tmp_delays1 = steering_vector_spherical(antenna, angle.theta, angle.phi);
     Eigen::VectorXf tmp_delays2 = steering_vector_spherical(antenna, angle.theta + TO_RADIANS(10), angle.phi);
     std::cout << tmp_delays1 << std::endl;
@@ -155,7 +175,10 @@ int Pipeline::disconnect() {
 
     std::cout << "Barrier released for pipeline" << std::endl;
 
-    close(socket_desc);
+    if (port != -1) {
+        close(socket_desc);
+    }
+    
 
     std::cout << "Destroyed pipeline" << std::endl;
 
