@@ -62,9 +62,9 @@ int main() {
     Pipeline pipeline(5000, Spherical(0, 0));
     AWProcessingUnit awpu5(&pipeline);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
-#elif 1
+#elif 0
     Pipeline pipeline("10.0.0.1", 21875);
-    //AWProcessingUnit awpu5 = AWProcessingUnit(&pipeline);
+    AWProcessingUnit awpu5 = AWProcessingUnit(&pipeline);
     AWProcessingUnit awpu8 = AWProcessingUnit(&pipeline);
 
 #else
@@ -76,7 +76,7 @@ int main() {
 
     std::cout << "Starting Gradient" << std::endl;
 
-    //awpu5.start(GRADIENT);
+    awpu5.start(GRADIENT);
     awpu8.start(MIMO);
 
     std::cout << "Starting listening" << std::endl;
@@ -100,9 +100,10 @@ int main() {
         // Reset heatmap
         frame1.setTo(cv::Scalar(0));
         frame2.setTo(cv::Scalar(0));
+        small.setTo(cv::Scalar(0));
 
 #if 1
-        //awpu5.draw_heatmap(&frame1);
+        awpu5.draw_heatmap(&frame1);
         //awpu8.draw_heatmap(&frame2);
         awpu8.draw_heatmap(&small);
 #endif

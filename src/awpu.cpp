@@ -67,7 +67,7 @@ bool AWProcessingUnit::start(const worker_t worker) {
 //            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
 //            break;
         case MIMO:
-            job = (Worker *) new MIMOWorker(pipeline, antennas[0], &running, 32, 32, 130);
+            job = (Worker *) new MIMOWorker(pipeline, antennas[0], &running, 32, 32, 45);
             break;
         case SOUND:
             job = nullptr;
