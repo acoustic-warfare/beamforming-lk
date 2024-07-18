@@ -56,7 +56,8 @@ RUN apt-get install -y \
     libssl-dev \
     nlohmann-json3-dev \
     libgps-dev \
-    libgps28
+    libgps28 \
+    alsa-utils
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
@@ -81,6 +82,9 @@ RUN ldconfig
 
 # Create app directory
 RUN mkdir -p /usr/src/app
+
+RUN useradd -rm -d /home/newuser -s /bin/bash -g root -G sudo -G audio -u 1000 newuser
+USER newuser
 
 # Set working directory
 WORKDIR /usr/src/app
