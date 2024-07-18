@@ -8,9 +8,9 @@
 #include <nlohmann/json.hpp>
 #include "aw_control_unit.h"
 
-void AWControlUnit::Start() {
-    Eigen::Vector2d targetPosition(20, 20);
+#include "WaraPS/TargetHandler.h"
 
+void AWControlUnit::Start() {
     try {
         client_.Start();
         usingWaraPS_ = true;
@@ -20,32 +20,37 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    auto awpu = AWProcessingUnit("10.0.0.1", 21878);
-    awpu.start(PSO);
+    auto awpu1 = AWProcessingUnit("10.0.0.1", 21875);
+    auto awpu2 = AWProcessingUnit("10.0.0.1", 21878);
+    awpu1.start(GRADIENT);
+    awpu2.start(GRADIENT);
 
-    cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+    targetHandler_ << &awpu1 << &awpu2;
+
+    targetHandler_.Start();
+
+    namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
     if (usingWaraPS_)
-        data_thread_ = std::thread([this, &targetPosition] {
+        data_thread_ = std::thread([this] {
             while (client_.running()) {
                 publishData();
-                targetPosition = {20 * sin(targetPosition[0] + PI / 8), 20 * cos(targetPosition[1] + PI / 8)};
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         });
 
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
-        awpu.draw_heatmap(&frame);
+        awpu1.draw_heatmap(&frame);
 
-        cv::GaussianBlur(frame, colorFrame,
-                         cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-        cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
-        cv::imshow(APPLICATION_NAME, colorFrame);
+        GaussianBlur(frame, colorFrame,
+                     cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+        applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
+        imshow(APPLICATION_NAME, colorFrame);
 
         std::unique_lock lock(pauseMutex_);
         pausedCV_.wait(lock, [&] { return !paused_; });
@@ -70,12 +75,12 @@ void AWControlUnit::publishData() {
     if (usingGps_ && gps_waiting(&gpsData_, 1000)) {
         if (gps_read(&gpsData_, nullptr, 0) == -1) {
             std::cerr << "GPS Read error" << std::endl;
-        } else if ((isfinite(gpsData_.fix.altitude) &&
+        } else if (isfinite(gpsData_.fix.altitude) &&
                     isfinite(gpsData_.fix.latitude) &&
-                    isfinite(gpsData_.fix.longitude))) {
+                    isfinite(gpsData_.fix.longitude)) {
             // Sending NaN breaks WARA PS Arena
 
-            nlohmann::json gpsJson = {
+            const nlohmann::json gpsJson = {
                 {"longitude", std::to_string(gpsData_.fix.longitude)},
                 {"latitude", std::to_string(gpsData_.fix.latitude)},
                 {"altitude", std::to_string(gpsData_.fix.altitude)},

@@ -185,10 +185,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.h
-        src/WaraPS/target.cpp
-        src/WaraPS/target.h
-        src/WaraPS/TargetHandler.cpp
-        src/WaraPS/TargetHandler.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/TargetHandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/TargetHandler.h
 )
 
 
@@ -229,7 +227,6 @@ target_link_libraries(awpu
         Eigen3::Eigen
         ${OpenCV_LIBS}
 )
-
 
 
 add_dependencies(beamformer config)

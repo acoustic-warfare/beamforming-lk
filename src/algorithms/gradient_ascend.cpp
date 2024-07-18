@@ -122,7 +122,7 @@ void SphericalGradient::draw_heatmap(cv::Mat *heatmap) {
 
     lock.lock();
 
-#if 0
+#if 1
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
             continue;

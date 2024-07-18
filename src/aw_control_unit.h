@@ -11,8 +11,7 @@
 #include <condition_variable>
 #include <wara_ps_client.h>
 #include "awpu.h"
-#include "config.h"
-#include "WaraPS/target.h"
+#include "WaraPS/TargetHandler.h"
 
 class AWControlUnit {
 private:
@@ -22,6 +21,8 @@ private:
     std::thread data_thread_;
 
     std::vector<AWProcessingUnit> awpus_;
+
+    TargetHandler targetHandler_;
 
     bool usingGps_ = false;
     bool usingWaraPS_ = false;
