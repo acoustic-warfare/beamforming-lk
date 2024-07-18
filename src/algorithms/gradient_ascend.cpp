@@ -1,5 +1,7 @@
 #include "gradient_ascend.h"
 
+constexpr double start_rate = 1e-1;
+
 GradientParticle::GradientParticle(Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams) {
     this->epsilon = 1e-9f;
     this->delta = TO_RADIANS(7);
@@ -95,9 +97,16 @@ void GradientParticle::update() {
 }
 
 
-SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, running), antenna(antenna), swarm_size(swarm_size), iterations(iterations) {
-    this->streams = pipeline->getStreams();
-    thread_loop = std::thread(&SphericalGradient::loop, this);
+SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations) {
+    this->n_trackers = 9;
+
+    for (int i = 0; i < n_trackers; i++) {
+        currentTrackers.emplace_back(this->antenna, this->streams);
+        GradientParticle &particle = currentTrackers.back();
+        particle.delta = TO_RADIANS(5);
+    }
+
+    initialize_particles();
 }
 
 void SphericalGradient::initialize_particles() {
@@ -106,23 +115,18 @@ void SphericalGradient::initialize_particles() {
     for (int i = 0; i < swarm_size; i++) {
         particles.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = particles.back();
-        particle.delta = TO_RADIANS(10.0);//1.0 + drandom() * 1.0);
+        particle.delta = TO_RADIANS(15.0);//1.0 + drandom() * 1.0);
     }
 }
 
 /**
  * Draw heatmap
  */
-void SphericalGradient::draw_heatmap(cv::Mat *heatmap) {
+void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     double x_res = (double) heatmap->rows;
     double y_res = (double) heatmap->cols;
 
-    // Reset heatmap
-    heatmap->setTo(cv::Scalar(0));
-
-    lock.lock();
-
-#if 1
+#if 0
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
             continue;
@@ -168,111 +172,74 @@ void SphericalGradient::draw_heatmap(cv::Mat *heatmap) {
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
-        heatmap->at<uchar>(x,y) = (255);
+        //heatmap->at<uchar>(x,y) = (255);
 
         float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
 
-        int m = (int) (mag / maxValue * 255.0);
+        int m = 3; //(int) (mag / maxValue * 255.0);
 
-        cv::circle(*heatmap, cv::Point(y, x), 1 + (int)(gradient * 10.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
+        cv::circle(*heatmap, cv::Point(y, x), 1 + (int)(gradient * 30.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
 
 
-        heatmap->at<uchar>(x, y) = 255;
+        //heatmap->at<uchar>(x, y) = 255;
     }
 #endif
-
-    lock.unlock();
 }
 
-void SphericalGradient::loop() {
-    std::cout << "Starting loop" << std::endl;
-    double learning_rate;
-    constexpr double start_rate = 1e-1;
-    // Place particles on dome
-    int it = 0;
-    initialize_particles();
-
-    int n_trackers = 9;
-    
-    for (int i = 0; i < n_trackers; i++) {
-        currentTrackers.emplace_back(this->antenna, this->streams);
-        GradientParticle& particle = currentTrackers.back();
-        particle.delta = TO_RADIANS(3);
+void SphericalGradient::reset() {
+    if (resetCount++ % 32 == 0) {
+        initialize_particles();
     }
+}
 
-    while (looping && pipeline->isRunning()) {
-
-        // Wait for incoming data
-        pipeline->barrier();
-
-        lock.lock();
-
-        if (it % 100 == 0) {
-            initialize_particles();
-        }
-        it++;
-        
-
-
-        int start = this->pipeline->mostRecent();
-
-        for (int i = 0; i < iterations; i++) {
-            // This loop may run until new data has been produced, meaning its up to
-            // the machine to run as fast as possible
-            if (this->pipeline->mostRecent() != start) {
-                //std::cout << "Too slow: " << i + 1 << "/" << iterations << std::endl;
-                break;// Too slow!
-            }
-            int n_tracking = 0;
-            for (auto &particle : currentTrackers) {
-                if (particle.tracking) {
-                    for (int i = 0; i < 5; i++) 
-                        particle.step(start_rate / 100.0);
-                    if (particle.gradient > 1.0) {
-                        particle.tracking = false;
-                    } else {
-                        n_tracking++;
-                    }
+void SphericalGradient::update() {
+    while (canContinue()) {
+        int n_tracking = 0;
+        for (auto &particle: currentTrackers) {
+            if (particle.tracking) {
+                for (int i = 0; i < 5; i++)
+                    particle.step(start_rate / 50.0);
+                if (particle.gradient > 1.0) {
+                    particle.tracking = false;
+                } else {
+                    n_tracking++;
                 }
             }
+        }
 
-            for (int m = 0; m < n_trackers; m++) {
-                if (!currentTrackers[m].tracking) {
+        for (int m = 0; m < n_trackers; m++) {
+            if (!currentTrackers[m].tracking) {
+                continue;
+            }
+
+            for (int n = m + 1; n < n_trackers; n++) {
+                if (!currentTrackers[n].tracking) {
                     continue;
                 }
-
-                for (int n = m+1; n < n_trackers; n++) {
-                    if (!currentTrackers[n].tracking) {
-                        continue;
-                    }
-                    if (currentTrackers[m].directionCurrent.angle(currentTrackers[n].directionCurrent) < M_PI / 20.0) {
-                        currentTrackers[m].tracking = false;
-                    }
+                if (currentTrackers[m].directionCurrent.angle(currentTrackers[n].directionCurrent) < M_PI / 20.0) {
+                    currentTrackers[m].tracking = false;
                 }
             }
-            for (auto &particle: particles) {
-                particle.step(start_rate);
-                if (n_tracking < n_trackers) {
-                    if (particle.gradient < 1e-4) {
-                        for (auto &tracker : currentTrackers) {
-                            if (!tracker.tracking && tracker.directionCurrent.angle(particle.directionCurrent) > M_PI / 20.0) {
-                                tracker.tracking = true;
-                                tracker.directionCurrent = particle.directionCurrent;
-                            }
+        }
+        for (auto &particle: particles) {
+            particle.step(start_rate);
+            if (n_tracking < n_trackers) {
+                if (particle.gradient < 1e-4) {
+                    for (auto &tracker: currentTrackers) {
+                        if (!tracker.tracking && tracker.directionCurrent.angle(particle.directionCurrent) > M_PI / 20.0) {
+                            tracker.tracking = true;
+                            tracker.directionCurrent = particle.directionCurrent;
                         }
                     }
                 }
             }
         }
-
-        tracking.clear();
-        for (auto &tracker : currentTrackers) {
-            if (tracker.tracking) {
-                tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient);
-            }
-        }
-        lock.unlock();
     }
 
-    std::cout << "Done loop" << std::endl;
+    tracking.clear();
+    for (auto &tracker: currentTrackers) {
+        if (tracker.tracking) {
+            tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient);
+        }
+    }
 }
