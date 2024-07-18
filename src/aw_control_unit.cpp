@@ -39,9 +39,8 @@ void AWControlUnit::Start() {
                 target.SetPosition(targetPosition, gpsData_);
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
+            target.Start();
         });
-
-    target.Start();
 
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
@@ -65,6 +64,7 @@ void AWControlUnit::Start() {
         gps_close(&gpsData_);
     }
     if (usingWaraPS_) {
+        target.Destroy();
         client_.Stop();
         data_thread_.join();
     }
