@@ -10,7 +10,6 @@
 
 void AWControlUnit::Start() {
     Eigen::Vector2d targetPosition(20, 20);
-    WaraPS::Target target(targetPosition, gpsData_, 0);
 
     try {
         client_.Start();
@@ -31,14 +30,12 @@ void AWControlUnit::Start() {
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
     if (usingWaraPS_)
-        data_thread_ = std::thread([this, &targetPosition, &target] {
+        data_thread_ = std::thread([this, &targetPosition] {
             while (client_.running()) {
                 publishData();
                 targetPosition = {20 * sin(targetPosition[0] + PI / 8), 20 * cos(targetPosition[1] + PI / 8)};
-                target.SetPosition(targetPosition, gpsData_);
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
-            target.Start();
         });
 
 
@@ -63,7 +60,6 @@ void AWControlUnit::Start() {
         gps_close(&gpsData_);
     }
     if (usingWaraPS_) {
-        target.Destroy();
         client_.Stop();
         data_thread_.join();
     }

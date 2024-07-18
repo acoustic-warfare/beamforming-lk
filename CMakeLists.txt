@@ -187,6 +187,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.h
         src/WaraPS/target.cpp
         src/WaraPS/target.h
+        src/WaraPS/TargetHandler.cpp
+        src/WaraPS/TargetHandler.h
 )
 
 

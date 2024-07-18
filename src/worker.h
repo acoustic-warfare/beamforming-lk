@@ -25,6 +25,11 @@ struct Target {
 
     // Pseudo-scientific value of how valid the target actually is
     float probability;
+
+    bool operator==(const Target &other) const{
+        return direction.toCartesian().isApprox(other.direction.toCartesian());
+    }
+
 };
 
 /**

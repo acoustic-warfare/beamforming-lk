@@ -21,7 +21,7 @@ private:
     gps_data_t gpsData_{};
     std::thread data_thread_;
 
-    std::vector<WaraPS::Target*> targets_;
+    std::vector<AWProcessingUnit> awpus_;
 
     bool usingGps_ = false;
     bool usingWaraPS_ = false;
