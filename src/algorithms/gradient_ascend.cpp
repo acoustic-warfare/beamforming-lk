@@ -126,7 +126,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     double x_res = (double) heatmap->rows;
     double y_res = (double) heatmap->cols;
 
-#if 0
+#if 1
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
             continue;
