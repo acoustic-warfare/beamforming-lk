@@ -77,43 +77,59 @@ void MIMOWorker::populateHeatmap(cv::Mat *heatmap) {
             minV = value;
         }
     }
+
+    //float lerp = (maxV*0.9 + minV*0.1) / 2.0
     int i = 0;
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < columns; c++) {
-            double db = pow((powerdB[i] - minV) / (maxV - minV), 8);
-            db = 20 * log10(db * 1e9);
+            double db = pow((powerdB[i] - minV) / (maxV - minV), 3);
             //std::cout << db << std::endl;
-            heatmap->at<uchar>(r, c) = (uchar)clip(db, 0.0, 255.0);//(255.f * clip(db, 0.0, 1.0));
+            //db = 20 * log10(db * 1e12);
+            db *= 255.0;
+            db = clip(db, 0.0, 255.0);
+
+            //if (db < 100) {
+            //    db = 0;
+            //}
+            //std::cout << db << std::endl;
+            heatmap->at<uchar>(r, c) = (uchar)db;//(255.f * clip(db, 0.0, 1.0));
             i++;
         }
     }
 }
 
 void MIMOWorker::update() {
-    const float norm = 1 / (float) ELEMENTS;//.usable;
+    const float norm = 1 / (float) antenna.usable;//.usable;
     int p = 0;
+    float reference = 0.0;
+    float *signal = this->streams->get_signal(0, 0);
+    for (int i = 0; i < N_SAMPLES; i++) {
+        reference += powf(signal[i], 2);
+    }
+
+    reference /= (float)N_SAMPLES;
     while (p < maxIndex && canContinue() ) {
         float out[N_SAMPLES] = {0.0};
 
         for (unsigned s = 0; s < antenna.usable; s++) {
+            if (!in_sector(&second[0], s)) {
+                continue;
+            }
             int i = antenna.index[s];
             float fraction = fractionalDelays[index][i];
             int offset = offsetDelays[index][i];
 
-            //std::cout <<"i: " << i << " Offset: " << offset << " fraction: " << fraction << std::endl; 
-            //int offset = 0;
-            //float fraction = 0.0;
             float *signal = this->streams->get_signal((unsigned)i, offset);
             delay(&out[0], signal, fraction);
         }
         float power = 0.0;
         for (int i = 0; i < N_SAMPLES; i++) {
-            power += powf(out[i] * norm, 2);
+            power += powf(out[i], 2) * norm;
         }
 
         power /= (float) N_SAMPLES;
 
-        powerdB[index] = power;
+        powerdB[index] = power / reference;//clip(power - reference, 0.0, power);
         index++;
         index %= maxIndex;
         p++;
