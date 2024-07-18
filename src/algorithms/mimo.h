@@ -4,10 +4,41 @@
 #include <Eigen/Dense>
 #include <atomic>
 
+#include "../worker.h"
 #include "../antenna.h"
 #include "../config.h"
 #include "../pipeline.h"
 #include "../streams.hpp"
+#include "../delay.h"
+
+class MIMOWorker : public Worker {
+public:
+    MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov);
+    ~MIMOWorker() {};
+    worker_t get_type() {
+        return worker_t::MIMO;
+    };
+protected:
+    void reset() {};
+    void update();
+    void populateHeatmap(cv::Mat *heatmap);
+    
+private:
+    int index = 0;
+    int maxIndex;
+    const int columns;
+    const int rows;
+    const float fov;
+    void computeDelayLUT();
+    std::vector<std::vector<int>> offsetDelays;
+    std::vector<std::vector<float>> fractionalDelays;
+    std::vector<float> powerdB;
+    //std::vector<std::vector<Spherical>> angleLUT;
+    Streams *streams;
+    Antenna &antenna;
+};
+
+#if 0
 
 #define VALID_SENSOR(i) (64 <= i) && (i < 128)
 
@@ -214,6 +245,6 @@ void static_mimo_heatmap_worker(Pipeline *pipeline, int stream_id,
         // cout << maxVal << endl;
     }
 }
-
+#endif
 
 #endif
