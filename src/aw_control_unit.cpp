@@ -9,7 +9,7 @@
 #include "aw_control_unit.h"
 
 void AWControlUnit::Start() {
-    Eigen::Vector2d targetPosition(0, 0);
+    Eigen::Vector2d targetPosition(20, 20);
     WaraPS::Target target(targetPosition, gpsData_, 0);
 
     try {
@@ -21,7 +21,7 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21878);
+    auto awpu = AWProcessingUnit("10.0.0.1", 21878);
     awpu.calibrate();
     awpu.start(PSO);
 
@@ -32,13 +32,16 @@ void AWControlUnit::Start() {
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
     if (usingWaraPS_)
-        data_thread_ = std::thread([this, &targetPosition] {
+        data_thread_ = std::thread([this, &targetPosition, &target] {
             while (client_.running()) {
                 publishData();
-                targetPosition += Eigen::Vector2d {1,1};
+                targetPosition = {20 * sin(targetPosition[0] + PI / 8), 20 * cos(targetPosition[1] + PI / 8)};
+                target.SetPosition(targetPosition, gpsData_);
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         });
+
+    target.Start();
 
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
@@ -74,13 +77,14 @@ void AWControlUnit::publishData() {
             std::cerr << "GPS Read error" << std::endl;
         } else if ((isfinite(gpsData_.fix.altitude) &&
                     isfinite(gpsData_.fix.latitude) &&
-                    isfinite(gpsData_.fix.longitude))) { // Sending NaN breaks WARA PS Arena
+                    isfinite(gpsData_.fix.longitude))) {
+            // Sending NaN breaks WARA PS Arena
 
             nlohmann::json gpsJson = {
-                    {"longitude", std::to_string(gpsData_.fix.longitude)},
-                    {"latitude",  std::to_string(gpsData_.fix.latitude)},
-                    {"altitude",  std::to_string(gpsData_.fix.altitude)},
-                    {"type",      "GeoPoint"}
+                {"longitude", std::to_string(gpsData_.fix.longitude)},
+                {"latitude", std::to_string(gpsData_.fix.latitude)},
+                {"altitude", std::to_string(gpsData_.fix.altitude)},
+                {"type", "GeoPoint"}
             };
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
