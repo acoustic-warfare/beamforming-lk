@@ -204,9 +204,12 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
     workers[0]->draw_heatmap(heatmap);
 }
 
+//Streams *AWProcessingUnit::get_streams() {
+//    return pipeline->getStreams(); 
+//}
+
 void AWProcessingUnit::play_audio() {
-    AudioWrapper audio(*this->pipeline->getStreams());
-    std::cout << "AWPU: " << std::endl;
+    AudioWrapper audio(*pipeline->getStreams());
 
     audio.start_audio_playback();
     std::cout << "AWPU: " << std::endl;

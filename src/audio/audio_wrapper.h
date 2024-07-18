@@ -17,7 +17,7 @@ private:
     Streams _streams;
     std::thread producer_thread_;
     std::atomic<bool> is_on_ = false;
-    bool debug_ = false;
+    bool debug_ = true;
     PaStream *audio_stream_ = nullptr;
 
 public:

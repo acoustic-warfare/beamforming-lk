@@ -20,43 +20,67 @@ static int audioCallback(const void *_, void *outputBuffer,
     (void) _;// Ignore unused variable warning for input buffer
 
     for (int i = 0; i < framesPerBuffer; ++i) {
-        out[i] = in->buffers[0][i];
+        std::cout << "i: " << i << "buf: " << in->buffers[4][i] << std::endl;
+
+        out[i] = in->buffers[4][i];
     }
 
     return 0;
+    //return paContinue;
 }
 
-AudioWrapper::AudioWrapper(Streams &streams) : AudioWrapper(streams, false){};
+static void checkErr(PaError err) {
+    if (err != paNoError) {
+        std::cerr << "\nPortAudio error: " << err << std::endl;
+    }
+}
+
+AudioWrapper::AudioWrapper(Streams &streams) : AudioWrapper(streams, true){};
 
 AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), debug_(debug) {
-    Pa_Initialize();
+    PaError err = paNoError;
+    err = Pa_Initialize();
+    checkErr(err);
 
     if (debug_) {
         const int deviceAmt = Pa_GetDeviceCount();
+
+        if (deviceAmt <= 0) {
+            std::cerr << "\nError getting device count: " << deviceAmt << ", error code: " << err << std::endl;
+        }
+
+        std::cout << "\nDeviceAmt: " << deviceAmt << std::endl;
+
         for (int i = 0; i < deviceAmt; ++i) {
             const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(i);
             const std::string deviceName = Pa_GetHostApiInfo(deviceInfo->hostApi)->name;
-            std::cout << "Device: " << deviceInfo->name << " Api: " << deviceName << std::endl;
-            std::cout << deviceInfo->defaultSampleRate << std::endl;
-            std::cout << deviceInfo->maxOutputChannels << std::endl;
-            std::cout << deviceInfo->defaultSampleRate << std::endl;
+            std::cout << "\nDevice nr: " << i << " Name: " << deviceInfo->name << " Api: " << deviceName << std::endl;
+            std::cout << "maxInputChannels: " << deviceInfo->defaultSampleRate << std::endl;
+            std::cout << "maxOutputChannels: " << deviceInfo->maxOutputChannels << std::endl;
+            std::cout << "defaultSampleRate: " << deviceInfo->defaultSampleRate << std::endl;
         }
     }
 
-    PaError err = paNoError;
+    //PaError err = paNoError;
 
     PaStreamParameters out_param;
     out_param.device = Pa_GetDefaultOutputDevice();
+    //out_param.device = 4;
+
+    std::cout << "out_param.device: " << out_param.device << std::endl;
+
+    //out_param.device = 0;
+
     out_param.channelCount = 2;
     out_param.hostApiSpecificStreamInfo = nullptr;
     out_param.sampleFormat = paFloat32;
-    out_param.suggestedLatency = 0;
+    out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
 
     err = Pa_OpenStream(&audio_stream_,
                         nullptr,
                         &out_param,
                         SAMPLE_RATE,
-                        256,
+                        128,
                         paNoFlag,
                         audioCallback,
                         &streams);
@@ -68,7 +92,10 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
 
 
 void AudioWrapper::start_audio_playback() {
+
     Pa_StartStream(audio_stream_);
+    std::cout << "start_audio_playback: " << std::endl;
+
     is_on_ = true;
 }
 
