@@ -22,7 +22,6 @@ void AWControlUnit::Start() {
     }
 
     auto awpu = AWProcessingUnit("10.0.0.1", 21878);
-    awpu.calibrate();
     awpu.start(PSO);
 
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);

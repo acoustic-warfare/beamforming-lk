@@ -14,7 +14,8 @@
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *address, const int port, int verbose = 1);
+    AWProcessingUnit(const char *address, const int port, int verbose = 1, bool debug = false);
+    AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool debug = false);
     ~AWProcessingUnit();
 
     bool start(const worker_t worker);
@@ -23,14 +24,17 @@ public:
     void resume();
     void draw_heatmap(cv::Mat *heatmap);
     void calibrate(const float reference_power_level = 1e-5);
-    Spherical target();
+    void synthetic_calibration();
+    std::vector<Target> targets();
 
 
 protected:
     int verbose;
+    bool debug;
     std::vector<Worker *> workers;
     Pipeline *pipeline;
-    bool running;
+    bool running = false;
+    Spherical spherical;
 
     std::vector<Antenna> antennas;
 };
