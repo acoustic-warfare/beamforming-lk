@@ -64,7 +64,7 @@ N_SENSORS_TMP: 256
 
 # Beamforming 
 N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
-N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2 
+N_SAMPLES: 512 # Warning cannot be larger than 512 since pagesize is 4096 bytes and size of float is 4 bytes
 N_OFFSET: N_SAMPLES / 2
 BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 

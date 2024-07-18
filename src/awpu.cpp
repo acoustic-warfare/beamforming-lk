@@ -1,18 +1,41 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug){
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
-
-    // Connect to FPGA
     this->pipeline->connect();
-    this->running = false;
 
-    for (int a = 0; a < this->pipeline->get_n_sensors() / ELEMENTS; a++) {
+    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-        //antennas.emplace_back();
         antennas.push_back(antenna);
     }
+    //    int n_sources;
+    //    // Connect to FPGA
+    //    if (debug) {
+    //        this->spherical.theta = TO_RADIANS(0);
+    //        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
+    //        this->pipeline->start_synthetic(this->spherical);
+    //        n_sources = 1;
+    //    } else {
+    //        this->pipeline->connect();
+    //        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
+    //    }
+    //    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
+    //        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+    //        antennas.push_back(antenna);
+    //    }
+
+    calibrate();
+}
+
+AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool debug) : pipeline(pipeline), verbose(verbose), debug(debug) {
+    this->pipeline->connect();
+    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
+        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+        antennas.push_back(antenna);
+    }
+
+    calibrate();
 }
 
 AWProcessingUnit::~AWProcessingUnit() {
@@ -50,7 +73,7 @@ bool AWProcessingUnit::start(const worker_t worker) {
             job = nullptr;
             break;
         case GRADIENT:
-            job = (Worker *) new SphericalGradient(pipeline, antennas[0], &running, 10, 30);
+            job = (Worker *) new SphericalGradient(pipeline, antennas[0], &running, 50, 10);
             break;
         default:
             return false;
@@ -70,6 +93,11 @@ bool AWProcessingUnit::start(const worker_t worker) {
  * this is not an absolute measure and should be used accordingly
  */
 void AWProcessingUnit::calibrate(const float reference_power_level) {
+
+    // Wait for full buffers
+    for (int i = 0; i < N_ITEMS_BUFFER / N_SAMPLES; i++) {
+        pipeline->barrier();
+    }
     Streams *streams = pipeline->getStreams();
 
 
@@ -165,13 +193,17 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             antenna.power_correction_mask[s] = reference_power_level / current_valid_power;
         }
 
-        std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
+        if (verbose) {
+            std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
 
-        for (int s = 0; s < antenna.usable; s++) {
-            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl; 
+            for (int s = 0; s < antenna.usable; s++) {
+                std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
+            }
+
+            std::cout << std::endl;
         }
 
-        std::cout << std::endl;
+        
     }
 }
 
@@ -205,6 +237,6 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
     workers[0]->draw_heatmap(heatmap);
 }
 
-Spherical AWProcessingUnit::target() {
-    return workers[0]->getDirection();
+std::vector<Target> AWProcessingUnit::targets() {
+    return workers[0]->getTargets();
 }

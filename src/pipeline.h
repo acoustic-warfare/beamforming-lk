@@ -1,10 +1,6 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-#include "options.h"
-#include "receiver.h"
-#include "streams.hpp"
-
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
@@ -16,6 +12,12 @@
 #include <string>
 #include <thread>
 
+#include "antenna.h"
+#include "geometry.h"
+#include "options.h"
+#include "receiver.h"
+#include "streams.hpp"
+
 #define DEBUG_PIPELINE 1
 
 /**
@@ -25,7 +27,8 @@
  */
 class Pipeline {
 public:
-    Pipeline(const char *address, const int port);
+    Pipeline(const char *address, const int port, bool verbose = false);
+    Pipeline(float frequency, Spherical direction, bool verbose = false);
     ~Pipeline();
 
     /**
@@ -60,6 +63,7 @@ public:
 
     int save_pipeline(std::string path);
 
+
 private:
     // Buffer for storing incoming UDP mic data
     float **exposure_buffer;
@@ -79,7 +83,7 @@ private:
     // Number of sensors in current constallation
     int n_sensors;
 
-    // Ring buffer for storing data 
+    // Ring buffer for storing data
     Streams *streams;
 
     // Receiver thread
@@ -103,6 +107,10 @@ private:
     // Check if new data was received
     int modified = 0;
 
+    bool verbose;
+
+    bool synthetic;
+
     /**
      * Allow the worker threads to continue
      */
@@ -117,6 +125,11 @@ private:
      * The main distributer of data to the threads (this is also a thread)
      */
     void producer();
+
+    int connect_real();
+    int connect_synthetic();
+
+    void synthetic_producer();
 };
 
 #endif

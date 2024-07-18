@@ -35,12 +35,16 @@ void point3d(const Spherical& spherical1, const Spherical& spherical2, const dou
     std::cout << "Point: (" <<p(0) << ", " << p(1) << ", " << p(2) <<")" << std::endl;
 }
 
-
+#if 1
 int main() {
 
     std::cout << "Connecting to FPGA" << std::endl;
 #if 0
     AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
+#elif 0
+    Pipeline pipeline(5000, Spherical(0, 0));
+    AWProcessingUnit awpu5(&pipeline);
+    AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
 #else
     AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
@@ -48,20 +52,12 @@ int main() {
 
     std::cout << "Connected to FPGA" << std::endl;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    //awpu.calibrate();
-    awpu5.calibrate();
-    awpu8.calibrate();
-
     std::cout << "Starting Gradient" << std::endl;
-    //awpu.start(GRADIENT);
-    //awpu5.start(PSO);
-    //awpu8.start(PSO);
+
     awpu5.start(GRADIENT);
     awpu8.start(GRADIENT);
 
     std::cout << "Starting listening" << std::endl;
-    //awpu.resume();
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
@@ -81,13 +77,19 @@ int main() {
         Spherical a8 = awpu8.target();
         point3d(a5, a8, 6.0);
 #endif
+
+        std::vector<Target> targets = awpu8.targets();
+
+        //std::cout << "Tracking: " << targets.size() << " objects" << std::endl;
+
+        //for ()
         //awpu.draw_heatmap(&frame);
         //std::cout << "Best direction: " << awpu5.target() << std::endl;
         // Apply color map
-        // Blur the image with a Gaussian kernel
+        
         hconcat(frame2,frame1,frame);
 
-
+        // Blur the image with a Gaussian kernel
         cv::GaussianBlur(frame, colorFrame,
                          cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
@@ -115,3 +117,19 @@ int main() {
 
     return 0;
 }
+
+#else 
+
+int main(int argc, char const *argv[])
+{
+    Spherical a(TO_RADIANS(90), TO_RADIANS(179));
+    Spherical b(TO_RADIANS(90), TO_RADIANS(0));
+
+    double theta = a.angle(b);
+
+    std::cout << theta << std::endl;
+
+    return 0;
+}
+
+#endif

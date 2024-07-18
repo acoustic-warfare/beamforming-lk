@@ -18,14 +18,33 @@
 #define SOUTH 2
 #define WEST 3
 
+/**
+ * Clip value between two values
+ */
 double clip(const double n, const double lower, const double upper);
 
+/**
+ * Modulo for radians
+ */
 double wrapAngle(const double angle);
 
+/**
+ * Retrieve the relative smallest angle between two angles
+ */
 double smallestAngle(const double target, const double current);
 
 
 typedef Eigen::Vector3f Position;
+
+/**
+ * Rotation around Z-axis
+ */
+Eigen::Matrix3f rotateZ(const float angle);
+
+/**
+ * Rotation around Y-axis
+ */
+Eigen::Matrix3f rotateY(const float angle);
 
 /**
  * Convert spherical coordinates to cartesian coordinates
@@ -36,17 +55,9 @@ Position spherical_to_cartesian(const double theta, const double phi, const doub
 struct Spherical;
 struct Horizontal;// Horizontal with a 90degree rotation on y-axis
 
-inline double degrees(const double angle) {
-    return angle * 180.0 / M_PI;
-}
-
-struct Direction {
-    double theta, phi;
-
-    Direction(){};
-    Direction(double theta, double phi) : theta(theta), phi(phi){};
-};
-
+/**
+ * Spherical representation of a position
+ */
 struct Spherical {
     double theta;// Inclination angle
     double phi;  // Azimuth angle
@@ -62,6 +73,7 @@ struct Spherical {
 
     double distanceTo(const Spherical &spherical);
     std::vector<Spherical> nearby(const double spread);
+    double angle(const Spherical &spherical);
 
     static Eigen::Vector3d toCartesian(const Spherical &spherical);
     Eigen::Vector3d toCartesian() const;
@@ -91,7 +103,7 @@ struct Horizontal {
     //}
 
     friend std::ostream &operator<<(std::ostream &out, const Horizontal &direction) {
-        out << "Horizontal: azimuth=" << degrees(direction.azimuth) << " elevation=" << degrees(direction.elevation);
+        out << "Horizontal: azimuth=" << TO_DEGREES(direction.azimuth) << " elevation=" << TO_DEGREES(direction.elevation);
         return out;
     }
 };
