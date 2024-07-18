@@ -2,7 +2,7 @@
 
 #include "audio/audio_wrapper.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose), audioWrapper(nullptr) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
 
@@ -35,6 +35,9 @@ AWProcessingUnit::~AWProcessingUnit() {
 
     for (auto &job: workers) {
         delete job;
+    }
+    if (audioWrapper) {
+        delete audioWrapper;
     }
 }
 
@@ -204,20 +207,24 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
     workers[0]->draw_heatmap(heatmap);
 }
 
-//Streams *AWProcessingUnit::get_streams() {
-//    return pipeline->getStreams(); 
-//}
-
 void AWProcessingUnit::play_audio() {
-    AudioWrapper audio(*pipeline->getStreams());
+    //AudioWrapper audio(*pipeline->getStreams());
+    //audio.start_audio_playback();
+    //std::cout << "AWPU: " << std::endl;
 
-    audio.start_audio_playback();
+    audioWrapper = new AudioWrapper(*pipeline->getStreams());
+    audioWrapper->start_audio_playback();
     std::cout << "AWPU: " << std::endl;
 }
 
 void AWProcessingUnit::stop_audio() {
-    AudioWrapper audio(*this->pipeline->getStreams());
-    audio.stop_audio_playback();
+    //AudioWrapper audio(*this->pipeline->getStreams());
+    //audio.stop_audio_playback();
+    if (audioWrapper) {
+        audioWrapper->stop_audio_playback();
+        delete audioWrapper;
+        audioWrapper = nullptr;
+    }
 }
 
 Spherical AWProcessingUnit::target() {

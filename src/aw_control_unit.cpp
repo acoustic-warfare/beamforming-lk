@@ -27,8 +27,6 @@ void AWControlUnit::Start() {
 
     if (USE_AUDIO) {
         awpu.play_audio();
-        //AudioWrapper audio(*awpu.get_streams());
-        //audio.start_audio_playback();
     }
 
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);

@@ -65,7 +65,7 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
 
     PaStreamParameters out_param;
     out_param.device = Pa_GetDefaultOutputDevice();
-    //out_param.device = 4;
+    //out_param.device = 0;
 
     std::cout << "out_param.device: " << out_param.device << std::endl;
 
@@ -74,13 +74,14 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
     out_param.channelCount = 2;
     out_param.hostApiSpecificStreamInfo = nullptr;
     out_param.sampleFormat = paFloat32;
-    out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
+    //out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
+    out_param.suggestedLatency = 0; 
 
     err = Pa_OpenStream(&audio_stream_,
                         nullptr,
                         &out_param,
                         SAMPLE_RATE,
-                        128,
+                        256,
                         paNoFlag,
                         audioCallback,
                         &streams);

@@ -6,10 +6,10 @@
 #include <algorithm>
 
 #include "algorithms/pso_seeker.h"
+#include "antenna.h"
 #include "pipeline.h"
 #include "worker.h"
-#include "antenna.h"
-
+#include "audio/audio_wrapper.h"
 
 class AWProcessingUnit {
 public:
@@ -26,6 +26,7 @@ public:
     void calibrate(const float reference_power_level = 1e-5);
     Spherical target();
 
+    AudioWrapper *audioWrapper;
 
 protected:
     int verbose;
