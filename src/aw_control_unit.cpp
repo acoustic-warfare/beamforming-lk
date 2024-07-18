@@ -26,7 +26,6 @@ void AWControlUnit::Start() {
     awpu2.start(GRADIENT);
 
     targetHandler_ << &awpu1 << &awpu2;
-
     targetHandler_.Start();
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
@@ -66,6 +65,7 @@ void AWControlUnit::Start() {
     }
     if (usingWaraPS_) {
         client_.Stop();
+        targetHandler_.Stop();
         data_thread_.join();
     }
 }
@@ -76,8 +76,8 @@ void AWControlUnit::publishData() {
         if (gps_read(&gpsData_, nullptr, 0) == -1) {
             std::cerr << "GPS Read error" << std::endl;
         } else if (isfinite(gpsData_.fix.altitude) &&
-                    isfinite(gpsData_.fix.latitude) &&
-                    isfinite(gpsData_.fix.longitude)) {
+                   isfinite(gpsData_.fix.latitude) &&
+                   isfinite(gpsData_.fix.longitude)) {
             // Sending NaN breaks WARA PS Arena
 
             const nlohmann::json gpsJson = {

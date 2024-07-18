@@ -19,14 +19,14 @@ void TargetHandler::Start() {
     workerThread_ = std::thread([&] {
         // Lite scuffed lösning för att den inte ska leta targets på samma FPGA
         // TODO: Smartare och snyggare lösning, typ dubbelvector?
+
+
         while (*running) {
-            std::vector<std::tuple<Target, int> > targets;
-            int index = 0;
+            std::vector<Target> targets;
             for (const auto awpu: awpus_) {
-                for (const auto target: awpu->targets()) {
-                    targets.emplace_back(target, index);
+                for (auto [direction, power, probability]: awpu->targets()) {
+                    targets.emplace_back(direction, power, probability);
                 }
-                index++;
             }
             findTargets(targets);
         }
@@ -43,13 +43,13 @@ TargetHandler &TargetHandler::operator<<(AWProcessingUnit *awpu) {
     return *this;
 }
 
-void TargetHandler::findTargets(const std::vector<std::tuple<Target, int> > &targets) {
+void TargetHandler::findTargets(const std::vector<Target> &targets) {
     std::vector<Eigen::Vector2d> foundTargets;
-    for (const auto [target, index1]: targets) {
+    for (const auto target: targets) {
         if (target.probability > sensitivity_)
             continue;
-        for (const auto [target2, index2]: targets) {
-            if (target == target2 || target2.probability < sensitivity_ || index1 == index2) {
+        for (const auto target2: targets) {
+            if (target == target2 || target2.probability < sensitivity_) {
                 continue;
             }
             Eigen::Vector2d foundPoint =

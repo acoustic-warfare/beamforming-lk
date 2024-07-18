@@ -30,7 +30,7 @@ public:
 
     TargetHandler& operator<<(AWProcessingUnit *awpu);
 
-    void findTargets(const std::vector<std::tuple<Target, int>> &targets);
+    void findTargets(const std::vector<Target> &targets);
 };
 
 
