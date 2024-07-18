@@ -27,7 +27,7 @@ BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 
 # Waraps client
 USE_WARAPS: false
-WARAPS_NAME: "test"
+WARAPS_NAME: "ljudkriget"
 WARAPS_ADDRESS: "mqtts://broker.waraps.org:8883"
 GPS_ADDRESS: "localhost"
 GPS_PORT: 2947
