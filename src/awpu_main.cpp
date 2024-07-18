@@ -35,6 +35,23 @@ void point3d(const Spherical& spherical1, const Spherical& spherical2, const dou
     std::cout << "Point: (" <<p(0) << ", " << p(1) << ", " << p(2) <<")" << std::endl;
 }
 
+void draw(cv::Mat &heatmap, Target &target) {
+    double x_res = (double) heatmap.rows;
+    double y_res = (double) heatmap.cols;
+
+    // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
+    // 0.5 to get the sphere in the first sector in the cartesian coordinate system
+    Cartesian position = Cartesian::convert(target.direction, 1.0);
+
+    // Use the position values to plot over the heatmap
+    int x = (int) (x_res * (position.x / 2.0 + 0.5));
+    int y = (int) (y_res * (position.y / 2.0 + 0.5));
+
+    int m = 255;
+
+    cv::circle(heatmap, cv::Point(y, x), 5, cv::Scalar(m, m, m), cv::FILLED, 8, 0);
+}
+
 #if 1
 int main() {
 
@@ -45,6 +62,11 @@ int main() {
     Pipeline pipeline(5000, Spherical(0, 0));
     AWProcessingUnit awpu5(&pipeline);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
+#elif 1
+    Pipeline pipeline("10.0.0.1", 21875);
+    //AWProcessingUnit awpu5 = AWProcessingUnit(&pipeline);
+    AWProcessingUnit awpu8 = AWProcessingUnit(&pipeline);
+
 #else
     AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
@@ -54,8 +76,8 @@ int main() {
 
     std::cout << "Starting Gradient" << std::endl;
 
-    awpu5.start(GRADIENT);
-    awpu8.start(GRADIENT);
+    //awpu5.start(GRADIENT);
+    awpu8.start(MIMO);
 
     std::cout << "Starting listening" << std::endl;
 
@@ -68,17 +90,29 @@ int main() {
     cv::Mat frame(Y_RES, X_RES*2, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES*2, CV_8UC1);
 
+    cv::Mat small(32, 32, CV_8UC1);
+
 
     while (1) {
-        awpu5.draw_heatmap(&frame1);
-        awpu8.draw_heatmap(&frame2);
-#if 0
-        Spherical a5 = awpu5.target();
-        Spherical a8 = awpu8.target();
-        point3d(a5, a8, 6.0);
+        
+
+
+        // Reset heatmap
+        frame1.setTo(cv::Scalar(0));
+        frame2.setTo(cv::Scalar(0));
+
+#if 1
+        //awpu5.draw_heatmap(&frame1);
+        //awpu8.draw_heatmap(&frame2);
+        awpu8.draw_heatmap(&small);
 #endif
 
-        std::vector<Target> targets = awpu8.targets();
+        //for (Target &target : awpu5.targets()) {
+        //    draw(frame1, target);
+        //}
+        //for (Target &target: awpu8.targets()) {
+        //    draw(frame2, target);
+        //}
 
         //std::cout << "Tracking: " << targets.size() << " objects" << std::endl;
 
@@ -86,8 +120,11 @@ int main() {
         //awpu.draw_heatmap(&frame);
         //std::cout << "Best direction: " << awpu5.target() << std::endl;
         // Apply color map
+        //cv::GaussianBlur(small, small,
+        //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+        cv::resize(small, frame2, frame2.size(), 0, 0, cv::INTER_LINEAR);
         
-        hconcat(frame2,frame1,frame);
+        cv::hconcat(frame2,frame1,frame);
 
         // Blur the image with a Gaussian kernel
         cv::GaussianBlur(frame, colorFrame,

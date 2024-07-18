@@ -62,12 +62,12 @@ AWProcessingUnit::~AWProcessingUnit() {
 bool AWProcessingUnit::start(const worker_t worker) {
     Worker *job;
     switch (worker) {
-        case PSO:
-
-            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
-            break;
+//        case PSO:
+//
+//            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
+//            break;
         case MIMO:
-            job = nullptr;
+            job = (Worker *) new MIMOWorker(pipeline, antennas[0], &running, 32, 32, 130);
             break;
         case SOUND:
             job = nullptr;
@@ -234,7 +234,7 @@ void AWProcessingUnit::resume() {
 }
 
 void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
-    workers[0]->draw_heatmap(heatmap);
+    workers[0]->draw(heatmap);
 }
 
 std::vector<Target> AWProcessingUnit::targets() {
