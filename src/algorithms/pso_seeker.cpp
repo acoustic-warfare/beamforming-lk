@@ -1,3 +1,4 @@
+#if 0
 #include "pso_seeker.h"
 
 #if 0
@@ -362,3 +363,4 @@ void PSOWorker::loop() {
 
     std::cout << "Done loop" << std::endl;
 }
+#endif
