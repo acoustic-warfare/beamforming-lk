@@ -2,11 +2,12 @@
 // Created by janne on 2024-07-04.
 //
 
-#include <stdexcept>
+#include "aw_control_unit.h"
+
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include "aw_control_unit.h"
+#include <stdexcept>
 
 void AWControlUnit::Start() {
     try {
@@ -18,7 +19,7 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21878);
+    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
     awpu.calibrate();
     awpu.start(PSO);
 
@@ -27,6 +28,12 @@ void AWControlUnit::Start() {
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
+
+    if (USE_AUDIO) {
+        awpu.play_audio();
+    }
+    std::cout << "AWCU: " << std::endl;
+
 
     if (usingWaraPS_)
         data_thread_ = std::thread([this] {
@@ -60,6 +67,9 @@ void AWControlUnit::Start() {
         client_.Stop();
         data_thread_.join();
     }
+    if (USE_AUDIO) {
+        awpu.stop_audio();
+    }
 }
 
 // Publishes data every second
@@ -69,19 +79,18 @@ void AWControlUnit::publishData() {
             std::cerr << "GPS Read error" << std::endl;
         } else if ((isfinite(gpsData_.fix.altitude) &&
                     isfinite(gpsData_.fix.latitude) &&
-                    isfinite(gpsData_.fix.longitude))) { // Sending NaN breaks WARA PS Arena
+                    isfinite(gpsData_.fix.longitude))) {// Sending NaN breaks WARA PS Arena
 
             nlohmann::json gpsJson = {
                     {"longitude", std::to_string(gpsData_.fix.longitude)},
-                    {"latitude",  std::to_string(gpsData_.fix.latitude)},
-                    {"altitude",  std::to_string(gpsData_.fix.altitude)},
-                    {"type",      "GeoPoint"}
-            };
+                    {"latitude", std::to_string(gpsData_.fix.latitude)},
+                    {"altitude", std::to_string(gpsData_.fix.altitude)},
+                    {"type", "GeoPoint"}};
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
     }
 
-    client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
+    client_.PublishMessage("sensor/heading", std::to_string(90.0));// Currently not a real value
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
