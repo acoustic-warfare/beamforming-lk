@@ -247,10 +247,13 @@ void Pipeline::producer() {
  */
 void Pipeline::receive_exposure() {
     for (int i = 0; i < N_SAMPLES; i++) {
-        if (receive_message(socket_desc, &msg) < 0) {
-            std::cerr << "Error exposure" << std::endl;
-            break;
+        for (int s = 0; s < 1; s++) {
+            if (receive_message(socket_desc, &msg) < 0) {
+                std::cerr << "Error exposure" << std::endl;
+                break;
+            }
         }
+        
 
         // Flip columns
         int inverted = 0;

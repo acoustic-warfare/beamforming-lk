@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "algorithms/gradient_ascend.h"
+#include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
 #include "pipeline.h"
@@ -38,5 +39,7 @@ protected:
 
     std::vector<Antenna> antennas;
 };
+
+
 
 #endif

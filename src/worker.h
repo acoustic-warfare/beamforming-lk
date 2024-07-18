@@ -3,6 +3,9 @@
 
 #include <mutex>
 #include <opencv2/opencv.hpp>// cv::Mat
+#include <thread>
+
+#include "pipeline.h"
 
 #include "geometry.h"
 
@@ -36,6 +39,7 @@ struct Target {
  * Worker types for beamforming algorithms
  */
 enum worker_t {
+    GENERIC,
     PSO,
     MIMO,
     SOUND,
@@ -55,21 +59,26 @@ public:
 
     // Inherited pipeline
     Pipeline *pipeline;
-    Worker(Pipeline *pipeline, bool *running) : looping(true), pipeline(pipeline), running(running){};
+    Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true), pipeline(pipeline), antenna(antenna), running(running){
+        this->streams = pipeline->getStreams();
+        thread_loop = std::thread(&Worker::loop, this);
+    };
 
     ~Worker() {
         looping = false;
-        std::cout << "Waiting for thread to return" << std::endl;
+        //std::cout << "Waiting for thread to return" << std::endl;
         thread_loop.join();
-        std::cout << "thread returned" << std::endl;
+        //std::cout << "thread returned" << std::endl;
 
-        std::cout << "Destroyed worker" << std::endl;
+        //std::cout << "Destroyed worker" << std::endl;
     };
 
     /**
      * Worker type
      */
-    worker_t get_type();
+    virtual worker_t get_type() {
+        return worker_t::GENERIC;
+    };
 
     /**
      * Getter for worker direction
@@ -86,25 +95,60 @@ public:
     /**
      * Draw values onto a heatmap
      */
-    virtual void draw_heatmap(cv::Mat *heatmap) {
-        std::cout << "Wrong drawer" << std::endl;
+    void draw(cv::Mat *heatmap) {
+        lock.lock();
+        //std::cout << "Wrong drawer" << std::endl;
+        populateHeatmap(heatmap);
+        lock.unlock();
     };
 
-    /**
-     * Worker main loop
-     */
-    virtual void loop() {};
+    
 
 
 protected:
     // Current direction
     Spherical direction;
 
+    Streams *streams;
+    Antenna &antenna;
+
     // Current tracking objects
     std::vector<Target> tracking;
 
+    bool canContinue() {
+        //std::cout << start <<" "<< pipeline->mostRecent() << std::endl;
+        return (start == pipeline->mostRecent());
+    }
+
+    virtual void update() {
+        std::cout << "Wrong update" << std::endl;
+    };
+
+    virtual void reset() {};
+
+    virtual void populateHeatmap(cv::Mat *heatmap) {};
+
+private:
+    int start;
+
     // Lock to prevent multiple access from outside and inside
     std::mutex lock;
+
+    /**
+     * Worker main loop
+     */
+    void loop() {
+        while (looping && pipeline->isRunning()) {
+            // Wait for incoming data
+            pipeline->barrier();
+
+            start = pipeline->mostRecent();
+            lock.lock();
+            reset();
+            update();
+            lock.unlock();
+        }
+    }
 };
 
 #endif
