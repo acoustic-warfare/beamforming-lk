@@ -74,9 +74,10 @@ int main() {
 
     std::cout << "Connected to FPGA" << std::endl;
 
-    std::cout << "Starting Gradient" << std::endl;
+    //std::cout << "Starting Gradient" << std::endl;
 
-    awpu5.start(GRADIENT);
+    //awpu5.start(GRADIENT);
+    awpu5.start(MIMO);
     awpu8.start(MIMO);
 
     std::cout << "Starting listening" << std::endl;
@@ -90,7 +91,8 @@ int main() {
     cv::Mat frame(Y_RES, X_RES*2, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES*2, CV_8UC1);
 
-    cv::Mat small(32, 32, CV_8UC1);
+    cv::Mat small1(MIMO_SIZE, MIMO_SIZE, CV_8UC1);
+    cv::Mat small2(MIMO_SIZE, MIMO_SIZE, CV_8UC1);
 
 
     while (1) {
@@ -100,12 +102,14 @@ int main() {
         // Reset heatmap
         frame1.setTo(cv::Scalar(0));
         frame2.setTo(cv::Scalar(0));
-        small.setTo(cv::Scalar(0));
+        small1.setTo(cv::Scalar(0));
+        small2.setTo(cv::Scalar(0));
 
 #if 1
         awpu5.draw_heatmap(&frame1);
         //awpu8.draw_heatmap(&frame2);
-        awpu8.draw_heatmap(&small);
+        awpu5.draw_heatmap(&small1);
+        awpu8.draw_heatmap(&small2);
 #endif
 
         //for (Target &target : awpu5.targets()) {
@@ -123,9 +127,10 @@ int main() {
         // Apply color map
         //cv::GaussianBlur(small, small,
         //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-        cv::resize(small, frame2, frame2.size(), 0, 0, cv::INTER_LINEAR);
+        cv::resize(small1, frame1, frame1.size(), 0, 0, cv::INTER_LINEAR);
+        cv::resize(small2, frame2, frame2.size(), 0, 0, cv::INTER_LINEAR);
         
-        cv::hconcat(frame2,frame1,frame);
+        cv::hconcat(frame1,frame2,frame);
 
         // Blur the image with a Gaussian kernel
         cv::GaussianBlur(frame, colorFrame,

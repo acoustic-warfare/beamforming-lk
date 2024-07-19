@@ -13,6 +13,8 @@
 #include "worker.h"
 
 
+#define MIMO_SIZE 100
+
 class AWProcessingUnit {
 public:
     AWProcessingUnit(const char *address, const int port, int verbose = 1, bool debug = false);
