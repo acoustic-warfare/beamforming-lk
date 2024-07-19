@@ -60,8 +60,8 @@ void TargetHandler::findTargets(const std::vector<Target> &targets) {
                 continue;
             }
 
-            std::cout << "Found target at coordinates: " << foundPoint << std::endl;
-            std::cout << "At distance:" << std::to_string(foundPoint.norm()) << std::endl;
+            std::cout << "Found target at coordinates:\n" << foundPoint << std::endl;
+            std::cout << "At distance: " << std::to_string(foundPoint.norm()) << std::endl;
 
             foundTargets.push_back(foundPoint);
         }

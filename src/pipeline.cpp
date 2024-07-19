@@ -211,7 +211,7 @@ void Pipeline::barrier() {
     barrier_condition.wait(lock, [&] { return barrier_count == 0; });
 }
 
-Streams *Pipeline::getStreams() {
+Streams *Pipeline::getStreams() const {
     return streams;
 }
 
@@ -274,7 +274,7 @@ void Pipeline::receive_exposure() {
             }
 
             // Normalize mic data between -1.0 and 1.0
-            exposure_buffer[sensor_index][i] = (float) msg.stream[index] / (float) MAX_VALUE_FLOAT;
+            exposure_buffer[sensor_index][i] = static_cast<float>(msg.stream[index]) / static_cast<float>(MAX_VALUE_FLOAT);
         }
     }
 

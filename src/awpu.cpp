@@ -67,13 +67,13 @@ bool AWProcessingUnit::start(const worker_t worker) {
 //            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
 //            break;
         case MIMO:
-            job = (Worker *) new MIMOWorker(pipeline, antennas[0], &running, 32, 32, 45);
+            job = static_cast<Worker *>(new MIMOWorker(pipeline, antennas[0], &running, 32, 32, 45));
             break;
         case SOUND:
             job = nullptr;
             break;
         case GRADIENT:
-            job = (Worker *) new SphericalGradient(pipeline, antennas[0], &running, 50, 10);
+            job = static_cast<Worker *>(new SphericalGradient(pipeline, antennas[0], &running, 50, 10));
             break;
         default:
             return false;
@@ -172,7 +172,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             }
         }
 
-        mean /= (float) count;
+        mean /= static_cast<float>(count);
 
         antenna.usable = count;
         antenna.median = median;
@@ -233,7 +233,7 @@ void AWProcessingUnit::resume() {
     this->running = true;
 }
 
-void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
+void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) const {
     workers[0]->draw(heatmap);
 }
 

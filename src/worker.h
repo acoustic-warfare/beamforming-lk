@@ -30,8 +30,9 @@ struct Target {
     float probability;
 
     bool operator==(const Target &other) const {
-        return direction.toCartesian().isApprox(other.direction.toCartesian(), 1e-3);
+        return fabs(direction.phi - other.direction.phi) < 1e-2 && fabs(direction.theta - other.direction.theta) < 1e-2;
     }
+
 };
 
 /**

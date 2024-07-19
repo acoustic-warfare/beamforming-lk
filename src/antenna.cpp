@@ -89,8 +89,8 @@ Antenna create_antenna(const Position &position, const int columns,
     int i = 0;
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < columns; c++) {
-            points(X_INDEX, i) = (float)c * distance - rows * half + half;
-            points(Y_INDEX, i) = (float)r * distance - columns * half + half;
+            points(X_INDEX, i) = static_cast<float>(c) * distance - rows * half + half;
+            points(Y_INDEX, i) = static_cast<float>(r) * distance - columns * half + half;
             points(Z_INDEX, i) = 0.f;
 
             i++;
@@ -138,7 +138,7 @@ inline Antenna steer(const Antenna &antenna, const double theta, const double ph
 
     // Perform the rotation. Order of operations are important
     Antenna rotated;
-    rotated.points = (rotateY(-(float)theta) * (rotateZ((float)phi) * antenna.points));
+    rotated.points = (rotateY(-static_cast<float>(theta)) * (rotateZ(static_cast<float>(phi)) * antenna.points));
     rotated.id = antenna.id;
 
     return rotated;
@@ -195,12 +195,12 @@ Eigen::MatrixXf generate_unit_dome(const int n) {
     double magic = 2.0 * M_PI / 1.618033988749;
 
     for (int i = 0; i < n; i++) {
-        phi = acos(1.0 - (double) i / double(n));
-        theta = (double) i * magic;
+        phi = acos(1.0 - static_cast<double>(i) / static_cast<double>(n));
+        theta = static_cast<double>(i) * magic;
 
-        points(i, X_INDEX) = (float) (cos(theta) * sin(phi));
-        points(i, Y_INDEX) = (float) (sin(theta) * sin(phi));
-        points(i, Z_INDEX) = (float) (cos(phi));
+        points(i, X_INDEX) = static_cast<float>(cos(theta) * sin(phi));
+        points(i, Y_INDEX) = static_cast<float>(sin(theta) * sin(phi));
+        points(i, Z_INDEX) = static_cast<float>(cos(phi));
     }
 
     return points;
@@ -212,16 +212,16 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
             int best_match = -1;
             float min_dist = 1000000.0f;
             for (int i = 0; i < dome.size(); ++i) {
-                float phi_radians = TO_RADIANS(float(phi));
-                float theta_radians = TO_RADIANS(float(theta));
+                float phi_radians = TO_RADIANS(static_cast<float>(phi));
+                float theta_radians = TO_RADIANS(static_cast<float>(theta));
                 float x = std::cos(theta_radians) * std::sin(phi_radians);
                 float y = std::sin(theta_radians) * std::sin(phi_radians);
                 float z = std::cos(phi_radians);
 
-                auto dist = float(sqrt(
-                        pow(x - dome(i, X_INDEX), 2) +
-                        pow(y - dome(i, Y_INDEX), 2) +
-                        pow(z - dome(i, Z_INDEX), 2)));
+                auto dist = static_cast<float>(sqrt(
+                    pow(x - dome(i, X_INDEX), 2) +
+                    pow(y - dome(i, Y_INDEX), 2) +
+                    pow(z - dome(i, Z_INDEX), 2)));
 
                 best_match = dist < min_dist ? i : best_match;
                 min_dist = dist < min_dist ? dist : min_dist;
@@ -242,16 +242,16 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
         int index = lookup_table(phi, theta);
         auto point = dome.row(index);
 
-        float phi_radians = TO_RADIANS(double(phi));
-        float theta_radians = TO_RADIANS(double(theta));
+        float phi_radians = TO_RADIANS(static_cast<double>(phi));
+        float theta_radians = TO_RADIANS(static_cast<double>(theta));
         float x = cos(theta_radians) * sin(phi_radians);
         float y = sin(theta_radians) * sin(phi_radians);
         float z = cos(phi_radians);
 
-        auto dist = float(sqrt(
-                pow(x - point(X_INDEX), 2) +
-                pow(y - point(Y_INDEX), 2) +
-                pow(z - point(Z_INDEX), 2)));
+        auto dist = static_cast<float>(sqrt(
+            pow(x - point(X_INDEX), 2) +
+            pow(y - point(Y_INDEX), 2) +
+            pow(z - point(Z_INDEX), 2)));
 
         if (dist > MAX_ALLOWED_DISTANCE) {
             failed_tests++;
