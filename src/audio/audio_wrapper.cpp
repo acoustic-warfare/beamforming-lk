@@ -7,6 +7,8 @@
 #include <cmath>
 #include <vector>
 
+#define FRAMES_PER_BUFFER 512
+
 constexpr int device = 0;
 
 static int audioCallback(const void *_, void *outputBuffer,
@@ -62,20 +64,20 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
 
     PaStreamParameters out_param;
     out_param.device = Pa_GetDefaultOutputDevice();
+    //out_param.device = 16;
 
     std::cout << "out_param.device: " << out_param.device << std::endl;
-
     out_param.channelCount = 2;
     out_param.hostApiSpecificStreamInfo = nullptr;
     out_param.sampleFormat = paFloat32;
     out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
-    //out_param.suggestedLatency = 0; 
+    //out_param.suggestedLatency = 0;
 
     err = Pa_OpenStream(&audio_stream_,
                         nullptr,
                         &out_param,
                         SAMPLE_RATE,
-                        256,
+                        FRAMES_PER_BUFFER,
                         paNoFlag,
                         audioCallback,
                         &streams);
