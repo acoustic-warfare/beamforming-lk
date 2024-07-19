@@ -34,6 +34,14 @@ void TargetHandler::SetSensitivity(const double sensitivity) {
     min_probability_ = sensitivity;
 }
 
+std::vector<Eigen::Vector3d> TargetHandler::getTargets() {
+    mutex_.lock();
+    std::vector targets(targets_);
+    mutex_.unlock();
+
+    return targets;
+}
+
 TargetHandler &TargetHandler::operator<<(AWProcessingUnit *awpu) {
     awpus_.push_back(awpu);
     return *this;

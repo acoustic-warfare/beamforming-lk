@@ -30,13 +30,7 @@ public:
 
     void SetSensitivity(double sensitivity);
 
-    std::vector<Eigen::Vector3d> getTargets() {
-        mutex_.lock();
-        std::vector<Eigen::Vector3d> targets(targets_);
-        mutex_.unlock();
-
-        return targets;
-    }
+    std::vector<Eigen::Vector3d> getTargets();
 
     TargetHandler& operator<<(AWProcessingUnit *awpu);
 
