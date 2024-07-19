@@ -12,14 +12,14 @@
 //#include "audio/audio_wrapper.h"
 
 void AWControlUnit::Start() {
-    //try {
-    //    client_.Start();
-    //    usingWaraPS_ = true;
-    //} catch (std::runtime_error &e) {
-    //    std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
-    //    std::cout << "Continuing without WARA PS Connection" << std::endl;
-    //    usingWaraPS_ = false;
-    //}
+    try {
+        client_.Start();
+        usingWaraPS_ = true;
+    } catch (std::runtime_error &e) {
+        std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
+        std::cout << "Continuing without WARA PS Connection" << std::endl;
+        usingWaraPS_ = false;
+    }
 
     AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
     awpu.calibrate();
@@ -34,9 +34,6 @@ void AWControlUnit::Start() {
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
-
-    std::cout << "AWCU: " << std::endl;
-
 
     if (usingWaraPS_)
         data_thread_ = std::thread([this] {

@@ -7,9 +7,9 @@
 
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
+#include "audio/audio_wrapper.h"
 #include "pipeline.h"
 #include "worker.h"
-#include "audio/audio_wrapper.h"
 
 class AWProcessingUnit {
 public:

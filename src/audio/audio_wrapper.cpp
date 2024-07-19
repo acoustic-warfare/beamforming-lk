@@ -20,13 +20,12 @@ static int audioCallback(const void *_, void *outputBuffer,
     (void) _;// Ignore unused variable warning for input buffer
 
     for (int i = 0; i < framesPerBuffer; ++i) {
-        std::cout << "i: " << i << "buf: " << in->buffers[4][i] << std::endl;
+        //std::cout << "i: " << i << "buf: " << in->buffers[4][i] << std::endl;
 
         out[i] = in->buffers[4][i];
     }
 
-    return 0;
-    //return paContinue;
+    return paContinue;
 }
 
 static void checkErr(PaError err) {
@@ -61,21 +60,16 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
         }
     }
 
-    //PaError err = paNoError;
-
     PaStreamParameters out_param;
     out_param.device = Pa_GetDefaultOutputDevice();
-    //out_param.device = 0;
 
     std::cout << "out_param.device: " << out_param.device << std::endl;
-
-    //out_param.device = 0;
 
     out_param.channelCount = 2;
     out_param.hostApiSpecificStreamInfo = nullptr;
     out_param.sampleFormat = paFloat32;
-    //out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
-    out_param.suggestedLatency = 0; 
+    out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
+    //out_param.suggestedLatency = 0; 
 
     err = Pa_OpenStream(&audio_stream_,
                         nullptr,

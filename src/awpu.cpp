@@ -208,18 +208,12 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
 }
 
 void AWProcessingUnit::play_audio() {
-    //AudioWrapper audio(*pipeline->getStreams());
-    //audio.start_audio_playback();
-    //std::cout << "AWPU: " << std::endl;
-
     audioWrapper = new AudioWrapper(*pipeline->getStreams());
     audioWrapper->start_audio_playback();
     std::cout << "AWPU: " << std::endl;
 }
 
 void AWProcessingUnit::stop_audio() {
-    //AudioWrapper audio(*this->pipeline->getStreams());
-    //audio.stop_audio_playback();
     if (audioWrapper) {
         audioWrapper->stop_audio_playback();
         delete audioWrapper;
