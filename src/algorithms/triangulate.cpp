@@ -4,21 +4,38 @@
 
 #include "triangulate.h"
 
-Eigen::Vector2d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Vector3d &b, double distance) {
-    using Vec2 = Eigen::Vector2d;
-    using line = Eigen::Hyperplane<double, 2>;
+#include <opencv2/core/matx.hpp>
 
-    const Vec2 a_start(-distance/2, 0);
-    const Vec2 b_start(distance/2,0);
-    const Vec2 a2d = a.head(2);
-    const Vec2 b2d = b.head(2);
+Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Vector3d &b, const double distance) {
+    using Vec3 = Eigen::Vector3d;
 
-    const line a_line = line::Through(a_start, a2d);
-    const line b_line = line::Through(b_start, b2d);
+    const Vec3 a_start(-distance / 2, 0, 0);
+    const Vec3 b_start(distance / 2, 0, 0);
 
-    if(a_line.isApprox(b_line)) {
-        return {0,0};
+    const Vec3 u = a.normalized();
+    const Vec3 v = b.normalized();
+    const Vec3 w0 = a_start - b_start;
+
+    const double a_dot_a = u.dot(u);
+    const double b_dot_b = v.dot(v);
+    const double a_dot_b = u.dot(v);
+    const double a_dot_w0 = u.dot(w0);
+    const double b_dot_w0 = v.dot(w0);
+
+    const double denominator = a_dot_a * b_dot_b - a_dot_b * a_dot_b;
+
+    if (std::abs(denominator) < 1e-6) {
+        return Vec3::Zero();
     }
 
-    return a_line.intersection(b_line);
+    const double ta = (a_dot_b * b_dot_w0 - b_dot_b * a_dot_w0) / denominator;
+    const double tb = (a_dot_a * b_dot_w0 - a_dot_b * a_dot_w0) / denominator;
+
+    const Vec3 closest_point_a = a_start + ta * u;
+    const Vec3 closest_point_b = b_start + tb * v;
+
+    // Midpoint of the closest approach
+    Vec3 midpoint = (closest_point_a + closest_point_b) / 2.0;
+
+    return midpoint;
 }

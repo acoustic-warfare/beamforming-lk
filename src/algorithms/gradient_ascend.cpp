@@ -199,7 +199,7 @@ void SphericalGradient::update() {
             if (particle.tracking) {
                 for (int i = 0; i < 5; i++)
                     particle.step(start_rate / 50.0);
-                if (particle.gradient > 1000) {
+                if (particle.gradient > 1) {
                     particle.tracking = false;
                 } else {
                     n_tracking++;

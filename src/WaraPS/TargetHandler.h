@@ -12,11 +12,13 @@
  */
 class TargetHandler {
 private:
-    std::vector<Eigen::Vector2d> targets_;
+    std::vector<Eigen::Vector3d> targets_;
     std::vector<AWProcessingUnit *> awpus_;
-    double sensitivity_ = INFINITY;
-    static constexpr double THRESHOLD = 0.5;
+    double min_probability_ = 10;
+    static constexpr double THRESHOLD = 10;
     std::thread workerThread_;
+
+    std::mutex mutex_;
 
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
 
@@ -27,6 +29,14 @@ public:
     void Stop();
 
     void SetSensitivity(double sensitivity);
+
+    std::vector<Eigen::Vector3d> getTargets() {
+        mutex_.lock();
+        std::vector<Eigen::Vector3d> targets(targets_);
+        mutex_.unlock();
+
+        return targets;
+    }
 
     TargetHandler& operator<<(AWProcessingUnit *awpu);
 

@@ -17,10 +17,6 @@ void TargetHandler::Start() {
     *running = true;
 
     workerThread_ = std::thread([&] {
-        // Lite scuffed lösning för att den inte ska leta targets på samma FPGA
-        // TODO: Smartare och snyggare lösning, typ dubbelvector?
-
-
         while (*running) {
             std::vector<Target> targets;
             for (const auto awpu: awpus_) {
@@ -35,7 +31,7 @@ void TargetHandler::Start() {
 
 
 void TargetHandler::SetSensitivity(const double sensitivity) {
-    sensitivity_ = sensitivity;
+    min_probability_ = sensitivity;
 }
 
 TargetHandler &TargetHandler::operator<<(AWProcessingUnit *awpu) {
@@ -44,28 +40,26 @@ TargetHandler &TargetHandler::operator<<(AWProcessingUnit *awpu) {
 }
 
 void TargetHandler::findTargets(const std::vector<Target> &targets) {
-    std::vector<Eigen::Vector2d> foundTargets;
+    std::vector<Eigen::Vector3d> foundTargets;
+
     for (const auto target: targets) {
-        if (target.probability > sensitivity_)
+        if (target.probability < min_probability_)
             continue;
         for (const auto target2: targets) {
-            if (target == target2 || target2.probability < sensitivity_) {
+            if (target == target2 || target2.probability < min_probability_) {
                 continue;
             }
-            Eigen::Vector2d foundPoint =
+            Eigen::Vector3d foundPoint =
                     calculateRelativePoint(target.direction.toCartesian(), target2.direction.toCartesian(),
                                            LK_DISTANCE);
 
-            if (foundPoint.norm() < 0 || foundPoint.norm() > 50) {
+            if (foundPoint.norm() > 50) {
                 continue;
             }
-
-            std::cout << "Found target at coordinates:\n" << foundPoint << std::endl;
-            std::cout << "At distance: " << std::to_string(foundPoint.norm()) << std::endl;
-
             foundTargets.push_back(foundPoint);
         }
     }
-
-    targets_ = foundTargets;
+    mutex_.lock();
+    targets_ = std::move(foundTargets);
+    mutex_.unlock();
 }
