@@ -58,7 +58,8 @@ RUN apt-get install -y \
     libgps-dev \
     libgps28 \
     alsa-utils \
-    pulseaudio
+    pulseaudio \
+    libmp3lame-dev
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
