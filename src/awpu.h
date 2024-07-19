@@ -23,7 +23,7 @@ public:
     bool stop(const worker_t worker);
     void pause();
     void resume();
-    void draw_heatmap(cv::Mat *heatmap);
+    void draw_heatmap(cv::Mat *heatmap) const;
     void calibrate(const float reference_power_level = 1e-5);
     void synthetic_calibration();
     std::vector<Target> targets();

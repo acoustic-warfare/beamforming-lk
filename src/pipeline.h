@@ -57,7 +57,7 @@ public:
      */
     void barrier();
 
-    Streams *getStreams();
+    Streams *getStreams() const;
 
     int get_n_sensors() { return this->n_sensors; };
 
