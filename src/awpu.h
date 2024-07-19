@@ -26,8 +26,6 @@ public:
     void calibrate(const float reference_power_level = 1e-5);
     Spherical target();
 
-    AudioWrapper *audioWrapper;
-
 protected:
     int verbose;
     std::vector<Worker *> workers;
@@ -35,6 +33,8 @@ protected:
     bool running;
 
     std::vector<Antenna> antennas;
+
+    AudioWrapper *audioWrapper;
 };
 
 #endif

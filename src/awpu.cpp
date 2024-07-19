@@ -2,7 +2,7 @@
 
 #include "audio/audio_wrapper.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose), audioWrapper(nullptr) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
 
@@ -210,7 +210,6 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
 void AWProcessingUnit::play_audio() {
     audioWrapper = new AudioWrapper(*pipeline->getStreams());
     audioWrapper->start_audio_playback();
-    std::cout << "AWPU: " << std::endl;
 }
 
 void AWProcessingUnit::stop_audio() {
