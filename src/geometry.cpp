@@ -25,9 +25,9 @@ double smallestAngle(const double target, const double current) {
 Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0) {
     Position point;
 
-    point(X_INDEX) = (float) (radius * (sin(theta) * cos(phi)));
-    point(Y_INDEX) = (float) (radius * (sin(theta) * sin(phi)));
-    point(Z_INDEX) = (float) (radius * (cos(theta)));
+    point(X_INDEX) = static_cast<float>(radius * (sin(theta) * cos(phi)));
+    point(Y_INDEX) = static_cast<float>(radius * (sin(theta) * sin(phi)));
+    point(Z_INDEX) = static_cast<float>(radius * (cos(theta)));
 
     return point;
 }
@@ -35,7 +35,7 @@ Position spherical_to_cartesian(const double theta, const double phi, const doub
 /**
  * Compute the distance between two spherical directions
  */
-double Spherical::distanceTo(const Spherical &spherical) {
+double Spherical::distanceTo(const Spherical &spherical) const {
     return sqrt(
             2.0 - 2.0 * (sin(this->theta) * sin(spherical.theta) * cos(this->phi - spherical.phi) + cos(this->theta) * cos(spherical.theta)));
 }
@@ -171,16 +171,16 @@ std::vector<Spherical> Spherical::nearby(const double spread) {
 
 Eigen::Matrix3f rotateZ(const float angle) {
     Eigen::Matrix3f Rz;
-    Rz << (float) cos((double)angle), -(float) sin((double)angle), 0.0f,
-            (float) sin((double)angle), (float) cos((double)angle), 0.0f,
+    Rz << static_cast<float>(cos((double) angle)), -static_cast<float>(sin((double) angle)), 0.0f,
+            static_cast<float>(sin((double) angle)), static_cast<float>(cos((double) angle)), 0.0f,
             0.0f, 0.0f, 1.0f;
     return Rz;
 }
 
 Eigen::Matrix3f rotateY(const float angle) {
     Eigen::Matrix3f Ry;
-    Ry << (float) cos((double)angle), 0.0, (float) sin((double)angle),//
+    Ry << static_cast<float>(cos((double) angle)), 0.0, static_cast<float>(sin((double) angle)),//
             0.0, 1.0, 0.0,                            //
-            -(float) sin((double)angle), 0.0, (float) cos((double)angle);
+            -static_cast<float>(sin((double) angle)), 0.0, static_cast<float>(cos((double) angle));
     return Ry;
 }

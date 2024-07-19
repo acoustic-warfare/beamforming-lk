@@ -49,7 +49,7 @@ void GradientParticle::update() {
     nearby();
 
     float power[4] = {0.0};
-    const float norm = 1 / (float) antenna.usable;
+    const float norm = 1 / static_cast<float>(antenna.usable);
 
     for (int n = 0; n < 4; n++) {
 
@@ -59,8 +59,8 @@ void GradientParticle::update() {
             
             double _offset;
             float fraction;
-            fraction = (float) modf((double) del, &_offset);
-            int offset = N_SAMPLES - (int) _offset;
+            fraction = static_cast<float>(modf((double) del, &_offset));
+            int offset = N_SAMPLES - static_cast<int>(_offset);
             fractional_delays[n][i] = fraction;
             offset_delays[n][i] = offset;
             i++;
@@ -84,14 +84,14 @@ void GradientParticle::update() {
             power[n] += powf(out[i] * norm, 2);
         }
 
-        power[n] /= (float) N_SAMPLES;
+        power[n] /= static_cast<float>(N_SAMPLES);
     }
 
     float thetaPower = fmax(fabs(power[NORTH]), fabs(power[SOUTH]));
     float phiPower = fmax(fabs(power[EAST]), fabs(power[WEST]));
 
-    directionGradient.theta = (double) ((power[SOUTH] - power[NORTH]) / thetaPower);/// (2.0 * delta));
-    directionGradient.phi = (double) ((power[EAST] - power[WEST]) / phiPower);/// (2.0 * delta));
+    directionGradient.theta = static_cast<double>((power[SOUTH] - power[NORTH]) / thetaPower);/// (2.0 * delta));
+    directionGradient.phi = static_cast<double>((power[EAST] - power[WEST]) / phiPower);/// (2.0 * delta));
     magnitude = (power[NORTH] + power[EAST] + power[SOUTH] + power[WEST]) / 4.0;
     gradient = fabs(directionGradient.theta) + fabs(directionGradient.phi);
 }
@@ -136,8 +136,8 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         Cartesian position = Cartesian::convert(particle.directionCurrent, 1.0);
 
         // Use the position values to plot over the heatmap
-        int x = (int) (x_res * (position.x / 2.0 + 0.5));
-        int y = (int) (y_res * (position.y / 2.0 + 0.5));
+        int x = static_cast<int>(x_res * (position.x / 2.0 + 0.5));
+        int y = static_cast<int>(y_res * (position.y / 2.0 + 0.5));
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
@@ -147,7 +147,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         cv::Mat &frame = *heatmap;
 
-        cv::circle(frame, cv::Point(x, y), 1 + (int) (gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
+        cv::circle(frame, cv::Point(x, y), 1 + static_cast<int>(gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
 
 
         heatmap->at<uchar>(y, x) = 255;
@@ -199,7 +199,7 @@ void SphericalGradient::update() {
             if (particle.tracking) {
                 for (int i = 0; i < 5; i++)
                     particle.step(start_rate / 50.0);
-                if (particle.gradient > 1.0) {
+                if (particle.gradient > 1) {
                     particle.tracking = false;
                 } else {
                     n_tracking++;
@@ -224,7 +224,7 @@ void SphericalGradient::update() {
         for (auto &particle: particles) {
             particle.step(start_rate);
             if (n_tracking < n_trackers) {
-                if (particle.gradient < 1e-4) {
+                if (particle.gradient < 1e-2) {
                     for (auto &tracker: currentTrackers) {
                         if (!tracker.tracking && tracker.directionCurrent.angle(particle.directionCurrent) > M_PI / 20.0) {
                             tracker.tracking = true;

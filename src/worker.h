@@ -28,6 +28,11 @@ struct Target {
 
     // Pseudo-scientific value of how valid the target actually is
     float probability;
+
+    bool operator==(const Target &other) const {
+        return fabs(direction.phi - other.direction.phi) < 1e-2 && fabs(direction.theta - other.direction.theta) < 1e-2;
+    }
+
 };
 
 /**
@@ -54,7 +59,9 @@ public:
 
     // Inherited pipeline
     Pipeline *pipeline;
-    Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true), pipeline(pipeline), antenna(antenna), running(running){
+
+    Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true), pipeline(pipeline), antenna(antenna),
+                                                                  running(running) {
         this->streams = pipeline->getStreams();
         thread_loop = std::thread(&Worker::loop, this);
     };
@@ -85,7 +92,13 @@ public:
     /**
      * Getter for current targets
      */
-    std::vector<Target> getTargets() const { return tracking; };
+    [[nodiscard]] std::vector<Target> getTargets() const {
+        std::vector<Target> r_targets;
+        for (int i = 0; i < tracking.size(); ++i) {
+            r_targets.insert(r_targets.end(), tracking[i]);
+        }
+        return r_targets;
+    };
 
     /**
      * Draw values onto a heatmap
@@ -96,9 +109,6 @@ public:
         populateHeatmap(heatmap);
         lock.unlock();
     };
-
-    
-
 
 protected:
     // Current direction
@@ -119,9 +129,11 @@ protected:
         std::cout << "Wrong update" << std::endl;
     };
 
-    virtual void reset() {};
+    virtual void reset() {
+    };
 
-    virtual void populateHeatmap(cv::Mat *heatmap) {};
+    virtual void populateHeatmap(cv::Mat *heatmap) {
+    };
 
 private:
     int start;

@@ -20,8 +20,8 @@ MIMOWorker::MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int 
 void MIMOWorker::computeDelayLUT() {
     double fovRadian = TO_RADIANS(fov);
     int k = 0;
-    double separationRows = sin(fovRadian / 2.0) / ((double)rows / 2.0);
-    double separationColumns = sin(fovRadian / 2.0) / ((double)columns / 2.0);
+    double separationRows = sin(fovRadian / 2.0) / (static_cast<double>(rows) / 2.0);
+    double separationColumns = sin(fovRadian / 2.0) / (static_cast<double>(columns) / 2.0);
 
     this->offsetDelays = std::vector<std::vector<int>>(maxIndex, std::vector<int>(ELEMENTS, 0));
     this->fractionalDelays = std::vector<std::vector<float>>(maxIndex, std::vector<float>(ELEMENTS, 0.f));
@@ -31,8 +31,8 @@ void MIMOWorker::computeDelayLUT() {
         for (int c = 0; c < columns; c++) {
 
             
-            double y = (double)r * separationRows - (double)rows * separationRows / 2.0 + separationRows / 2.0;
-            double x = (double) c * separationColumns - (double) columns * separationColumns / 2.0 + separationColumns / 2.0;
+            double y = static_cast<double>(r) * separationRows - static_cast<double>(rows) * separationRows / 2.0 + separationRows / 2.0;
+            double x = static_cast<double>(c) * separationColumns - static_cast<double>(columns) * separationColumns / 2.0 + separationColumns / 2.0;
             double z = 1.0;
             double norm = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2));
 
@@ -52,8 +52,8 @@ void MIMOWorker::computeDelayLUT() {
 
                 double _offset;
                 float fraction;
-                fraction = (float) modf((double) del, &_offset);
-                int offset = N_SAMPLES - (int) _offset;
+                fraction = static_cast<float>(modf((double) del, &_offset));
+                int offset = N_SAMPLES - static_cast<int>(_offset);
                 fractionalDelays[k][i] = fraction;
                 offsetDelays[k][i] = offset;
                 i++;
@@ -92,14 +92,14 @@ void MIMOWorker::populateHeatmap(cv::Mat *heatmap) {
             //    db = 0;
             //}
             //std::cout << db << std::endl;
-            heatmap->at<uchar>(r, c) = (uchar)db;//(255.f * clip(db, 0.0, 1.0));
+            heatmap->at<uchar>(r, c) = static_cast<uchar>(db);//(255.f * clip(db, 0.0, 1.0));
             i++;
         }
     }
 }
 
 void MIMOWorker::update() {
-    const float norm = 1 / (float) antenna.usable;//.usable;
+    const float norm = 1 / static_cast<float>(antenna.usable);//.usable;
     int p = 0;
     float reference = 0.0;
     float *signal = this->streams->get_signal(0, 0);
@@ -107,7 +107,7 @@ void MIMOWorker::update() {
         reference += powf(signal[i], 2);
     }
 
-    reference /= (float)N_SAMPLES;
+    reference /= static_cast<float>(N_SAMPLES);
     while (p < maxIndex && canContinue() ) {
         float out[N_SAMPLES] = {0.0};
 
@@ -119,7 +119,7 @@ void MIMOWorker::update() {
             float fraction = fractionalDelays[index][i];
             int offset = offsetDelays[index][i];
 
-            float *signal = this->streams->get_signal((unsigned)i, offset);
+            float *signal = this->streams->get_signal(static_cast<unsigned>(i), offset);
             delay(&out[0], signal, fraction);
         }
         float power = 0.0;
@@ -127,7 +127,7 @@ void MIMOWorker::update() {
             power += powf(out[i], 2) * norm;
         }
 
-        power /= (float) N_SAMPLES;
+        power /= static_cast<float>(N_SAMPLES);
 
         powerdB[index] = power / reference;//clip(power - reference, 0.0, power);
         index++;

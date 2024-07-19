@@ -44,8 +44,8 @@ void draw(cv::Mat &heatmap, Target &target) {
     Cartesian position = Cartesian::convert(target.direction, 1.0);
 
     // Use the position values to plot over the heatmap
-    int x = (int) (x_res * (position.x / 2.0 + 0.5));
-    int y = (int) (y_res * (position.y / 2.0 + 0.5));
+    int x = static_cast<int>(x_res * (position.x / 2.0 + 0.5));
+    int y = static_cast<int>(y_res * (position.y / 2.0 + 0.5));
 
     int m = 255;
 
