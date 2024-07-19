@@ -11,7 +11,7 @@
 # 
 # To run the container
 #
-# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd beamformer bash
 #
 
 FROM ubuntu:22.04
@@ -57,7 +57,8 @@ RUN apt-get install -y \
     nlohmann-json3-dev \
     libgps-dev \
     libgps28 \
-    alsa-utils
+    alsa-utils \
+    pulseaudio
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
