@@ -27,7 +27,7 @@ BLUR_KERNEL_SIZE: 5 # Kernel size of blur on heatmap
 
 # Waraps client
 USE_WARAPS: false
-WARAPS_NAME: "test"
+WARAPS_NAME: "ljudkriget"
 WARAPS_ADDRESS: "mqtts://broker.waraps.org:8883"
 GPS_ADDRESS: "localhost"
 GPS_PORT: 2947
@@ -42,7 +42,7 @@ DISTANCE: 0.02 # Distance between each element to the nextmasdhasdhashd
 
 
 # FPGA 
-SAMPLE_RATE: 48828.0 
+SAMPLE_RATE: 48828.0 #16276.0 #48828.0 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
 MAX_N_SENSORS: ROWS * COLUMNS * 4 # Can take max 4 arrays per FPGA
 N_FPGAS: 1 # How many running FPGAs
@@ -64,7 +64,7 @@ N_SENSORS_TMP: 256
 
 # Beamforming 
 N_FRAMES: 4 # How many "frames" that are stored in the ringbuffer 
-N_SAMPLES: 256 #16384 # 512 # Each frame, must be a power of 2 
+N_SAMPLES: 256 # Warning cannot be larger than 512 since pagesize is 4096 bytes and size of float is 4 bytes
 N_OFFSET: N_SAMPLES / 2
 BUFFER_LENGTH: N_FRAMES * N_SAMPLES
 

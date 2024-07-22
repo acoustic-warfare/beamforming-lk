@@ -14,8 +14,8 @@ static int audioCallback(const void *_, void *outputBuffer,
                          const PaStreamCallbackTimeInfo *timeInfo,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
-    auto in = (Streams *) userData;
-    auto out = (float *) outputBuffer;
+    auto in = static_cast<Streams *>(userData);
+    auto out = static_cast<float *>(outputBuffer);
 
     (void) _;// Ignore unused variable warning for input buffer
 

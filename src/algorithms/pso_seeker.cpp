@@ -1,3 +1,4 @@
+#if 0
 #include "pso_seeker.h"
 
 #if 0
@@ -8,13 +9,6 @@
 
 
 #define USE_LUT 0
-
-#define SWARM_SIZE 100
-#define SWARM_ITERATIONS
-
-inline double drandom() {
-    return static_cast<double>(rand()) / RAND_MAX;
-}
 
 
 //#define IN_FIRST_SECTOR(i) ((i < 28) && )
@@ -369,3 +363,4 @@ void PSOWorker::loop() {
 
     std::cout << "Done loop" << std::endl;
 }
+#endif
