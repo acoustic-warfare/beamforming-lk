@@ -36,10 +36,9 @@ public:
 
     void random();
     void update();
+
 private:
 };
-
-
 
 
 /**
@@ -57,9 +56,9 @@ public:
     };
 
 protected:
-    void update();
-    void reset();
-    void populateHeatmap(cv::Mat *heatmap);
+    void update()override;
+    void reset()override;
+    void populateHeatmap(cv::Mat *heatmap)override;
 
 private:
     int resetCount = 0;
@@ -73,6 +72,4 @@ private:
 };
 
 
-
 #endif
-
