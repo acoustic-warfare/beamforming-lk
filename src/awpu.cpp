@@ -21,6 +21,8 @@ AWProcessingUnit::~AWProcessingUnit() {
 
     pause();
 
+    stop_audio();
+
     for (auto it = workers.begin(); it != workers.end();) {
         it = workers.erase(it);
         delete (*it);
@@ -29,8 +31,6 @@ AWProcessingUnit::~AWProcessingUnit() {
     if (verbose) {
         std::cout << "Destructing AWPU" << std::endl;
     }
-
-    stop_audio(); 
 
     pipeline->disconnect();
     delete pipeline;
@@ -213,9 +213,11 @@ void AWProcessingUnit::play_audio() {
 
 void AWProcessingUnit::stop_audio() {
     if (audioWrapper) {
-        std::cout << "Stopping audio" <<std::endl;
+        std::cout << "Stopping audio" << std::endl;
         audioWrapper->stop_audio_playback();
+        std::cout << "Deleting audiowrapper" << std::endl;
         delete audioWrapper;
+        std::cout << "Deleted audiowrapper" << std::endl;
     }
 }
 
