@@ -25,9 +25,9 @@ double smallestAngle(const double target, const double current) {
 Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0) {
     Position point;
 
-    point(X_INDEX) = (float) (radius * (sin(theta) * cos(phi)));
-    point(Y_INDEX) = (float) (radius * (sin(theta) * sin(phi)));
-    point(Z_INDEX) = (float) (radius * (cos(theta)));
+    point(X_INDEX) = static_cast<float>(radius * (sin(theta) * cos(phi)));
+    point(Y_INDEX) = static_cast<float>(radius * (sin(theta) * sin(phi)));
+    point(Z_INDEX) = static_cast<float>(radius * (cos(theta)));
 
     return point;
 }
@@ -35,7 +35,7 @@ Position spherical_to_cartesian(const double theta, const double phi, const doub
 /**
  * Compute the distance between two spherical directions
  */
-double Spherical::distanceTo(const Spherical &spherical) {
+double Spherical::distanceTo(const Spherical &spherical) const {
     return sqrt(
             2.0 - 2.0 * (sin(this->theta) * sin(spherical.theta) * cos(this->phi - spherical.phi) + cos(this->theta) * cos(spherical.theta)));
 }
@@ -85,6 +85,26 @@ Eigen::Vector3d Spherical::toCartesian() {
     cartesian(2) = radius * cos(theta);
 
     return cartesian;
+}
+
+Eigen::Vector3d Spherical::toCartesian() const {
+    Eigen::Vector3d cartesian;
+    cartesian(0) = radius * sin(theta) * cos(phi);
+    cartesian(1) = radius * sin(theta) * sin(phi);
+    cartesian(2) = radius * cos(theta);
+
+    return cartesian;
+}
+
+double Spherical::angle(const Spherical &spherical) {
+    // Function to compute the geodesic distance between two points on a sphere
+    double sin_theta1 = sin(M_PI / 2.0 - theta);
+    double sin_theta2 = sin(M_PI / 2.0 - spherical.theta);
+    double cos_theta1 = cos(M_PI / 2.0 - theta);
+    double cos_theta2 = cos(M_PI / 2.0 - spherical.theta);
+    double delta_phi = phi - spherical.phi;
+
+    return acos(sin_theta1 * sin_theta2 + cos_theta1 * cos_theta2 * cos(delta_phi));
 }
 
 Eigen::MatrixXd rotateTo(const Eigen::MatrixXd points, const double theta,
@@ -147,4 +167,20 @@ std::vector<Spherical> Spherical::nearby(const double spread) {
     }
 
     return near;
+}
+
+Eigen::Matrix3f rotateZ(const float angle) {
+    Eigen::Matrix3f Rz;
+    Rz << static_cast<float>(cos((double) angle)), -static_cast<float>(sin((double) angle)), 0.0f,
+            static_cast<float>(sin((double) angle)), static_cast<float>(cos((double) angle)), 0.0f,
+            0.0f, 0.0f, 1.0f;
+    return Rz;
+}
+
+Eigen::Matrix3f rotateY(const float angle) {
+    Eigen::Matrix3f Ry;
+    Ry << static_cast<float>(cos((double) angle)), 0.0, static_cast<float>(sin((double) angle)),//
+            0.0, 1.0, 0.0,                            //
+            -static_cast<float>(sin((double) angle)), 0.0, static_cast<float>(cos((double) angle));
+    return Ry;
 }

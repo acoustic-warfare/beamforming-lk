@@ -10,114 +10,9 @@
 
 #include <iostream>
 
-typedef double Radian;
-
-///**
-// * Compute the distance between two spherical directions
-// */
-//double Spherical::distanceTo(const Spherical &spherical) {
-//    return sqrt(
-//        2.0 - 2.0 * (
-//            sin(this->theta) * sin(spherical.theta) * cos(this->phi - spherical.phi) + cos(this->theta) * cos(spherical.theta)
-//        )
-//    );
-//}
-//
-//Spherical Horizontal::toSpherical(const Horizontal &horizontal) {
-//    double x = sin(horizontal.azimuth);
-//    double y = sin(horizontal.elevation);
-//    double phi = atan2(y, x);
-//
-//    // We assume elevation 0 is horizontal
-//    double flipped_theta = PI_HALF - horizontal.elevation;
-//
-//    // z
-//    double z_height = sin(flipped_theta) * cos(horizontal.azimuth);
-//    double theta = PI_HALF - asin(z_height);
-//
-//    return Spherical(theta, phi);
-//}
-//
-//Horizontal Spherical::toHorizontal(const Spherical &spherical) {
-//    Position position = spherical_to_cartesian(spherical.theta, spherical.phi, 1.0);
-//    double elevation = asin(position(Y_INDEX));
-//    double azimuth = asin(position(X_INDEX));
-//
-//    return Horizontal(azimuth, elevation);
-//}
-//
-//
-/////**
-//// * Convert spherical coordinates to cartesian coordinates
-//// */
-////Position Spherical::toCartesian(const Spherical &spherical, const double radius = 1.0) {
-////    Position point;
-////
-////    point(X_INDEX) = (float) (radius * (sin(spherical.theta) * cos(spherical.phi)));
-////    point(Y_INDEX) = (float) (radius * (sin(spherical.theta) * sin(spherical.phi)));
-////    point(Z_INDEX) = (float) (radius * (cos(spherical.theta)));
-////
-////    return point;
-////}
-//
-//
-//Cartesian Cartesian::convert(const Spherical &spherical, const double radius = 1.0) {
-//    Cartesian point;
-//
-//    point.x = (radius * (sin(spherical.theta) * cos(spherical.phi)));
-//    point.y = (radius * (sin(spherical.theta) * sin(spherical.phi)));
-//    point.z = (radius * (cos(spherical.theta)));
-//
-//    return point;
-//}
-
-
 /**
- * return np.sqrt(
-        2
-        - 2
-        * (
-            np.sin(direction1[0])
-            * np.sin(direction2[0])
-            * np.cos(direction1[1] - direction2[1])
-            + np.cos(direction1[0]) * np.cos(direction2[0])
-        )
-    )
+ * Check if integer is in sector
  */
-//double Direction::distanceTo(const double theta, const double phi) {
-//    return sqrt(
-//        2.0 - 2.0 * (
-//            sin(this->theta) * sin(theta) * cos(this->phi - phi) + cos(this->theta) * cos(theta)
-//        )
-//    );
-//}
-//
-//double Direction::distanceTo(const Direction &direction) {
-//    return this->distanceTo(direction.theta, direction.phi);
-//}
-
-//double Direction::distanceTo(const Direction &direction) {
-//
-//}
-//Direction Direction::directionTo(const Direction &direction, const float step) {
-//
-//}
-
-Direction test(double azimuth, double elevation) {
-    double x = sin(azimuth);
-    double y = sin(elevation);
-    double phi = atan2(y, x);
-
-    // We assume elevation 0 is horizontal
-    double flipped_theta = PI_HALF - elevation;
-
-    // z
-    double z_height = sin(flipped_theta) * cos(azimuth);
-    double theta = PI_HALF - asin(z_height);
-
-    return Direction(theta, phi);
-}
-
 bool in_sector(const int *sector, const int i) {
     return (((sector[0] <= i) && (i <= sector[3])) ||
             ((sector[4] <= i) && (i <= sector[7])) ||
@@ -125,6 +20,9 @@ bool in_sector(const int *sector, const int i) {
             ((sector[12] <= i) && (i <= sector[15])));
 }
 
+/**
+ * Check if integer is in sector
+ */
 bool in_sector(const int sector_index, const int i) {
     const int *sector;
 
@@ -171,8 +69,6 @@ inline Position find_middle(const Antenna &antenna) {
     return antenna.points.colwise().mean();
 }
 
-// ********** Antenna in space **********
-
 /**
  * Place the antenna by positioning the center @ new position
  */
@@ -187,15 +83,15 @@ void place_antenna(Antenna &antenna, const Position position) {
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance) {
     float half = distance / 2;
-    Eigen::MatrixXf points(rows * columns, 3);// (id, X|Y|Z)
+    Eigen::MatrixXf points(3, rows * columns);// (id, X|Y|Z)
 
     // Compute the positions of the antenna in 3D space
     int i = 0;
-    for (int y = 0; y < columns; y++) {
-        for (int x = 0; x < rows; x++) {
-            points(i, X_INDEX) = x * distance - rows * half + half;
-            points(i, Y_INDEX) = y * distance - columns * half + half;
-            points(i, Z_INDEX) = 0.f;
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < columns; c++) {
+            points(X_INDEX, i) = static_cast<float>(c) * distance - rows * half + half;
+            points(Y_INDEX, i) = static_cast<float>(r) * distance - columns * half + half;
+            points(Z_INDEX, i) = 0.f;
 
             i++;
         }
@@ -208,7 +104,7 @@ Antenna create_antenna(const Position &position, const int columns,
     antenna.points = points;
 
     // Now we place the antenna for the user
-    place_antenna(antenna, position);
+    //place_antenna(antenna, position);
 
     return antenna;
 }
@@ -221,7 +117,7 @@ Antenna create_antenna(const Position &position, const int columns,
  */
 Eigen::VectorXf compute_delays(const Antenna &antenna) {
     Eigen::VectorXf delays =
-            antenna.points.col(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
+            antenna.points.row(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
 
     // There is no need to delay the element that should be closest to source
     delays.array() -= delays.minCoeff();
@@ -239,40 +135,14 @@ Eigen::VectorXf compute_delays(const Antenna &antenna) {
  * elements have crossed paths.
  */
 inline Antenna steer(const Antenna &antenna, const double theta, const double phi) {
-    Eigen::Matrix3f Rz1, Rx, Rz2;
-
-    Rz1 << (float) cos(phi), -(float) sin(phi), 0.0f,
-            (float) sin(phi), (float) cos(phi), 0.0f,
-            0.0f, 0.0f, 1.0f;
-    Rx << 1.0f, 0.0f, 0.0f,
-            0.0f, (float) cos(theta), -(float) sin(theta),
-            0.0f, (float) sin(theta), (float) cos(theta);
-    Rz2 << (float) cos(-phi), -(float) sin(-phi), 0.0f,
-            (float) sin(-phi), (float) cos(-phi), 0.0f,
-            0.0f, 0.0f, 1.0f;
 
     // Perform the rotation. Order of operations are important
-    Eigen::Matrix3f rotation = Rz2 * (Rx * Rz1);
-
     Antenna rotated;
-    rotated.points = antenna.points * rotation;
+    rotated.points = (rotateY(-static_cast<float>(theta)) * (rotateZ(static_cast<float>(phi)) * antenna.points));
     rotated.id = antenna.id;
 
     return rotated;
 }
-
-///**
-// * Convert spherical coordinates to cartesian coordinates
-// */
-//Position spherical_to_cartesian(const double theta, const double phi, const double radius = 1.0) {
-//    Position point;
-//
-//    point(X_INDEX) = (float) (radius * (sin(theta) * cos(phi)));
-//    point(Y_INDEX) = (float) (radius * (sin(theta) * sin(phi)));
-//    point(Z_INDEX) = (float) (radius * (cos(theta)));
-//
-//    return point;
-//}
 
 /**
  * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation 
@@ -325,12 +195,12 @@ Eigen::MatrixXf generate_unit_dome(const int n) {
     double magic = 2.0 * M_PI / 1.618033988749;
 
     for (int i = 0; i < n; i++) {
-        phi = acos(1.0 - (double) i / double(n));
-        theta = (double) i * magic;
+        phi = acos(1.0 - static_cast<double>(i) / static_cast<double>(n));
+        theta = static_cast<double>(i) * magic;
 
-        points(i, X_INDEX) = (float) (cos(theta) * sin(phi));
-        points(i, Y_INDEX) = (float) (sin(theta) * sin(phi));
-        points(i, Z_INDEX) = (float) (cos(phi));
+        points(i, X_INDEX) = static_cast<float>(cos(theta) * sin(phi));
+        points(i, Y_INDEX) = static_cast<float>(sin(theta) * sin(phi));
+        points(i, Z_INDEX) = static_cast<float>(cos(phi));
     }
 
     return points;
@@ -342,16 +212,16 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
             int best_match = -1;
             float min_dist = 1000000.0f;
             for (int i = 0; i < dome.size(); ++i) {
-                float phi_radians = TO_RADIANS(float(phi));
-                float theta_radians = TO_RADIANS(float(theta));
+                float phi_radians = TO_RADIANS(static_cast<float>(phi));
+                float theta_radians = TO_RADIANS(static_cast<float>(theta));
                 float x = std::cos(theta_radians) * std::sin(phi_radians);
                 float y = std::sin(theta_radians) * std::sin(phi_radians);
                 float z = std::cos(phi_radians);
 
-                auto dist = float(sqrt(
-                        pow(x - dome(i, X_INDEX), 2) +
-                        pow(y - dome(i, Y_INDEX), 2) +
-                        pow(z - dome(i, Z_INDEX), 2)));
+                auto dist = static_cast<float>(sqrt(
+                    pow(x - dome(i, X_INDEX), 2) +
+                    pow(y - dome(i, Y_INDEX), 2) +
+                    pow(z - dome(i, Z_INDEX), 2)));
 
                 best_match = dist < min_dist ? i : best_match;
                 min_dist = dist < min_dist ? dist : min_dist;
@@ -372,16 +242,16 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
         int index = lookup_table(phi, theta);
         auto point = dome.row(index);
 
-        float phi_radians = TO_RADIANS(double(phi));
-        float theta_radians = TO_RADIANS(double(theta));
+        float phi_radians = TO_RADIANS(static_cast<double>(phi));
+        float theta_radians = TO_RADIANS(static_cast<double>(theta));
         float x = cos(theta_radians) * sin(phi_radians);
         float y = sin(theta_radians) * sin(phi_radians);
         float z = cos(phi_radians);
 
-        auto dist = float(sqrt(
-                pow(x - point(X_INDEX), 2) +
-                pow(y - point(Y_INDEX), 2) +
-                pow(z - point(Z_INDEX), 2)));
+        auto dist = static_cast<float>(sqrt(
+            pow(x - point(X_INDEX), 2) +
+            pow(y - point(Y_INDEX), 2) +
+            pow(z - point(Z_INDEX), 2)));
 
         if (dist > MAX_ALLOWED_DISTANCE) {
             failed_tests++;
@@ -393,56 +263,3 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
     }
     std::cout << "Completed " << TEST_CASES - failed_tests << "/" << TEST_CASES << " tests" << std::endl;
 }
-
-#if 0
-
-
-
-//void printSpherical(const Spherical &direction) {
-//    std::cout << "Spherical: θ=" << degrees(direction.theta) << " φ=" << degrees(direction.phi) << " " << std::endl;
-//}
-//
-//void printHorizontal(const Horizontal &direction) {
-//    std::cout << "Spherical: x=" << degrees(direction.azimuth) << " y=" << degrees(direction.elevation) << " " << std::endl;
-//}
-
-int main() {
-
-    double theta1 = TO_RADIANS(45);
-    double phi1 = TO_RADIANS(10);
-
-    double theta2 = TO_RADIANS(45);
-    double phi2 = TO_RADIANS(11);
-
-    Spherical direction(theta1, phi1);
-
-    std::cout << "second " << direction << std::endl;
-
-    Spherical other(theta2, phi2);
-
-    std::cout << "first " << other << std::endl;
-
-    double azimuth = TO_RADIANS(30);
-    double elevation = TO_RADIANS(-10);
-    Horizontal horizontal(azimuth, elevation);
-
-    Spherical spherical = Horizontal::toSpherical(horizontal);
-
-    Horizontal h2 = Spherical::toHorizontal(spherical);
-
-    std::cout << horizontal << " -> " << spherical << std::endl;
-
-    std::cout << spherical << " -> " << h2 << std::endl;
-
-    //double distance = direction.distanceTo(other);
-
-    //std::cout << "Distance to: " << distance << std::endl;
-
-    //Horizontal newd = test(TO_RADIANS(0), TO_RADIANS(1));
-    //std::cout << "New " << newd << std::endl;
-
-
-    return 0;
-}
-
-#endif
