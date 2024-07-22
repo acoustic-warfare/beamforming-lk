@@ -49,9 +49,10 @@ public:
 
     // Reader start position in ring-buffer
     unsigned position;
+    int _position;
 
 
-    Streams() : position(0){};
+    Streams() : position(0), _position(0){};
 
     /**
      * Create a ring-buffer for a specific index
@@ -91,7 +92,8 @@ public:
      * Fast read from buffer using wrap-around memcpy
      */
     inline void read_stream(unsigned index, float *data, unsigned offset = 0) {
-        memcpy(data, (float*)((char *) this->buffers[index] + this->position + offset * sizeof(float)), BUFFER_BYTES*4);
+        //memcpy(data, &buffers[index][_position + offset], N_ITEMS_BUFFER);
+        memcpy(data, (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float)), PAGE_SIZE);
     }
 
 #if 1// Only debugging
@@ -112,6 +114,7 @@ public:
      */
     void forward() {
         this->position = (this->position + BUFFER_BYTES) % PAGE_SIZE;
+        //_position = (_position + N_SAMPLES) % N_ITEMS_BUFFER;
     }
 
 
