@@ -6,10 +6,10 @@
 #include <algorithm>
 
 #include "algorithms/pso_seeker.h"
+#include "antenna.h"
+#include "audio/audio_wrapper.h"
 #include "pipeline.h"
 #include "worker.h"
-#include "antenna.h"
-
 
 class AWProcessingUnit {
 public:
@@ -21,9 +21,10 @@ public:
     void pause();
     void resume();
     void draw_heatmap(cv::Mat *heatmap);
+    void play_audio();
+    void stop_audio();
     void calibrate(const float reference_power_level = 1e-5);
     Spherical target();
-
 
 protected:
     int verbose;
@@ -32,6 +33,8 @@ protected:
     bool running;
 
     std::vector<Antenna> antennas;
+
+    AudioWrapper *audioWrapper;
 };
 
 #endif

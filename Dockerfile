@@ -11,7 +11,7 @@
 # 
 # To run the container
 #
-# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd beamformer bash
 #
 
 FROM ubuntu:22.04
@@ -56,7 +56,10 @@ RUN apt-get install -y \
     libssl-dev \
     nlohmann-json3-dev \
     libgps-dev \
-    libgps28
+    libgps28 \
+    alsa-utils \
+    pulseaudio \
+    libmp3lame-dev
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
@@ -77,7 +80,13 @@ RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
     cmake .. && make install
 
 # Create app directory (optional, since it will be mounted)
+RUN ldconfig
+
+# Create app directory
 RUN mkdir -p /usr/src/app
+
+RUN useradd -rm -d /home/newuser -s /bin/bash -g root -G sudo -G audio -u 1000 newuser
+USER newuser
 
 # Set working directory
 WORKDIR /usr/src/app

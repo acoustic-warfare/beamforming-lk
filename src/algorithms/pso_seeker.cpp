@@ -9,8 +9,8 @@
 
 #define USE_LUT 0
 
-#define SWARM_SIZE 100
-#define SWARM_ITERATIONS
+//#define SWARM_SIZE 100
+//#define SWARM_ITERATIONS
 
 inline double drandom() {
     return static_cast<double>(rand()) / RAND_MAX;

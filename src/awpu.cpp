@@ -1,5 +1,7 @@
 #include "awpu.h"
 
+#include "audio/audio_wrapper.h"
+
 AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
@@ -27,7 +29,9 @@ AWProcessingUnit::~AWProcessingUnit() {
     if (verbose) {
         std::cout << "Destructing AWPU" << std::endl;
     }
-    
+
+    stop_audio(); 
+
     pipeline->disconnect();
     delete pipeline;
 
@@ -40,7 +44,6 @@ bool AWProcessingUnit::start(const worker_t worker) {
     Worker *job;
     switch (worker) {
         case PSO:
-
             job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
             break;
         case MIMO:
@@ -82,7 +85,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             streams->read_stream(s + a * ELEMENTS, &signals[a][s][0]);
         }
     }
-    
+
     // Calibrate each connected antenna individually
     for (int a = 0; a < antennas.size(); a++) {
         Antenna &antenna = antennas[a];
@@ -112,8 +115,8 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
 
         float median = (medians[ELEMENTS / 2] + medians[ELEMENTS / 2 + 1]) / 2.0;
 
-        
-        float mmin = 1.0; // We have big problems is anything is above 1.0
+
+        float mmin = 1.0;// We have big problems is anything is above 1.0
         float mmax = 0.0;
 
         int index[ELEMENTS];
@@ -166,7 +169,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
         std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
 
         for (int s = 0; s < antenna.usable; s++) {
-            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl; 
+            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
         }
 
         std::cout << std::endl;
@@ -201,6 +204,19 @@ void AWProcessingUnit::resume() {
 
 void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
     workers[0]->draw_heatmap(heatmap);
+}
+
+void AWProcessingUnit::play_audio() {
+    audioWrapper = new AudioWrapper(*pipeline->getStreams());
+    audioWrapper->start_audio_playback();
+}
+
+void AWProcessingUnit::stop_audio() {
+    if (audioWrapper) {
+        std::cout << "Stopping audio" <<std::endl;
+        audioWrapper->stop_audio_playback();
+        delete audioWrapper;
+    }
 }
 
 Spherical AWProcessingUnit::target() {
