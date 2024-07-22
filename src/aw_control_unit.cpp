@@ -9,8 +9,6 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
-//#include "audio/audio_wrapper.h"
-
 void AWControlUnit::Start() {
     try {
         client_.Start();
@@ -21,7 +19,7 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
+    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21844);
     awpu.calibrate();
     awpu.start(PSO);
 
@@ -66,9 +64,6 @@ void AWControlUnit::Start() {
     if (usingWaraPS_) {
         client_.Stop();
         data_thread_.join();
-    }
-    if (USE_AUDIO) {
-        awpu.stop_audio();
     }
 }
 

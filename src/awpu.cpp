@@ -30,14 +30,13 @@ AWProcessingUnit::~AWProcessingUnit() {
         std::cout << "Destructing AWPU" << std::endl;
     }
 
+    stop_audio(); 
+
     pipeline->disconnect();
     delete pipeline;
 
     for (auto &job: workers) {
         delete job;
-    }
-    if (audioWrapper) {
-        delete audioWrapper;
     }
 }
 
@@ -214,9 +213,9 @@ void AWProcessingUnit::play_audio() {
 
 void AWProcessingUnit::stop_audio() {
     if (audioWrapper) {
+        std::cout << "Stopping audio" <<std::endl;
         audioWrapper->stop_audio_playback();
         delete audioWrapper;
-        audioWrapper = nullptr;
     }
 }
 
