@@ -3,7 +3,7 @@
 //
 
 #include "triangulate.h"
-
+#include "nlohmann/json.hpp"
 #include <opencv2/core/matx.hpp>
 
 Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Vector3d &b, const double distance) {
@@ -38,4 +38,18 @@ Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Ve
     Vec3 midpoint = (closest_point_a + closest_point_b) / 2.0;
 
     return midpoint;
+}
+
+nlohmann::json PositionToGPS(const Eigen::Vector3d &position, const gps_data_t &lk_position) {
+    const double lat = lk_position.fix.latitude + position.x() / 111111.0;
+    const double lon = lk_position.fix.longitude + position.y() / (111111.0 * std::cos(
+                                                                       lk_position.fix.latitude * M_PI / 180.0));
+    const double alt = lk_position.fix.altitude + position.z();
+
+    return {
+        {"longitude", lon},
+        {"latitude", lat},
+        {"altitude", alt},
+        {"type", "GeoPoint"}
+    };
 }
