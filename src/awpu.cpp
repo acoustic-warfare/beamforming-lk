@@ -217,7 +217,6 @@ void AWProcessingUnit::stop_audio() {
         audioWrapper->stop_audio_playback();
         std::cout << "Deleting audiowrapper" << std::endl;
         delete audioWrapper;
-        std::cout << "Deleted audiowrapper" << std::endl;
     }
 }
 
