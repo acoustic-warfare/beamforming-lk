@@ -55,7 +55,7 @@ deactivate
 
 ## UDP-Replaying
 
-To replay saved packets, you could use the program `udpreplay` 
+To replay saved packets, you could use the program `udpreplay` from the [udpreplay repo](https://github.com/rigtorp/udpreplay).
 
 ```bash 
 udpreplay -i lo FILE.pcap

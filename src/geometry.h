@@ -2,6 +2,7 @@
 #define GEOMETRY_H
 #include <Eigen/Dense>
 #include <cmath>
+#include <iostream>
 
 #include "config.h"
 #define X_INDEX 0
@@ -10,46 +11,57 @@
 #define PI_HALF M_PI / 2.0
 
 #define TO_RADIANS(degree) degree *(M_PI / 180.0)
+#define TO_DEGREES(radian) radian * (180.0 / M_PI)
 
 #define NORTH 0
 #define EAST 1
 #define SOUTH 2
 #define WEST 3
 
-double clip(const double n, const double lower, const double upper);
+/**
+ * Clip value between two values
+ */
+double clip(double n, double lower, double upper);
 
-double wrapAngle(const double angle);
+/**
+ * Modulo for radians
+ */
+double wrapAngle(double angle);
 
-double smallestAngle(const double target, const double current);
+/**
+ * Retrieve the relative smallest angle between two angles
+ */
+double smallestAngle(double target, double current);
 
 
 typedef Eigen::Vector3f Position;
 
 /**
+ * Rotation around Z-axis
+ */
+Eigen::Matrix3f rotateZ(float angle);
+
+/**
+ * Rotation around Y-axis
+ */
+Eigen::Matrix3f rotateY(float angle);
+
+/**
  * Convert spherical coordinates to cartesian coordinates
  */
-Position spherical_to_cartesian(const double theta, const double phi, const double radius);
+Position spherical_to_cartesian(double theta, double phi, double radius);
 
 
 struct Spherical;
 struct Horizontal;// Horizontal with a 90degree rotation on y-axis
 
-inline double degrees(const double angle) {
-    return angle * 180.0 / M_PI;
-}
-
-struct Direction {
-    double theta, phi;
-
-    Direction(){};
-    Direction(double theta, double phi) : theta(theta), phi(phi){};
-};
-
 /**
- * This is the flipped spherical version where the [x, y, z] -> [x, z, y]
+ * Spherical representation of a position
  */
 struct Spherical {
-    double theta, phi;
+    double theta = 0;// Inclination angle
+    double phi = 0;  // Azimuth angle
+    double radius = 1;
 
     Spherical(const Spherical &) = default;
     Spherical(Spherical &&) = default;
@@ -57,31 +69,20 @@ struct Spherical {
     Spherical &operator=(Spherical &&) & = default;
 
     Spherical() = default;
-    Spherical(double theta, double phi) : theta(theta), phi(phi){};
-    //Spherical(Spherical &&spherical) = default;
-    //constexpr Spherical& operator=(const Spherical&);
-    //{
-    //  this->theta = spherical.theta;
-    //  this->phi = spherical.phi;
-    //};
+    Spherical(double theta, double phi, double radius = 1.0);
 
-    double distanceTo(const Horizontal &horizontal);
-    double distanceTo(const Spherical &spherical);
+    double distanceTo(const Spherical &spherical) const;
+    std::vector<Spherical> nearby(double spread);
+    double angle(const Spherical &spherical);
 
-    static Horizontal toHorizontal(const Spherical &spherical);
-    static Position toCartesian(const Spherical &spherical, const double radius);
-
-    //std::ostream &operator<<(std::ostream &out) {
-    //    out << "Spherical: θ=" << degrees(theta) << " φ=" << degrees(phi);
-    //    return out;
-    //}
-
-    //double distanceTo(const double theta, const double phi);
-    //double distanceTo(const Spherical &direction);
-    //Spherical directionTo(const Spherical &direction, const float step);
-
-    friend std::ostream &operator<<(std::ostream &out, const Spherical &direction) {
-        out << "Spherical: θ=" << degrees(direction.theta) << " φ=" << degrees(direction.phi);
+    static Eigen::Vector3d toCartesian(const Spherical &spherical);
+    [[nodiscard]] Eigen::Vector3d toCartesian() const;
+    Eigen::Vector3d toCartesian();
+    friend std::ostream &operator<<(std::ostream &out,
+                                    const Spherical &direction) {
+        out << "Spherical: θ=" << TO_DEGREES(wrapAngle(direction.theta))
+            << "° φ=" << TO_DEGREES(wrapAngle(direction.phi))
+            << "° r=" << direction.radius;
         return out;
     }
 };
@@ -102,7 +103,7 @@ struct Horizontal {
     //}
 
     friend std::ostream &operator<<(std::ostream &out, const Horizontal &direction) {
-        out << "Horizontal: azimuth=" << degrees(direction.azimuth) << " elevation=" << degrees(direction.elevation);
+        out << "Horizontal: azimuth=" << TO_DEGREES(direction.azimuth) << " elevation=" << TO_DEGREES(direction.elevation);
         return out;
     }
 };
@@ -116,7 +117,7 @@ struct Cartesian {
         y = position.y;
         z = position.z;
     };
-    static Cartesian convert(const Spherical &spherical, const double radius);
+    static Cartesian convert(const Spherical &spherical, double radius);
 
     friend std::ostream &operator<<(std::ostream &out, const Cartesian &position) {
         out << "Cartesian: x=" << position.x << " y=" << position.y << " z=" << position.z;

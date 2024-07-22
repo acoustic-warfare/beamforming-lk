@@ -11,13 +11,18 @@
 #include <condition_variable>
 #include <wara_ps_client.h>
 #include "awpu.h"
-#include "config.h"
+#include "WaraPS/TargetHandler.h"
 
 class AWControlUnit {
 private:
     std::vector<AWProcessingUnit> processingUnits;
     WaraPSClient client_;
     gps_data_t gpsData_{};
+    std::thread data_thread_;
+
+    std::vector<AWProcessingUnit> awpus_;
+
+    TargetHandler targetHandler_;
 
     bool usingGps_ = false;
     bool usingWaraPS_ = false;
@@ -27,7 +32,7 @@ private:
 
     bool paused_ = false;
 
-    void publishData(std::chrono::time_point<std::chrono::system_clock> &timer);
+    void publishData();
 public:
     AWControlUnit();
     AWControlUnit(const AWControlUnit&) = delete;
