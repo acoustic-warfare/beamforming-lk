@@ -7,6 +7,7 @@
 
 #include <lame/lame.h>
 #include <portaudio.h>
+#include <sndfile.h>
 
 #include <atomic>
 #include <fstream>
@@ -15,7 +16,6 @@
 
 #include "../config.h"
 #include "../pipeline.h"
-#include "Mp3encoder.h"
 
 class AudioWrapper {
 private:
@@ -25,9 +25,8 @@ private:
     bool debug_ = true;
     PaStream *audio_stream_ = nullptr;
 
-    void convertFloatToPcm16(const std::vector<float> &floatData, std::vector<short> &pcmData);
     void saveToMp3(const std::string &filename);
-
+    void saveToWav(const std::string &filename);
 
 public:
     explicit AudioWrapper(Streams &streams);
@@ -40,16 +39,15 @@ public:
     void start_audio_playback();
     void stop_audio_playback();
 
-    void flushBuffer();
+    void flushBufferMp3();
+    void flushBufferWav();
 
     Streams _streams;
     std::vector<float> audioData;
 
-    //Mp3encoder *encoder_;
-    //Mp3encoder *mp3Encoder_;
+    SNDFILE *sndfile;
+    SF_INFO sfinfo;
     lame_t lame_ = nullptr;
-
-    //void simpleTest();
 
     ~AudioWrapper();
 };

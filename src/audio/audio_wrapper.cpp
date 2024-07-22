@@ -8,10 +8,6 @@
 #include <iostream>
 #include <vector>
 
-
-#define AUDIO_FILE true
-#define BUFFER_THRESHOLD SAMPLE_RATE * 10
-
 constexpr int device = 0;
 
 static int audioCallback(const void *_, void *outputBuffer,
@@ -30,10 +26,16 @@ static int audioCallback(const void *_, void *outputBuffer,
         out[i] = in[i];
     }
 
-    if (AUDIO_FILE) {
-        if (self->audioData.size() >= BUFFER_THRESHOLD) {
-            self->flushBuffer();
+    if (AUDIO_FILE && self->audioData.size() >= BUFFER_THRESHOLD) {
+        if (MP3) {
+            self->flushBufferMp3();
         }
+
+        if (WAV) {
+            self->flushBufferWav();
+        }
+
+        self->audioData.clear();
     }
 
     return paContinue;
@@ -101,45 +103,18 @@ void AudioWrapper::start_audio_playback() {
 }
 
 void AudioWrapper::saveToMp3(const std::string &filename) {
-    flushBuffer();
-    std::cout << "Buffer flushed in saveToMp3 " << std::endl;
+    flushBufferMp3();
 
-    if (lame_) {
-        const int bufferSize = 2 * audioData.size() + 7200;
-        unsigned char mp3Buffer[bufferSize];
-
-        FILE *mp3File = fopen(filename.c_str(), "ab");
-        if (!mp3File) {
-            std::cerr << "Unable to open file: " << filename << std::endl;
-            return;
-        }
-
-        int bytesWritten = lame_encode_flush(lame_, mp3Buffer, bufferSize);
-        if (bytesWritten < 0) {
-            std::cerr << "Error encoding MP3:: " << bytesWritten << std::endl;
-        }
-
-        fwrite(mp3Buffer, 1, bytesWritten, mp3File);
-
-        fclose(mp3File);
-
-        lame_close(lame_);
-        lame_ = nullptr;
-    }
+    lame_close(lame_);
+    lame_ = nullptr;
 }
 
-
-void AudioWrapper::flushBuffer() {
+void AudioWrapper::flushBufferMp3() {
     if (!audioData.empty()) {
         std::cout << "\nFlushing buffer, audioData size: " << audioData.size() << std::endl;
 
         if (!lame_) {
             lame_ = lame_init();
-            if (!lame_) {
-                std::cerr << "Failed to initialize LAME encoder" << std::endl;
-                return;
-            }
-
             lame_set_in_samplerate(lame_, SAMPLE_RATE);
             lame_set_num_channels(lame_, 2);
             lame_set_quality(lame_, 2);
@@ -170,11 +145,34 @@ void AudioWrapper::flushBuffer() {
         fwrite(mp3Buffer, 1, bytesWritten, mp3File);
 
         fclose(mp3File);
-
-        audioData.clear();
     }
 }
 
+void AudioWrapper::saveToWav(const std::string &filename) {
+    flushBufferWav();
+
+    sf_close(sndfile);
+    sndfile = nullptr;
+}
+
+void AudioWrapper::flushBufferWav() {
+    if (!audioData.empty()) {
+        std::cout << "\nFlushing buffer, audioData size: " << audioData.size() << std::endl;
+        if (!sndfile) {
+            sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
+            sfinfo.channels = 2;
+            sfinfo.samplerate = SAMPLE_RATE;
+
+            sndfile = sf_open("output.wav", SFM_WRITE, &sfinfo);
+            if (!sndfile) {
+                std::cerr << "Unable to open file: output.wav" << std::endl;
+                return;
+            }
+        }
+
+        sf_write_float(sndfile, audioData.data(), audioData.size());
+    }
+}
 
 void AudioWrapper::stop_audio_playback() {
     is_on_ = false;
@@ -185,11 +183,18 @@ AudioWrapper::~AudioWrapper() {
         this->stop_audio_playback();
     }
 
-    if (AUDIO_FILE) {
-        saveToMp3("output.mp3");
-        std::cout << "Mp3 Saved" << std::endl;
-    }
-
     Pa_StopStream(audio_stream_);
     Pa_Terminate();
+
+    if (AUDIO_FILE) {
+        if (MP3) {
+            saveToMp3("output.mp3");
+            std::cout << "Mp3 Saved" << std::endl;
+        }
+
+        if (WAV) {
+            saveToWav("output.wav");
+            std::cout << "WAV file saved" << std::endl;
+        }
+    }
 }
