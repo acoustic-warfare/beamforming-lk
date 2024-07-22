@@ -43,5 +43,4 @@ protected:
 };
 
 
-
 #endif

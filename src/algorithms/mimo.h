@@ -4,26 +4,27 @@
 #include <Eigen/Dense>
 #include <atomic>
 
-#include "../worker.h"
 #include "../antenna.h"
 #include "../config.h"
+#include "../delay.h"
 #include "../pipeline.h"
 #include "../streams.hpp"
-#include "../delay.h"
+#include "../worker.h"
 
 class MIMOWorker : public Worker {
 public:
     MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov);
-    ~MIMOWorker() {};
+    ~MIMOWorker(){};
     worker_t get_type() {
         return worker_t::MIMO;
     };
+
 protected:
-    void reset() {};
-    void update();
-    void populateHeatmap(cv::Mat *heatmap);
-    void setup();
-    
+    void reset() override {};
+    void update() override;
+    void populateHeatmap(cv::Mat *heatmap) override;
+    void setup() override;
+
 private:
     int index = 0;
     int maxIndex;

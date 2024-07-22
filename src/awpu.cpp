@@ -1,6 +1,6 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug){
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();
@@ -50,7 +50,7 @@ AWProcessingUnit::~AWProcessingUnit() {
     if (verbose) {
         std::cout << "Destructing AWPU" << std::endl;
     }
-    
+
     pipeline->disconnect();
     delete pipeline;
 
@@ -62,18 +62,20 @@ AWProcessingUnit::~AWProcessingUnit() {
 bool AWProcessingUnit::start(const worker_t worker) {
     Worker *job;
     switch (worker) {
-//        case PSO:
-//
-//            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
-//            break;
+            //        case PSO:
+            //
+            //            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
+            //            break;
         case MIMO:
-            job = static_cast<Worker *>(new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, 175));
+            //job = static_cast<Worker *>(new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, 175));
+            job = new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, 180);
             break;
         case SOUND:
             job = nullptr;
             break;
         case GRADIENT:
-            job = static_cast<Worker *>(new SphericalGradient(pipeline, antennas[0], &running, 50, 10));
+            //job = static_cast<Worker *>(new SphericalGradient(pipeline, antennas[0], &running, 50, 10));
+            job = new SphericalGradient(pipeline, antennas[0], &running, 50, 10);
             break;
         default:
             return false;
@@ -112,7 +114,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             streams->read_stream(s + a * ELEMENTS, &signals[a][s][0]);
         }
     }
-    
+
     // Calibrate each connected antenna individually
     for (int a = 0; a < antennas.size(); a++) {
         Antenna &antenna = antennas[a];
@@ -142,8 +144,8 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
 
         float median = (medians[ELEMENTS / 2] + medians[ELEMENTS / 2 + 1]) / 2.0;
 
-        
-        float mmin = 1.0; // We have big problems is anything is above 1.0
+
+        float mmin = 1.0;// We have big problems is anything is above 1.0
         float mmax = 0.0;
 
         int index[ELEMENTS];
@@ -202,8 +204,6 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
 
             std::cout << std::endl;
         }
-
-        
     }
 }
 
