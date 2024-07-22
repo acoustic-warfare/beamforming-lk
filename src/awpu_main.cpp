@@ -62,10 +62,14 @@ int main() {
     Pipeline pipeline(5000, Spherical(0, 0));
     AWProcessingUnit awpu5(&pipeline);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
-#elif 0
-    Pipeline pipeline("10.0.0.1", 21875);
-    AWProcessingUnit awpu5 = AWProcessingUnit(&pipeline);
-    AWProcessingUnit awpu8 = AWProcessingUnit(&pipeline);
+#elif 1
+    Pipeline pipeline5("10.0.0.1", 21875);
+    AWProcessingUnit awpu51 = AWProcessingUnit(&pipeline5);
+    AWProcessingUnit awpu52 = AWProcessingUnit(&pipeline5);
+
+    Pipeline pipeline8("10.0.0.1", 21878);
+    AWProcessingUnit awpu81 = AWProcessingUnit(&pipeline8);
+    AWProcessingUnit awpu82 = AWProcessingUnit(&pipeline8);
 
 #else
     AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
@@ -76,9 +80,11 @@ int main() {
 
     //std::cout << "Starting Gradient" << std::endl;
 
-    //awpu5.start(GRADIENT);
-    awpu5.start(MIMO);
-    awpu8.start(MIMO);
+    awpu51.start(GRADIENT);
+    awpu52.start(MIMO);
+
+    awpu81.start(GRADIENT);
+    awpu82.start(MIMO);
 
     std::cout << "Starting listening" << std::endl;
 
@@ -107,8 +113,8 @@ int main() {
 #if 1
         //awpu5.draw_heatmap(&frame1);
         //awpu8.draw_heatmap(&frame2);
-        awpu5.draw_heatmap(&small1);
-        awpu8.draw_heatmap(&small2);
+        awpu52.draw_heatmap(&small1);
+        awpu82.draw_heatmap(&small2);
 #endif
 
         //for (Target &target : awpu5.targets()) {
@@ -128,7 +134,8 @@ int main() {
         //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         cv::resize(small1, frame1, frame1.size(), 0, 0, cv::INTER_LINEAR);
         cv::resize(small2, frame2, frame2.size(), 0, 0, cv::INTER_LINEAR);
-
+        awpu51.draw_heatmap(&frame1);
+        awpu81.draw_heatmap(&frame2);
         cv::hconcat(frame1, frame2, frame);
 
         // Blur the image with a Gaussian kernel
