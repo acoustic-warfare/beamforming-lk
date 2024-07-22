@@ -22,7 +22,7 @@ private:
     AudioWrapper(Streams &streams, bool debug);
     std::thread producer_thread_;
     std::atomic<bool> is_on_ = false;
-    bool debug_ = false;
+    bool debug_ = true;
     PaStream *audio_stream_ = nullptr;
 
     void convertFloatToPcm16(const std::vector<float> &floatData, std::vector<short> &pcmData);
@@ -45,9 +45,11 @@ public:
     Streams _streams;
     std::vector<float> audioData;
 
-    Mp3encoder *encoder_;
-    Mp3encoder *mp3Encoder_;
-    lame_t lame_;
+    //Mp3encoder *encoder_;
+    //Mp3encoder *mp3Encoder_;
+    lame_t lame_ = nullptr;
+
+    //void simpleTest();
 
     ~AudioWrapper();
 };
