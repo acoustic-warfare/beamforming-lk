@@ -6,7 +6,7 @@
 #include "nlohmann/json.hpp"
 #include <opencv2/core/matx.hpp>
 
-Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Vector3d &b, const double distance) {
+Eigen::Vector3d triangulatePoint(const Eigen::Vector3d &a, const Eigen::Vector3d &b, const double distance) {
     using Vec3 = Eigen::Vector3d;
 
     const Vec3 a_start(-distance / 2, 0, 0);
@@ -34,6 +34,9 @@ Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Ve
     const Vec3 closest_point_a = a_start + ta * u;
     const Vec3 closest_point_b = b_start + tb * v;
 
+    if((closest_point_a - closest_point_b).norm() > 1)
+        return Vec3::Zero();
+
     // Midpoint of the closest approach
     Vec3 midpoint = (closest_point_a + closest_point_b) / 2.0;
 
@@ -41,10 +44,10 @@ Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Ve
 }
 
 nlohmann::json PositionToGPS(const Eigen::Vector3d &position, const gps_data_t &lk_position) {
-    const double lat = lk_position.fix.latitude + position.x() / 111111.0;
+    const double lat = lk_position.fix.latitude + position.z() / 111111.0;
     const double lon = lk_position.fix.longitude + position.y() / (111111.0 * std::cos(
                                                                        lk_position.fix.latitude * M_PI / 180.0));
-    const double alt = lk_position.fix.altitude + position.z();
+    const double alt = lk_position.fix.altitude + position.x();
 
     return {
         {"longitude", lon},

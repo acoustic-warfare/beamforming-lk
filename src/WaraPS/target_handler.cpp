@@ -3,7 +3,6 @@
 //
 
 #include "target_handler.h"
-
 #include "../algorithms/triangulate.h"
 
 #define LK_DISTANCE 6 // TODO: Fixa mer konkret värde?
@@ -64,10 +63,10 @@ void TargetHandler::FindTargets(const std::vector<Target> &targets) {
                 continue;
             }
             Eigen::Vector3d foundPoint =
-                    calculateRelativePoint(target.direction.toCartesian(), target2.direction.toCartesian(),
-                                           LK_DISTANCE);
+                    triangulatePoint(target.direction.toCartesian(), target2.direction.toCartesian(),
+                                     LK_DISTANCE);
 
-            if (foundPoint.norm() > 50) {
+            if (foundPoint.norm() == 0 || foundPoint.norm() > 50) {
                 continue;
             }
 
@@ -76,7 +75,7 @@ void TargetHandler::FindTargets(const std::vector<Target> &targets) {
 
             if ((target.power + target2.power) / 2 > loudestTargetPower_) {
                 loudestTarget_ = foundPoint;
-                loudestTargetPower_ = (target.power + target2.power) / 2 ;
+                loudestTargetPower_ = (target.power + target2.power) / 2;
             }
 
             foundTargets.push_back(foundPoint);
@@ -99,6 +98,12 @@ void TargetHandler::DisplayTarget(const bool toggle) {
     }
 
     targetClient_.Start();
+    targetClient_.PublishMessage("sensor/position", nlohmann::json{
+                                             {"longitude", 0},
+                                             {"latitude", 0},
+                                             {"altitude", 0},
+                                             {"type", "GeoPoint"}
+                                         }.dump());
 
     targetThread_ = std::thread([&] {
         while (targetClient_.running()) {
@@ -111,7 +116,7 @@ void TargetHandler::DisplayTarget(const bool toggle) {
 
             const nlohmann::json targetJson = PositionToGPS(loudestTarget_, *gpsData_);
 
-            targetClient_.PublishMessageNoPrefix("waraps/unit/air/real/lk_target/sensor/position", targetJson.dump());
+            targetClient_.PublishMessage("sensor/position", targetJson.dump());
         }
     });
 }

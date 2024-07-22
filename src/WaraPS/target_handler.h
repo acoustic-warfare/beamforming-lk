@@ -21,7 +21,7 @@ class TargetHandler {
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
                                               std::getenv("MQTT_PASSWORD"));
-    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(500);
+    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(200);
 
     gps_data_t *gpsData_;
 
