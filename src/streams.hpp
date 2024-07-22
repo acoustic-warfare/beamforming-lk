@@ -91,7 +91,7 @@ public:
      * Fast read from buffer using wrap-around memcpy
      */
     inline void read_stream(unsigned index, float *data, unsigned offset = 0) {
-        memcpy(data, (char *) this->buffers[index] + this->position + offset * sizeof(float), BUFFER_BYTES);
+        memcpy(data, (float*)((char *) this->buffers[index] + this->position + offset * sizeof(float)), BUFFER_BYTES*4);
     }
 
 #if 1// Only debugging

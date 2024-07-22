@@ -49,7 +49,13 @@ Then edit the limit configuration `/etc/security/limits.conf`
 
 The project may also be compiled and executed inside a Docker environment. A working Docker installation is required and Docker without root privileges is recommended. 
 
+### To build the container run the following command:
+
     docker build -t beamformer .
+
+### To run the container
+
+    docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
 
 ## Configuration
 
@@ -78,24 +84,9 @@ Build the program
 
 ## Usage
 
-
 Run the program
 
     ./beamformer
-
-## Testing
-
-Run the automated tests 
-
-    make test
-
-
-## Documentation 
-
-You may see a structural documentation of the project by building the `Doxygen`
-page which will generate a documentation page at `doc/html/index.html`
-
-    make doc
 
 ## Offline usage 
 You may want to test the system without an FPGA connected, you may look at the

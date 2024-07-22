@@ -135,6 +135,9 @@ protected:
     virtual void populateHeatmap(cv::Mat *heatmap) {
     };
 
+    virtual void setup() {
+    };
+
 private:
     int start;
 
@@ -145,6 +148,7 @@ private:
      * Worker main loop
      */
     void loop() {
+        setup();
         while (looping && pipeline->isRunning()) {
             // Wait for incoming data
             pipeline->barrier();
