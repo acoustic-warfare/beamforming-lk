@@ -42,7 +42,7 @@ DISTANCE: 0.02 # Distance between each element to the nextmasdhasdhashd
 
 
 # FPGA 
-SAMPLE_RATE: 48000 #44100
+SAMPLE_RATE: 48000 
 PROTOCOL_VERSION: 2 # This must match the version located on the FPGA
 MAX_N_SENSORS: ROWS * COLUMNS * 4 # Can take max 4 arrays per FPGA
 N_FPGAS: 1 # How many running FPGAs
@@ -94,8 +94,10 @@ USE_KALMAN_FILTER: true
 # Audio 
 AUDIO: true
 USE_AUDIO: AUDIO
-AUDIO_FILE: false
-
+AUDIO_FILE: true
+BUFFER_THRESHOLD: SAMPLE_RATE * 10
+MP3: true
+WAV: true
 
 # Networking 
 #UDP_ADDRESS: "10.0.0.1"
