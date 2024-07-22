@@ -26,8 +26,7 @@ class TargetHandler {
     gps_data_t *gpsData_;
 
     std::vector<AWProcessingUnit *> awpus_;
-    double minProbability_ = 10;
-    static constexpr double THRESHOLD = 10;
+    double minProbability_ = 0.5;
 
     std::thread workerThread_;
     std::mutex mutex_;

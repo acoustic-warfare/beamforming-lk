@@ -8,7 +8,7 @@
 #include <nlohmann/json.hpp>
 #include "aw_control_unit.h"
 
-#include "WaraPS/TargetHandler.h"
+#include "WaraPS/target_handler.h"
 
 void AWControlUnit::Start() {
     auto awpu1 = AWProcessingUnit("10.0.0.1", 21875);
@@ -34,7 +34,6 @@ void AWControlUnit::Start() {
         targetHandler_.Start();
         targetHandler_.DisplayTarget(true);
     }
-
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
         awpu1.draw_heatmap(&frame);

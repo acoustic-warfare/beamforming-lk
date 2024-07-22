@@ -2,7 +2,7 @@
 // Created by janne on 2024-07-18.
 //
 
-#include "TargetHandler.h"
+#include "target_handler.h"
 
 #include "../algorithms/triangulate.h"
 
@@ -21,7 +21,6 @@ TargetHandler::~TargetHandler() {
 
 void TargetHandler::Start() {
     *running = true;
-
     workerThread_ = std::thread([&] {
         while (*running) {
             std::vector<Target> targets;
@@ -76,7 +75,6 @@ void TargetHandler::FindTargets(const std::vector<Target> &targets) {
                                       1 - targetDecay_);
 
             if ((target.power + target2.power) / 2 > loudestTargetPower_) {
-                std::cout << "New loudest target found at distance: " << foundPoint.norm() << std::endl;
                 loudestTarget_ = foundPoint;
                 loudestTargetPower_ = (target.power + target2.power) / 2 ;
             }
@@ -113,7 +111,7 @@ void TargetHandler::DisplayTarget(const bool toggle) {
 
             const nlohmann::json targetJson = PositionToGPS(loudestTarget_, *gpsData_);
 
-            targetClient_.PublishMessage("sensor/position", targetJson.dump());
+            targetClient_.PublishMessageNoPrefix("waraps/unit/air/real/lk_target/sensor/position", targetJson.dump());
         }
     });
 }

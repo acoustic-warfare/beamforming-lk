@@ -11,7 +11,7 @@
 #include <condition_variable>
 #include <wara_ps_client.h>
 #include "awpu.h"
-#include "WaraPS/TargetHandler.h"
+#include "WaraPS/target_handler.h"
 
 class AWControlUnit {
 private:
