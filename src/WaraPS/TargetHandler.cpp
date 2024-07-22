@@ -11,11 +11,16 @@
 void TargetHandler::Stop() {
     *running = false;
     workerThread_.join();
+
+    DisplayTarget(false);
+}
+
+TargetHandler::~TargetHandler() {
+    Stop();
 }
 
 void TargetHandler::Start() {
     *running = true;
-
 
     workerThread_ = std::thread([&] {
         while (*running) {
@@ -26,6 +31,7 @@ void TargetHandler::Start() {
                 }
             }
             FindTargets(targets);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     });
 }
@@ -70,8 +76,9 @@ void TargetHandler::FindTargets(const std::vector<Target> &targets) {
                                       1 - targetDecay_);
 
             if ((target.power + target2.power) / 2 > loudestTargetPower_) {
+                std::cout << "New loudest target found at distance: " << foundPoint.norm() << std::endl;
                 loudestTarget_ = foundPoint;
-                loudestTargetPower_ = target.power + target2.power;
+                loudestTargetPower_ = (target.power + target2.power) / 2 ;
             }
 
             foundTargets.push_back(foundPoint);
@@ -82,20 +89,32 @@ void TargetHandler::FindTargets(const std::vector<Target> &targets) {
     mutex_.unlock();
 }
 
-void TargetHandler::SetTargetDisplay(const bool toggle) {
-    if(!toggle && targetThread_.joinable()) {
+void TargetHandler::DisplayTarget(const bool toggle) {
+    if (!toggle && targetThread_.joinable()) {
         targetClient_.Stop();
         targetThread_.join();
         return;
     }
-    if(!toggle) {
+
+    if (!toggle) {
         return;
     }
 
     targetClient_.Start();
 
     targetThread_ = std::thread([&] {
-        nlohmann::json targetJson = PositionToGPS(loudestTarget_);
+        while (targetClient_.running()) {
+            std::this_thread::sleep_for(targetUpdateInterval_);
+            if (!isfinite(gpsData_->fix.latitude) ||
+                !isfinite(gpsData_->fix.longitude) ||
+                !isfinite(gpsData_->fix.altitude)) {
+                continue;
+            }
+
+            const nlohmann::json targetJson = PositionToGPS(loudestTarget_, *gpsData_);
+
+            targetClient_.PublishMessage("sensor/position", targetJson.dump());
+        }
     });
 }
 

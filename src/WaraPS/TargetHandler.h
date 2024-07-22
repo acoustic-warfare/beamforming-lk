@@ -4,6 +4,7 @@
 
 #ifndef TARGETHANDLER_H
 #define TARGETHANDLER_H
+#include <gps.h>
 #include <wara_ps_client.h>
 
 #include "../awpu.h"
@@ -18,8 +19,11 @@ class TargetHandler {
     double loudestTargetPower_ = 0;
     const double targetDecay_ = 0.9;
     std::thread targetThread_;
-    WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_PASSWORD"),
-                                              std::getenv("MQTT_USERNAME"));
+    WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
+                                              std::getenv("MQTT_PASSWORD"));
+    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(500);
+
+    gps_data_t *gpsData_;
 
     std::vector<AWProcessingUnit *> awpus_;
     double minProbability_ = 10;
@@ -30,6 +34,10 @@ class TargetHandler {
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
 
 public:
+    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {}
+
+    ~TargetHandler();
+
     void Start();
 
     void Stop();
@@ -42,7 +50,7 @@ public:
 
     void FindTargets(const std::vector<Target> &targets);
 
-    void SetTargetDisplay(bool toggle);
+    void DisplayTarget(bool toggle);
 
     Eigen::Vector3d getLoudestTarget();
 };
