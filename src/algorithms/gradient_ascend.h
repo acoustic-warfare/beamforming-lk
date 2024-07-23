@@ -49,7 +49,7 @@ private:
  */
 class SphericalGradient : public Worker {
 public:
-    SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations);
+    SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations, float fov);
 
     worker_t get_type() {
         return worker_t::GRADIENT;
@@ -61,6 +61,7 @@ protected:
     void populateHeatmap(cv::Mat *heatmap)override;
 
 private:
+    float fov;
     int resetCount = 0;
     std::size_t n_trackers;
     std::size_t iterations;

@@ -2,6 +2,8 @@
 
 constexpr double start_rate = 1e-0;
 
+float theta_limit = M_PI / 2;
+
 GradientParticle::GradientParticle(Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams) {
     this->epsilon = 1e-9f;
     this->delta = TO_RADIANS(7);
@@ -10,7 +12,7 @@ GradientParticle::GradientParticle(Antenna &antenna, Streams *streams) : antenna
 }
 
 void GradientParticle::random() {
-    directionCurrent.theta = drandom() * (M_PI / 2.0);
+    directionCurrent.theta = drandom() * (theta_limit);
     directionCurrent.phi = drandom() * (2.0 * M_PI);
 }
 
@@ -19,7 +21,7 @@ void GradientParticle::jump() {
     directionCurrent.theta += (drandom() * 2.0 -1.0) * step;
     directionCurrent.phi += (drandom() * 2.0 - 1.0) * step;
     directionCurrent.phi = wrapAngle(directionCurrent.phi);
-    directionCurrent.theta = clip(directionCurrent.theta, 0.0, M_PI / 2.0);
+    directionCurrent.theta = clip(directionCurrent.theta, 0.0, theta_limit);
 }
 
 void GradientParticle::step(double rate) {
@@ -31,7 +33,7 @@ void GradientParticle::step(double rate) {
     newDirection.phi = directionCurrent.phi + (rate * directionGradient.phi) / sin(1e-9 + directionCurrent.theta);
 
     newDirection.phi = wrapAngle(newDirection.phi);
-    newDirection.theta = clip(newDirection.theta, 0.0, M_PI / 2.0);
+    newDirection.theta = clip(newDirection.theta, 0.0, theta_limit);
 
     directionCurrent = newDirection;
 }
@@ -41,7 +43,7 @@ void GradientParticle::nearby() {
     for (int i = 0; i < 4; i++) {
         directionNearby[i] = near[i];
         directionNearby[i].phi = wrapAngle(directionNearby[i].phi);
-        directionNearby[i].theta = clip(directionNearby[i].theta, 0.0, M_PI / 2.0);
+        directionNearby[i].theta = clip(directionNearby[i].theta, 0.0, theta_limit);
     }
 }
 
@@ -99,8 +101,11 @@ void GradientParticle::update() {
 }
 
 
-SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations) {
+SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations, float fov) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations), fov(fov) {
     this->n_trackers = 5;
+
+    this->fov = TO_RADIANS(fov/2.0);
+    theta_limit = this->fov;
 
     for (int i = 0; i < n_trackers; i++) {
         currentTrackers.emplace_back(this->antenna, this->streams);
@@ -130,6 +135,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     double y_res = (double) heatmap->cols;
 
 #if 1
+    float ratio = (float) sin((double) fov);
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
             continue;
@@ -137,10 +143,10 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
         // 0.5 to get the sphere in the first sector in the cartesian coordinate system
         Cartesian position = Cartesian::convert(particle.directionCurrent, 1.0);
-
+        
         // Use the position values to plot over the heatmap
-        int x = static_cast<int>(x_res * (position.x / 2.0 + 0.5));
-        int y = static_cast<int>(y_res * (position.y / 2.0 + 0.5));
+        int x = static_cast<int>(x_res * (position.x/ratio / 2.0 + 0.5));
+        int y = static_cast<int>(y_res * (position.y/ratio / 2.0 + 0.5));
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
@@ -172,8 +178,8 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         Cartesian position = Cartesian::convert(particle.directionCurrent, 1.0);
 
         // Use the position values to plot over the heatmap
-        int x = (int) (x_res * (position.x / 2.0 + 0.5));
-        int y = (int) (y_res * (position.y / 2.0 + 0.5));
+        int x = (int) (x_res * (position.x/ratio / 2.0 + 0.5));
+        int y = (int) (y_res * (position.y/ratio / 2.0 + 0.5));
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
