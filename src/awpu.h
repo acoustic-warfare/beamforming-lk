@@ -17,7 +17,7 @@
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *address, const int port, int verbose = 0, bool debug = false);
+    AWProcessingUnit(const char *address, const int port, float fov = FOV, int verbose = 1, bool debug = false);
     AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool debug = false);
     ~AWProcessingUnit();
 
@@ -30,8 +30,11 @@ public:
     void synthetic_calibration();
     std::vector<Target> targets();
 
+    void draw(cv::Mat *compact, cv::Mat *normal) const;
+
 
 protected:
+    float fov;
     int verbose;
     bool debug;
     std::vector<Worker *> workers;
