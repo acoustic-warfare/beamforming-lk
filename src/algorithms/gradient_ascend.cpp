@@ -85,6 +85,8 @@ void GradientParticle::update() {
         }
 
         power[n] /= static_cast<float>(N_SAMPLES);
+
+        power[n] = powf(power[n], 3);
     }
 
     float thetaPower = fmax(fabs(power[NORTH]), fabs(power[SOUTH]));
@@ -148,14 +150,14 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         cv::Mat &frame = *heatmap;
 
-        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
+        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradient * 15.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
 
         //cv::circle(frame, cv::Point(x, y), 1 + static_cast<int>(gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
 
 
         //heatmap->at<uchar>(y, x) = 255;
     }
-#else
+//#else
     float maxValue = 0.0;
     for (GradientParticle &particle: particles) {
         if (particle.magnitude > maxValue) {
@@ -179,9 +181,9 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
 
-        int m = 200; //(int) (mag / maxValue * 255.0);
+        int m = 255; //(int) (mag / maxValue * 255.0);
 
-        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 10.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
+        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 5.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
 
 
         //heatmap->at<uchar>(x, y) = 255;

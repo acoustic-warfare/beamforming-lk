@@ -101,7 +101,7 @@ void MIMOWorker::populateHeatmap(cv::Mat *heatmap) {
     int i = 0;
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < columns; c++) {
-            double db = pow(powerdB[i] / maxV, 3);
+            double db = pow(powerdB[i] / maxV, 5);
             //double db = pow((powerdB[i] - minV) / (maxV - minV), 3);//(maxV - minV), 3);
             //std::cout << db << std::endl;
             //db = 20 * log10(db * 1e12);
@@ -141,9 +141,6 @@ void MIMOWorker::update() {
 
     reference /= static_cast<float>(N_SAMPLES * antenna.usable);
 
-
-    //computeDelayLUT();
-    //std::cout << "Working" << std::endl;
     float powMax = 0.0;
     float powMin = 1000000.0;
     for (int m = 0; m < maxIndex; m++) {
@@ -170,45 +167,14 @@ void MIMOWorker::update() {
         //if (power < powMin) powMin = power;
         //if (power > powMax) powMax = power;
 
-        //if (power < reference*0.05) {
+        //std::cout << "Power: " << power << " Reference: " << reference << " Ratio: " << power / reference << std::endl;
+
+        //if (power < reference*10.0) {
         //    power = 0.0;
         //}
 
-        //std::cout << "Power: " << power << " Reference: "<<reference<<std::endl;
+        
 
         powerdB[m] = power;
     }
-
-    //std::cout << "Power Diff: " << (powMax - powMin) / (powMax) << std::endl;
-
-    //    while (p < maxIndex && canContinue() ) {
-    //        float out[N_SAMPLES] = {0.0};
-    //
-    //        for (unsigned s = 0; s < antenna.usable; s++) {
-    //            //if (!in_sector(&second[0], s)) {
-    //            //    continue;
-    //            //}
-    //            int i = antenna.index[s];
-    //            float fraction = fractionalDelays[index][i];
-    //            int offset = offsetDelays[index][i];
-    //
-    //            float *signal = this->streams->get_signal(static_cast<unsigned>(i), offset);
-    //            delay(&out[0], signal, fraction);
-    //        }
-    //        float power = 0.0;
-    //        for (int i = 0; i < N_SAMPLES; i++) {
-    //            power += powf(out[i] * norm, 2);
-    //        }
-    //
-    //        power /= static_cast<float>(N_SAMPLES);
-    //
-    //        //if (power < reference * 0.01) {
-    //        //    power = 0.0;
-    //        //}
-    //
-    //        powerdB[index] = power;// / reference;//clip(power - reference, 0.0, power);
-    //        index++;
-    //        index %= maxIndex;
-    //        p++;
-    //    }
 }

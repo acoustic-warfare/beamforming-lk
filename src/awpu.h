@@ -17,7 +17,7 @@
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *address, const int port, int verbose = 1, bool debug = false);
+    AWProcessingUnit(const char *address, const int port, int verbose = 0, bool debug = false);
     AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool debug = false);
     ~AWProcessingUnit();
 
