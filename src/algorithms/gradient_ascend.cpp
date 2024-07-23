@@ -1,6 +1,6 @@
 #include "gradient_ascend.h"
 
-constexpr double start_rate = 1e-1;
+constexpr double start_rate = 1e-0;
 
 GradientParticle::GradientParticle(Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams) {
     this->epsilon = 1e-9f;
@@ -98,7 +98,7 @@ void GradientParticle::update() {
 
 
 SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations) {
-    this->n_trackers = 9;
+    this->n_trackers = 5;
 
     for (int i = 0; i < n_trackers; i++) {
         currentTrackers.emplace_back(this->antenna, this->streams);
@@ -107,6 +107,7 @@ SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool 
     }
 
     initialize_particles();
+    thread_loop = std::thread(&SphericalGradient::loop, this);
 }
 
 void SphericalGradient::initialize_particles() {
@@ -147,10 +148,12 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         cv::Mat &frame = *heatmap;
 
-        cv::circle(frame, cv::Point(x, y), 1 + static_cast<int>(gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
+        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
+
+        //cv::circle(frame, cv::Point(x, y), 1 + static_cast<int>(gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
 
 
-        heatmap->at<uchar>(y, x) = 255;
+        //heatmap->at<uchar>(y, x) = 255;
     }
 #else
     float maxValue = 0.0;
@@ -176,9 +179,9 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
 
-        int m = 3; //(int) (mag / maxValue * 255.0);
+        int m = 200; //(int) (mag / maxValue * 255.0);
 
-        cv::circle(*heatmap, cv::Point(y, x), 1 + (int)(gradient * 30.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
+        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 10.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
 
 
         //heatmap->at<uchar>(x, y) = 255;
@@ -193,7 +196,9 @@ void SphericalGradient::reset() {
 }
 
 void SphericalGradient::update() {
+    //std::cout << "Jumping" << std::endl;
     while (canContinue()) {
+        
         int n_tracking = 0;
         for (auto &particle: currentTrackers) {
             if (particle.tracking) {

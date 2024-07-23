@@ -63,7 +63,6 @@ public:
     Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true), pipeline(pipeline), antenna(antenna),
                                                                   running(running) {
         this->streams = pipeline->getStreams();
-        thread_loop = std::thread(&Worker::loop, this);
     };
 
     ~Worker() {
@@ -130,19 +129,16 @@ protected:
     };
 
     virtual void reset() {
+        std::cout << "Wrong reset" << std::endl;
     };
 
     virtual void populateHeatmap(cv::Mat *heatmap) {
+        std::cout << "Wrong heatmap" << std::endl;
     };
 
     virtual void setup() {
+        std::cout << "Wrong setup" << std::endl;
     };
-
-private:
-    int start;
-
-    // Lock to prevent multiple access from outside and inside
-    std::mutex lock;
 
     /**
      * Worker main loop
@@ -160,6 +156,14 @@ private:
             lock.unlock();
         }
     }
+
+private:
+    int start;
+
+    // Lock to prevent multiple access from outside and inside
+    std::mutex lock;
+
+    
 };
 
 #endif

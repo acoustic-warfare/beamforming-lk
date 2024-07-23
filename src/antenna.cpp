@@ -50,13 +50,11 @@ bool in_sector(const int sector_index, const int i) {
 inline double spherical_distance(const double target_theta,
                                  const double target_phi,
                                  const double current_theta,
-                                 const double current_phi) 
-{
+                                 const double current_phi) {
     double north_target_theta = PI_HALF - target_theta;
     double north_current_theta = PI_HALF - current_theta;
     return acos(sin(north_target_theta) * sin(north_current_theta) + cos(north_target_theta) * cos(north_current_theta) * cos(fabs(target_phi - current_phi)));
 }
-
 
 
 /**
@@ -219,9 +217,9 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
                 float z = std::cos(phi_radians);
 
                 auto dist = static_cast<float>(sqrt(
-                    pow(x - dome(i, X_INDEX), 2) +
-                    pow(y - dome(i, Y_INDEX), 2) +
-                    pow(z - dome(i, Z_INDEX), 2)));
+                        pow(x - dome(i, X_INDEX), 2) +
+                        pow(y - dome(i, Y_INDEX), 2) +
+                        pow(z - dome(i, Z_INDEX), 2)));
 
                 best_match = dist < min_dist ? i : best_match;
                 min_dist = dist < min_dist ? dist : min_dist;
@@ -249,9 +247,9 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
         float z = cos(phi_radians);
 
         auto dist = static_cast<float>(sqrt(
-            pow(x - point(X_INDEX), 2) +
-            pow(y - point(Y_INDEX), 2) +
-            pow(z - point(Z_INDEX), 2)));
+                pow(x - point(X_INDEX), 2) +
+                pow(y - point(Y_INDEX), 2) +
+                pow(z - point(Z_INDEX), 2)));
 
         if (dist > MAX_ALLOWED_DISTANCE) {
             failed_tests++;

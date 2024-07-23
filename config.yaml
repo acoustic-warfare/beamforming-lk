@@ -75,7 +75,7 @@ GLOBAL_AREA_RATIO: 1.0 - LOCAL_AREA_RATIO
 PSO_DECAY: 0.7
 
 # Camera
-FOV: 45.0 # How far we should look to the side
+FOV: 63.0 # How far we should look to the side
 CAMERA: false
 CAMERA_PATH: "/dev/video0"
 

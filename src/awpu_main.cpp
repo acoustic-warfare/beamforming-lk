@@ -3,24 +3,24 @@
 #include <opencv2/opencv.hpp>
 
 #include "awpu.h"
-#include "kf.h" 
+#include "kf.h"
 
 KalmanFilter3D kf(0.2);
 
 const Position start(3.0, 0.0, 1.4);
 
 
-void point3d(const Spherical& spherical1, const Spherical& spherical2, const double separation) {
+void point3d(const Spherical &spherical1, const Spherical &spherical2, const double separation) {
     double alpha = spherical1.phi - M_PI / 2.0;
     double beta = 3.0 * M_PI / 2.0 - spherical2.phi;
-    double x = - separation*(sin(alpha) * sin(beta)) / sin(alpha + beta);
+    double x = -separation * (sin(alpha) * sin(beta)) / sin(alpha + beta);
 
     double y = -x / tan(alpha);
 
     double alpha2 = M_PI / 2.0 - spherical1.theta;
     double beta2 = M_PI / 2.0 - spherical2.theta;
 
-    double z = separation * sin(alpha2)*sin(beta2) / sin(alpha2 + beta2);
+    double z = separation * sin(alpha2) * sin(beta2) / sin(alpha2 + beta2);
 
     Position point(y, z, x);
     point = point + start;
@@ -32,7 +32,7 @@ void point3d(const Spherical& spherical1, const Spherical& spherical2, const dou
     //std::cout <<" P0 " << spherical1 << std::endl;
     //std::cout << " P1 " << spherical2 << std::endl;
 
-    std::cout << "Point: (" <<p(0) << ", " << p(1) << ", " << p(2) <<")" << std::endl;
+    std::cout << "Point: (" << p(0) << ", " << p(1) << ", " << p(2) << ")" << std::endl;
 }
 
 void draw(cv::Mat &heatmap, Target &target) {
@@ -62,10 +62,14 @@ int main() {
     Pipeline pipeline(5000, Spherical(0, 0));
     AWProcessingUnit awpu5(&pipeline);
     AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
-#elif 0
-    Pipeline pipeline("10.0.0.1", 21875);
-    AWProcessingUnit awpu5 = AWProcessingUnit(&pipeline);
-    AWProcessingUnit awpu8 = AWProcessingUnit(&pipeline);
+#elif 1
+    Pipeline pipeline5("10.0.0.1", 21875);
+    AWProcessingUnit awpu51 = AWProcessingUnit(&pipeline5);
+    AWProcessingUnit awpu52 = AWProcessingUnit(&pipeline5);
+
+    Pipeline pipeline8("10.0.0.1", 21878);
+    AWProcessingUnit awpu81 = AWProcessingUnit(&pipeline8);
+    AWProcessingUnit awpu82 = AWProcessingUnit(&pipeline8);
 
 #else
     AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
@@ -76,27 +80,28 @@ int main() {
 
     //std::cout << "Starting Gradient" << std::endl;
 
-    //awpu5.start(GRADIENT);
-    awpu5.start(MIMO);
-    awpu8.start(MIMO);
+    awpu51.start(GRADIENT);
+    awpu52.start(MIMO);
+
+    awpu81.start(GRADIENT);
+    awpu82.start(MIMO);
 
     std::cout << "Starting listening" << std::endl;
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
-    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH*2, APPLICATION_HEIGHT);
+    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH * 2, APPLICATION_HEIGHT);
 
     cv::Mat frame1(Y_RES, X_RES, CV_8UC1);
     cv::Mat frame2(Y_RES, X_RES, CV_8UC1);
-    cv::Mat frame(Y_RES, X_RES*2, CV_8UC1);
-    cv::Mat colorFrame(Y_RES, X_RES*2, CV_8UC1);
+    cv::Mat frame(Y_RES, X_RES * 2, CV_8UC1);
+    cv::Mat colorFrame(Y_RES, X_RES * 2, CV_8UC1);
 
     cv::Mat small1(MIMO_SIZE, MIMO_SIZE, CV_8UC1);
     cv::Mat small2(MIMO_SIZE, MIMO_SIZE, CV_8UC1);
 
 
     while (1) {
-        
 
 
         // Reset heatmap
@@ -106,10 +111,10 @@ int main() {
         small2.setTo(cv::Scalar(0));
 
 #if 1
-        awpu5.draw_heatmap(&frame1);
+        //awpu5.draw_heatmap(&frame1);
         //awpu8.draw_heatmap(&frame2);
-        awpu5.draw_heatmap(&small1);
-        awpu8.draw_heatmap(&small2);
+        awpu52.draw_heatmap(&small1);
+        awpu82.draw_heatmap(&small2);
 #endif
 
         //for (Target &target : awpu5.targets()) {
@@ -129,8 +134,9 @@ int main() {
         //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         cv::resize(small1, frame1, frame1.size(), 0, 0, cv::INTER_LINEAR);
         cv::resize(small2, frame2, frame2.size(), 0, 0, cv::INTER_LINEAR);
-        
-        cv::hconcat(frame1,frame2,frame);
+        awpu51.draw_heatmap(&frame1);
+        awpu81.draw_heatmap(&frame2);
+        cv::hconcat(frame1, frame2, frame);
 
         // Blur the image with a Gaussian kernel
         cv::GaussianBlur(frame, colorFrame,
@@ -161,10 +167,9 @@ int main() {
     return 0;
 }
 
-#else 
+#else
 
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]) {
     Spherical a(TO_RADIANS(90), TO_RADIANS(179));
     Spherical b(TO_RADIANS(90), TO_RADIANS(0));
 
