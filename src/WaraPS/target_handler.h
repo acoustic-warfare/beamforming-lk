@@ -8,6 +8,7 @@
 #include <wara_ps_client.h>
 
 #include "../awpu.h"
+#include "../kf.h"
 
 /**
  * Class that classifies and draws targets to the WARA PS display.
@@ -22,6 +23,7 @@ class TargetHandler {
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
                                               std::getenv("MQTT_PASSWORD"));
     std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(200);
+    KalmanFilter3D kf_{0.4};
 
     gps_data_t *gpsData_;
 
@@ -47,7 +49,7 @@ public:
 
     TargetHandler &operator<<(AWProcessingUnit *awpu);
 
-    void FindTargets(const std::vector<Target> &targets);
+    void FindTargets(std::vector<Target> &targets);
 
     void DisplayTarget(bool toggle);
 

@@ -52,19 +52,20 @@ TargetHandler &TargetHandler::operator<<(AWProcessingUnit *awpu) {
     return *this;
 }
 
-void TargetHandler::FindTargets(const std::vector<Target> &targets) {
+void TargetHandler::FindTargets(std::vector<Target> &targets) {
     std::vector<Eigen::Vector3d> foundTargets;
 
-    for (const auto target: targets) {
+    for (auto target: targets) {
         if (target.probability < minProbability_)
             continue;
-        for (const auto target2: targets) {
+        for (auto target2: targets) {
             if (target == target2 || target2.probability < minProbability_) {
                 continue;
             }
             Eigen::Vector3d foundPoint =
                     triangulatePoint(target.direction.toCartesian(), target2.direction.toCartesian(),
                                      LK_DISTANCE);
+
 
             if (foundPoint.norm() == 0 || foundPoint.norm() > 50) {
                 continue;
@@ -74,7 +75,8 @@ void TargetHandler::FindTargets(const std::vector<Target> &targets) {
                                       1 - targetDecay_);
 
             if ((target.power + target2.power) / 2 > loudestTargetPower_) {
-                loudestTarget_ = foundPoint;
+                kf_.update(foundPoint.cast<float>());
+                loudestTarget_ = kf_.getState().cast<double>();
                 loudestTargetPower_ = (target.power + target2.power) / 2;
             }
 
