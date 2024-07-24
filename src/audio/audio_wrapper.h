@@ -7,6 +7,7 @@
 
 #include <lame/lame.h>
 #include <portaudio.h>
+#include <samplerate.h>
 #include <sndfile.h>
 
 #include <atomic>
@@ -16,6 +17,7 @@
 
 #include "../config.h"
 #include "../pipeline.h"
+#include "pa_ringbuffer.h"
 
 class AudioWrapper {
 private:
@@ -25,8 +27,21 @@ private:
     bool debug_ = true;
     PaStream *audio_stream_ = nullptr;
 
+    void initAudioFiles();
+
     void saveToMp3(const std::string &filename);
     void saveToWav(const std::string &filename);
+
+    SNDFILE *sndfile = nullptr;
+    SF_INFO sfinfo {};
+
+    FILE *mp3File;
+    lame_t lame_ = nullptr;
+
+    std::vector<float> ringBufferData;
+    std::thread fileWriterThread;
+    std::atomic<bool> keepRunning;
+    void fileWriter();
 
 public:
     explicit AudioWrapper(Streams &streams);
@@ -42,12 +57,17 @@ public:
     void flushBufferMp3();
     void flushBufferWav();
 
+    //void flushBufferMp3(const std::vector<float> &buffer);
+    //void flushBufferWav(const std::vector<float> &buffer);
+
     Streams _streams;
     std::vector<float> audioData;
 
-    SNDFILE *sndfile;
-    SF_INFO sfinfo;
-    lame_t lame_ = nullptr;
+    PaUtilRingBuffer ringBuffer;
+
+    SRC_STATE *src_state;
+    void resampleAudioData();
+    std::vector<float> resampledData;
 
     ~AudioWrapper();
 };

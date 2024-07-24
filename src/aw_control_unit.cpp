@@ -19,7 +19,7 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21844);
+    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
     awpu.calibrate();
     awpu.start(PSO);
 
