@@ -10,6 +10,7 @@ config.py
 setup.py
 
 build/*
+.cache/*
 
 doc/*
 

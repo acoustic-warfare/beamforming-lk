@@ -1,0 +1,152 @@
+[
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/receiver.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/receiver.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/receiver.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/receiver.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/antenna.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/antenna.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/antenna.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/antenna.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/pipeline.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/pipeline.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/pipeline.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/pipeline.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/main.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/main.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/main.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/delay.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/delay.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/delay.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/delay.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/algorithms/pso_seeker.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/pso_seeker.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/pso_seeker.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/algorithms/pso_seeker.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/algorithms/gradient_ascend.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/gradient_ascend.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/gradient_ascend.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/algorithms/gradient_ascend.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/algorithms/mimo.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/mimo.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/mimo.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/algorithms/mimo.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/awpu.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/awpu.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/awpu.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/awpu.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/geometry.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/geometry.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/geometry.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/geometry.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/audio/audio_wrapper.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/audio/audio_wrapper.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/audio/audio_wrapper.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/audio/audio_wrapper.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/aw_control_unit.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/aw_control_unit.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/aw_control_unit.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/aw_control_unit.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/algorithms/triangulate.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/triangulate.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/triangulate.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/algorithms/triangulate.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/beamformer.dir/src/WaraPS/target_handler.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/WaraPS/target_handler.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/WaraPS/target_handler.cpp",
+  "output": "CMakeFiles/beamformer.dir/src/WaraPS/target_handler.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/receiver.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/receiver.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/receiver.cpp",
+  "output": "CMakeFiles/awpu.dir/src/receiver.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/antenna.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/antenna.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/antenna.cpp",
+  "output": "CMakeFiles/awpu.dir/src/antenna.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/pipeline.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/pipeline.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/pipeline.cpp",
+  "output": "CMakeFiles/awpu.dir/src/pipeline.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/delay.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/delay.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/delay.cpp",
+  "output": "CMakeFiles/awpu.dir/src/delay.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/algorithms/pso_seeker.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/pso_seeker.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/pso_seeker.cpp",
+  "output": "CMakeFiles/awpu.dir/src/algorithms/pso_seeker.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/algorithms/gradient_ascend.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/gradient_ascend.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/gradient_ascend.cpp",
+  "output": "CMakeFiles/awpu.dir/src/algorithms/gradient_ascend.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/algorithms/mimo.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/mimo.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/algorithms/mimo.cpp",
+  "output": "CMakeFiles/awpu.dir/src/algorithms/mimo.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/awpu.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/awpu.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/awpu.cpp",
+  "output": "CMakeFiles/awpu.dir/src/awpu.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/awpu_main.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/awpu_main.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/awpu_main.cpp",
+  "output": "CMakeFiles/awpu.dir/src/awpu_main.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/geometry.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/geometry.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/geometry.cpp",
+  "output": "CMakeFiles/awpu.dir/src/geometry.cpp.o"
+},
+{
+  "directory": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/build",
+  "command": "/usr/bin/c++  -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -isystem /usr/include/opencv4 -isystem /usr/include/eigen3  -march=native -mavx2 -O3 -g -std=gnu++20 -o CMakeFiles/awpu.dir/src/rtmp.cpp.o -c /home/psyduck/Documents/accustic_warfare/beamforming-lk/src/rtmp.cpp",
+  "file": "/home/psyduck/Documents/accustic_warfare/beamforming-lk/src/rtmp.cpp",
+  "output": "CMakeFiles/awpu.dir/src/rtmp.cpp.o"
+}
+]

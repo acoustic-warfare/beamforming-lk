@@ -15,6 +15,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -O3")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
@@ -139,6 +140,10 @@ find_package(Boost REQUIRED)
 # Find OpenCV package
 find_package(OpenCV REQUIRED)
 
+# Find GStreamer
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0>=1.0 gstreamer-base-1.0>=1.0)
+
 
 find_library(portaudio
         portaudio
@@ -152,6 +157,12 @@ find_library(portaudio
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+# Include directories for GStreamer
+include_directories(${GSTREAMER_INCLUDE_DIRS})
+
+# Add the required libraries
+link_directories(${GSTREAMER_LIBRARY_DIRS})
 
 # # Configuration maker
 # add_custom_target(config #ALL DEPENDS
@@ -220,12 +231,15 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.hpp
 )
 
 # Linking
 target_link_libraries(awpu
         Eigen3::Eigen
         ${OpenCV_LIBS}
+        ${GSTREAMER_LIBRARIES}
 )
 
 
