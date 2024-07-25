@@ -19,17 +19,19 @@ static int audioCallback(const void *_, void *outputBuffer,
     auto self = static_cast<AudioWrapper *>(userData);
     auto out = static_cast<float *>(outputBuffer);
 
-    self->pipeline.barrier();
-    //self->getPipeline()->barrier();
+    Pipeline *pipeline = self->getPipeline();
+    std::vector<float> *audioData = self->getAudioData();
 
-    float *in = self->pipeline.getStreams()->get_signal(0, 0);
+    pipeline->barrier();
+
+    float *in = pipeline->getStreams()->get_signal(0, 0);
 
     for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-        self->audioData.push_back(in[i]);
+        audioData->push_back(in[i]);
         out[i] = in[i];
     }
 
-    if (AUDIO_FILE && self->audioData.size() >= BUFFER_THRESHOLD) {
+    if (AUDIO_FILE && audioData->size() >= BUFFER_THRESHOLD) {
         if (MP3) {
             self->flushBufferMp3();
         }
@@ -38,7 +40,7 @@ static int audioCallback(const void *_, void *outputBuffer,
             self->flushBufferWav();
         }
 
-        self->audioData.clear();
+        audioData->clear();
     }
 
     return paContinue;
@@ -81,9 +83,9 @@ void AudioWrapper::initAudioFiles() {
     }
 }
 
-AudioWrapper::AudioWrapper(Pipeline &pipeline) : AudioWrapper(pipeline, debug_) {}
+AudioWrapper::AudioWrapper(Pipeline *pipeline) : AudioWrapper(pipeline, debug_) {}
 
-AudioWrapper::AudioWrapper(Pipeline &pipeline, bool debug) : pipeline(pipeline), debug_(debug) {
+AudioWrapper::AudioWrapper(Pipeline *pipeline, bool debug) : pipeline(pipeline), debug_(debug) {
     PaError err = paNoError;
     err = Pa_Initialize();
     checkErr(err);
@@ -133,12 +135,14 @@ AudioWrapper::AudioWrapper(Pipeline &pipeline, bool debug) : pipeline(pipeline),
 }
 
 void AudioWrapper::flushBufferMp3() {
-    if (!audioData.empty()) {
-        const int mp3BufferSize = audioData.size();
-        unsigned char mp3Buffer[mp3BufferSize];
-        int numSamples = audioData.size();
+    std::vector<float> *audioData = getAudioData();
 
-        int bytesWritten = lame_encode_buffer_ieee_float(lame_, audioData.data(), nullptr, numSamples, mp3Buffer, mp3BufferSize);
+    if (!audioData->empty()) {
+        const int mp3BufferSize = audioData->size();
+        unsigned char mp3Buffer[mp3BufferSize];
+        int numSamples = audioData->size();
+
+        int bytesWritten = lame_encode_buffer_ieee_float(lame_, audioData->data(), nullptr, numSamples, mp3Buffer, mp3BufferSize);
         if (bytesWritten < 0) {
             std::cerr << "Error encoding MP3: " << bytesWritten << std::endl;
         } else {
@@ -157,8 +161,10 @@ void AudioWrapper::saveToMp3(const std::string &filename) {
 }
 
 void AudioWrapper::flushBufferWav() {
-    if (!audioData.empty()) {
-        sf_write_float(sndfile_, audioData.data(), audioData.size());
+    std::vector<float> *audioData = getAudioData();
+
+    if (!audioData->empty()) {
+        sf_write_float(sndfile_, audioData->data(), audioData->size());
     }
 }
 
@@ -169,10 +175,13 @@ void AudioWrapper::saveToWav(const std::string &filename) {
     sndfile_ = nullptr;
 }
 
-//Pipeline *AudioWrapper::getPipeline() {
-//    return pipeline;
-//}
-//std::vector<float> getAudioData();
+Pipeline *AudioWrapper::getPipeline() {
+    return pipeline;
+}
+
+std::vector<float> *AudioWrapper::getAudioData() {
+    return &audioData;
+}
 
 void AudioWrapper::start_audio_playback() {
     Pa_StartStream(audio_stream_);
