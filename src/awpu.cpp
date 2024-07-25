@@ -1,27 +1,46 @@
 #include "awpu.h"
 
-#include "audio/audio_wrapper.h"
-
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug){
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
-
-    // Connect to FPGA
     this->pipeline->connect();
-    this->running = false;
 
-    for (int a = 0; a < this->pipeline->get_n_sensors() / ELEMENTS; a++) {
+    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-        //antennas.emplace_back();
         antennas.push_back(antenna);
     }
+    //    int n_sources;
+    //    // Connect to FPGA
+    //    if (debug) {
+    //        this->spherical.theta = TO_RADIANS(0);
+    //        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
+    //        this->pipeline->start_synthetic(this->spherical);
+    //        n_sources = 1;
+    //    } else {
+    //        this->pipeline->connect();
+    //        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
+    //    }
+    //    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
+    //        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+    //        antennas.push_back(antenna);
+    //    }
+
+    calibrate();
+}
+
+AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool debug) : pipeline(pipeline), verbose(verbose), debug(debug) {
+    this->pipeline->connect();
+    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
+        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+        antennas.push_back(antenna);
+    }
+
+    calibrate();
 }
 
 AWProcessingUnit::~AWProcessingUnit() {
 
     pause();
-
-    stop_audio();
 
     for (auto it = workers.begin(); it != workers.end();) {
         it = workers.erase(it);
@@ -31,7 +50,7 @@ AWProcessingUnit::~AWProcessingUnit() {
     if (verbose) {
         std::cout << "Destructing AWPU" << std::endl;
     }
-
+    
     pipeline->disconnect();
     delete pipeline;
 
@@ -43,16 +62,19 @@ AWProcessingUnit::~AWProcessingUnit() {
 bool AWProcessingUnit::start(const worker_t worker) {
     Worker *job;
     switch (worker) {
-        case PSO:
-            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
-            break;
+//        case PSO:
+//
+//            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
+//            break;
         case MIMO:
-            job = nullptr;
+            job = static_cast<Worker *>(new MIMOWorker(pipeline, antennas[0], &running, 32, 32, 45));
             break;
         case SOUND:
             job = nullptr;
             break;
-
+        case GRADIENT:
+            job = static_cast<Worker *>(new SphericalGradient(pipeline, antennas[0], &running, 50, 10));
+            break;
         default:
             return false;
     }
@@ -71,6 +93,11 @@ bool AWProcessingUnit::start(const worker_t worker) {
  * this is not an absolute measure and should be used accordingly
  */
 void AWProcessingUnit::calibrate(const float reference_power_level) {
+
+    // Wait for full buffers
+    for (int i = 0; i < N_ITEMS_BUFFER / N_SAMPLES; i++) {
+        pipeline->barrier();
+    }
     Streams *streams = pipeline->getStreams();
 
 
@@ -85,7 +112,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             streams->read_stream(s + a * ELEMENTS, &signals[a][s][0]);
         }
     }
-
+    
     // Calibrate each connected antenna individually
     for (int a = 0; a < antennas.size(); a++) {
         Antenna &antenna = antennas[a];
@@ -115,8 +142,8 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
 
         float median = (medians[ELEMENTS / 2] + medians[ELEMENTS / 2 + 1]) / 2.0;
 
-
-        float mmin = 1.0;// We have big problems is anything is above 1.0
+        
+        float mmin = 1.0; // We have big problems is anything is above 1.0
         float mmax = 0.0;
 
         int index[ELEMENTS];
@@ -145,7 +172,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             }
         }
 
-        mean /= (float) count;
+        mean /= static_cast<float>(count);
 
         antenna.usable = count;
         antenna.median = median;
@@ -166,13 +193,17 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             antenna.power_correction_mask[s] = reference_power_level / current_valid_power;
         }
 
-        std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
+        if (verbose) {
+            std::cout << "Calibrated antenna " << a << " Usable: " << antenna.usable << " Mean: " << antenna.mean << " Median: " << antenna.median << std::endl;
 
-        for (int s = 0; s < antenna.usable; s++) {
-            std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
+            for (int s = 0; s < antenna.usable; s++) {
+                std::cout << "Mic: " << antenna.index[s] << " Correction: " << antenna.power_correction_mask[s] << std::endl;
+            }
+
+            std::cout << std::endl;
         }
 
-        std::cout << std::endl;
+        
     }
 }
 
@@ -202,8 +233,12 @@ void AWProcessingUnit::resume() {
     this->running = true;
 }
 
-void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
-    workers[0]->draw_heatmap(heatmap);
+void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) const {
+    workers[0]->draw(heatmap);
+}
+
+std::vector<Target> AWProcessingUnit::targets() {
+    return workers[0]->getTargets();
 }
 
 void AWProcessingUnit::play_audio() {
@@ -217,8 +252,4 @@ void AWProcessingUnit::stop_audio() {
         audioWrapper->stop_audio_playback();
         delete audioWrapper;
     }
-}
-
-Spherical AWProcessingUnit::target() {
-    return workers[0]->getDirection();
 }

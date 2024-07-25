@@ -27,7 +27,6 @@ env/
 *.d
 
 # Object files
-*.o
 *.ko
 *.obj
 *.elf
@@ -49,7 +48,6 @@ env/
 
 # Shared objects (inc. Windows DLLs)
 *.dll
-*.so
 *.so.*
 *.dylib
 

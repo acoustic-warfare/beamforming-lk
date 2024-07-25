@@ -2,12 +2,13 @@
 // Created by janne on 2024-07-04.
 //
 
-#include "aw_control_unit.h"
-
+#include <stdexcept>
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <stdexcept>
+#include "aw_control_unit.h"
+
+#include "WaraPS/TargetHandler.h"
 
 void AWControlUnit::Start() {
     try {
@@ -19,15 +20,19 @@ void AWControlUnit::Start() {
         usingWaraPS_ = false;
     }
 
-    AWProcessingUnit awpu = AWProcessingUnit("10.0.0.1", 21875);
-    awpu.calibrate();
-    awpu.start(PSO);
+    auto awpu1 = AWProcessingUnit("10.0.0.1", 21875);
+    auto awpu2 = AWProcessingUnit("10.0.0.1", 21878);
+    awpu1.start(GRADIENT);
+    awpu2.start(GRADIENT);
+
+    targetHandler_ << &awpu1 << &awpu2;
+    targetHandler_.Start();
 
     if (USE_AUDIO) {
-        awpu.play_audio();
+        awpu1.play_audio();
     }
 
-    cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+    namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
@@ -41,13 +46,14 @@ void AWControlUnit::Start() {
             }
         });
 
-    while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
-        awpu.draw_heatmap(&frame);
 
-        cv::GaussianBlur(frame, colorFrame,
-                         cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-        cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
-        cv::imshow(APPLICATION_NAME, colorFrame);
+    while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
+        awpu1.draw_heatmap(&frame);
+
+        GaussianBlur(frame, colorFrame,
+                     cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+        applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
+        imshow(APPLICATION_NAME, colorFrame);
 
         std::unique_lock lock(pauseMutex_);
         pausedCV_.wait(lock, [&] { return !paused_; });
@@ -63,6 +69,7 @@ void AWControlUnit::Start() {
     }
     if (usingWaraPS_) {
         client_.Stop();
+        targetHandler_.Stop();
         data_thread_.join();
     }
 }
@@ -72,20 +79,22 @@ void AWControlUnit::publishData() {
     if (usingGps_ && gps_waiting(&gpsData_, 1000)) {
         if (gps_read(&gpsData_, nullptr, 0) == -1) {
             std::cerr << "GPS Read error" << std::endl;
-        } else if ((isfinite(gpsData_.fix.altitude) &&
-                    isfinite(gpsData_.fix.latitude) &&
-                    isfinite(gpsData_.fix.longitude))) {// Sending NaN breaks WARA PS Arena
+        } else if (isfinite(gpsData_.fix.altitude) &&
+                   isfinite(gpsData_.fix.latitude) &&
+                   isfinite(gpsData_.fix.longitude)) {
+            // Sending NaN breaks WARA PS Arena
 
-            nlohmann::json gpsJson = {
-                    {"longitude", std::to_string(gpsData_.fix.longitude)},
-                    {"latitude", std::to_string(gpsData_.fix.latitude)},
-                    {"altitude", std::to_string(gpsData_.fix.altitude)},
-                    {"type", "GeoPoint"}};
+            const nlohmann::json gpsJson = {
+                {"longitude", std::to_string(gpsData_.fix.longitude)},
+                {"latitude", std::to_string(gpsData_.fix.latitude)},
+                {"altitude", std::to_string(gpsData_.fix.altitude)},
+                {"type", "GeoPoint"}
+            };
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
     }
 
-    client_.PublishMessage("sensor/heading", std::to_string(90.0));// Currently not a real value
+    client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");

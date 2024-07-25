@@ -215,10 +215,16 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/mimo.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/TargetHandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/TargetHandler.h
 )
 
 
@@ -241,6 +247,30 @@ target_link_libraries(beamformer
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
 
+
+add_executable(awpu
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/mimo.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
+)
+
+# Linking
+target_link_libraries(awpu
+        Eigen3::Eigen
+        ${OpenCV_LIBS}
+        portaudio
+        mp3lame
+        ${LIBSNDFILE_LIBRARIES}
+)
 
 
 add_dependencies(beamformer config)

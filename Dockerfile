@@ -14,7 +14,7 @@
 # docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd beamformer bash
 #
 
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS deps
 
 ENV TZ=Europe \
     DEBIAN_FRONTEND=noninteractive \
@@ -69,18 +69,20 @@ RUN git submodule init \
     && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON \
     && cmake --build build/ --target install
 
-WORKDIR /
-RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
-WORKDIR /WARA-PS-MQTT-Agent
-RUN cmake -S . -B build \
-    && cmake --build build/ --target install
 
 RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
     mkdir -p pso-cpp/build && \
     cd pso-cpp/build && \
     cmake .. && make install
 
-# Create app directory (optional, since it will be mounted)
+FROM deps AS build
+
+WORKDIR /
+RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
+WORKDIR /WARA-PS-MQTT-Agent
+RUN cmake -S . -B build \
+    && cmake --build build/ --target install
+
 RUN ldconfig
 
 # Create app directory
