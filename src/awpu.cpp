@@ -1,7 +1,6 @@
 #include "awpu.h"
-#include "audio/audio_wrapper.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose) : verbose(verbose) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool debug) : fov(fov), small_res(small_res), verbose(verbose), debug(debug) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();

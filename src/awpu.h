@@ -13,6 +13,7 @@
 #include "pipeline.h"
 #include "worker.h"
 #include "config.h"
+#include "audio/audio_wrapper.h"
 
 class AWProcessingUnit {
 public:

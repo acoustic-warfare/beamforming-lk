@@ -18,7 +18,7 @@ void AWControlUnit::Start() {
     awpu2.start(GRADIENT);
 
     if (USE_AUDIO) {
-        awpu.play_audio();
+        awpu1.play_audio();
     }
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);

@@ -237,6 +237,7 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/mimo.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
@@ -247,6 +248,9 @@ add_executable(awpu
 target_link_libraries(awpu
         Eigen3::Eigen
         ${OpenCV_LIBS}
+        portaudio
+        mp3lame
+        ${LIBSNDFILE_LIBRARIES}
 )
 
 # Add a custom target to generate assembly code for delay.cpp
