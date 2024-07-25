@@ -30,8 +30,6 @@ public:
     void synthetic_calibration();
     std::vector<Target> targets();
 
-    Pipeline *pipeline;
-
 protected:
     int verbose;
     bool debug;

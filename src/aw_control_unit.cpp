@@ -25,12 +25,12 @@ void AWControlUnit::Start() {
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
-    targetHandler_ << &awpu1 << &awpu2;
-    targetHandler_.Start();
-
     if (USE_AUDIO) {
         awpu1.play_audio();
     }
+
+    targetHandler_ << &awpu1 << &awpu2;
+    targetHandler_.Start();
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
