@@ -23,7 +23,7 @@ protected:
     void reset() override {};
     void update() override;
     void populateHeatmap(cv::Mat *heatmap) override;
-    void setup() override;
+    void setup() override {};
 
 private:
     int index = 0;
