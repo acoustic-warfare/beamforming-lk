@@ -21,7 +21,7 @@
 
 class AudioWrapper {
 private:
-    AudioWrapper(Streams &streams, bool debug);
+    AudioWrapper(Pipeline &pipeline, bool debug);
     std::thread producer_thread_;
     std::atomic<bool> is_on_ = false;
     bool debug_ = true;
@@ -33,7 +33,7 @@ private:
     void saveToWav(const std::string &filename);
 
     SNDFILE *sndfile = nullptr;
-    SF_INFO sfinfo {};
+    SF_INFO sfinfo{};
 
     FILE *mp3File;
     lame_t lame_ = nullptr;
@@ -44,7 +44,7 @@ private:
     void fileWriter();
 
 public:
-    explicit AudioWrapper(Streams &streams);
+    explicit AudioWrapper(Pipeline &pipeline);
 
     AudioWrapper(const AudioWrapper &) = delete;
     AudioWrapper(AudioWrapper &&) = delete;
@@ -60,14 +60,25 @@ public:
     //void flushBufferMp3(const std::vector<float> &buffer);
     //void flushBufferWav(const std::vector<float> &buffer);
 
+    Pipeline &pipeline;
     Streams _streams;
     std::vector<float> audioData;
 
     PaUtilRingBuffer ringBuffer;
 
-    SRC_STATE *src_state;
-    void resampleAudioData();
+    SRC_STATE* srcState;
+    SRC_DATA srcData;
+    void resample();
     std::vector<float> resampledData;
+    //void resampleData(int inputRate, int outputRate);
+    //std::vector<float> resampledData;
+
+    size_t bufferSize;
+    int inputSampleRate = 44100;
+    int outputSampleRate = 48828;
+
+    std::vector<float> inputBuffer; 
+    std::vector<float> outputBuffer; 
 
     ~AudioWrapper();
 };

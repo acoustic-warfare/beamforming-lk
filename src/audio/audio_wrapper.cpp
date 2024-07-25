@@ -20,26 +20,25 @@ constexpr int INPUT_SAMPLE_RATE = 48828;
 constexpr int OUTPUT_SAMPLE_RATE = 44100;
 
 
-void AudioWrapper::resampleAudioData() {
-    if (audioData.empty()) {
-        return;
-    }
-
+void AudioWrapper::resample() {
     SRC_DATA srcData;
     srcData.data_in = audioData.data();
-    srcData.input_frames = audioData.size() / 1;// Assuming stereo input
+    srcData.input_frames = audioData.size();// Assuming stereo input
     srcData.src_ratio = 44100.0 / 48828.0;
     srcData.output_frames = static_cast<long>(srcData.input_frames * srcData.src_ratio);
 
-    resampledData.resize(srcData.output_frames * 2);// Resize output buffer for stereo output
+    resampledData.resize(srcData.output_frames);// Resize output buffer for stereo output
 
     srcData.data_out = resampledData.data();
     srcData.end_of_input = 0;
 
-    int error = src_process(src_state, &srcData);
+    int error = src_process(srcState, &srcData);
+    //int error = src_simple(&srcData, SRC_SINC_FASTEST, 1);
     if (error) {
         std::cerr << "Resampling error: " << src_strerror(error) << std::endl;
     }
+
+    resampledData.resize(srcData.output_frames_gen);
 }
 
 static int audioCallback(const void *_, void *outputBuffer,
@@ -48,25 +47,49 @@ static int audioCallback(const void *_, void *outputBuffer,
                          PaStreamCallbackFlags statusFlags,
                          void *userData) {
 
-    AudioWrapper *wrapper = static_cast<AudioWrapper *>(userData);
-    float *out = static_cast<float *>(outputBuffer);
+    auto self = static_cast<AudioWrapper *>(userData);
+    auto out = static_cast<float *>(outputBuffer);
 
-    auto it = wrapper->_streams.buffers.find(0);
-    if (it != wrapper->_streams.buffers.end()) {
-        float *buffer = it->second;
-        for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-            *out++ = buffer[i];
-        }
-        it->second += framesPerBuffer;
-    } else {
-        std::fill(out, out + framesPerBuffer, 0.0f);
+    self->pipeline.barrier();
+
+    float *in = self->pipeline.getStreams()->get_signal(0, 0);
+
+    //self->pipeline.getStreams()->read_stream(0, out, 0);
+
+    for (unsigned long i = 0; i < framesPerBuffer; ++i) {
+        self->audioData.push_back(in[i]);
+        out[i] = in[i];
     }
+
+    //std::memcpy(out, in, framesPerBuffer * sizeof(float));
+
+
+    //std::memcpy(self->inputBuffer.data(), self->_streams.buffers[0], framesPerBuffer * sizeof(float));
+    //self->resample();
+    //std::memcpy(out, self->outputBuffer.data(), framesPerBuffer * sizeof(float));
+
+
+    //AudioWrapper *self = static_cast<AudioWrapper *>(userData);
+    //float *out = static_cast<float *>(outputBuffer);
+
+    //auto in = self->_streams.buffers.find(0);
+    //
+    //
+    //if (in != self->_streams.buffers.end()) {
+    //    float *buffer = in->second;
+    //    for (unsigned long i = 0; i < framesPerBuffer; ++i) {
+    //        *out++ = buffer[i];
+    //        self->audioData.push_back(buffer[i]);
+    //    }
+    //    in->second += framesPerBuffer;
+    //} else {
+    //    std::fill(out, out + framesPerBuffer, 0.0f);
+    //}
 
     //auto self = static_cast<AudioWrapper *>(userData);
     //auto out = static_cast<float *>(outputBuffer);
-
-
-    // ORIGINAL
+    //
+    //// ORIGINAL
     //const float *in = self->_streams.buffers[0];
     //
     //for (unsigned long i = 0; i < framesPerBuffer; ++i) {
@@ -83,38 +106,46 @@ static int audioCallback(const void *_, void *outputBuffer,
     //}
 
     //RESAMPLE
-    //const float *in = self->_streams.buffers[0];
-    //
-    //for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-    //    self->audioData.push_back(in[i]);
+
+    //if (self->audioData.size() >= framesPerBuffer) {
+    //    self->resample();
+
+    //for (unsigned long i = 0; i < framesPerBuffer * 1; ++i) {// Considering stereo output
+    //    out[i] = self->resampledData[i];
     //}
-    //
-    //// Check if we have enough data to resample
-    //if (self->audioData.size() >= framesPerBuffer * 1) {// Considering stereo input
-    //    // Resample the audio data from 48828 Hz to 44100 Hz
-    //    self->resampleAudioData();
-    //
-    //    // Output the resampled data
-    //    for (unsigned long i = 0; i < framesPerBuffer * 1; ++i) {// Considering stereo output
-    //        out[i] = self->resampledData[i];
-    //    }
-    //    self->flushBufferWav();
-    //    self->resampledData.clear();
-    //    self->audioData.clear();
+    //self->flushBufferWav();
+    //self->audioData.clear();
     //}
-    //
-    //
-    //if (AUDIO_FILE && self->audioData.size() >= BUFFER_THRESHOLD) {
-    //    if (MP3) {
-    //        self->flushBufferMp3();
-    //    }
-    //
-    //    if (WAV) {
-    //        self->flushBufferWav();
-    //    }
-    //
-    //    self->audioData.clear();
-    //}
+
+    /*
+    // Check if we have enough data to resample
+    if (self->audioData.size() >= framesPerBuffer) {// Considering stereo input
+        // Resample the audio data from 48828 Hz to 44100 Hz
+        self->resample();
+
+        // Output the resampled data
+        for (unsigned long i = 0; i < framesPerBuffer * 1; ++i) {// Considering stereo output
+            //out[i] = self->resampledData[i];
+        }
+        //self->flushBufferWav();
+        //self->resampledData.clear();
+        self->audioData.clear();
+    }
+
+*/
+    /*
+    if (AUDIO_FILE && self->audioData.size() >= BUFFER_THRESHOLD) {
+        if (MP3) {
+            self->flushBufferMp3();
+        }
+
+        if (WAV) {
+            self->flushBufferWav();
+        }
+
+        self->audioData.clear();
+    }
+    */
 
     return paContinue;
 }
@@ -159,16 +190,17 @@ void AudioWrapper::initAudioFiles() {
     }
 }
 
-AudioWrapper::AudioWrapper(Streams &streams) : AudioWrapper(streams, debug_) {}
+AudioWrapper::AudioWrapper(Pipeline &pipeline) : AudioWrapper(pipeline, debug_) {}
 
-AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), debug_(debug) {
+AudioWrapper::AudioWrapper(Pipeline &pipeline, bool debug) : pipeline(pipeline), debug_(debug) {
+
     PaError err = paNoError;
     err = Pa_Initialize();
     checkErr(err);
 
     int error;
-    src_state = src_new(SRC_SINC_FASTEST, 1, &error);
-    if (!src_state) {
+    srcState = src_new(SRC_SINC_FASTEST, 1, &error);
+    if (!srcState) {
         std::cerr << "Error initializing src_state: " << src_strerror(error) << std::endl;
     }
 
@@ -195,7 +227,7 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
     out_param.device = Pa_GetDefaultOutputDevice();
     //out_param.device = 5;
     std::cout << "out_param.device: " << out_param.device << std::endl;
-    out_param.channelCount = 2;
+    out_param.channelCount = 1;
     out_param.hostApiSpecificStreamInfo = nullptr;
     out_param.sampleFormat = paFloat32;
     out_param.suggestedLatency = Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
@@ -205,7 +237,7 @@ AudioWrapper::AudioWrapper(Streams &streams, bool debug) : _streams(streams), de
                         nullptr,
                         &out_param,
                         48828,
-                        paFramesPerBufferUnspecified,
+                        256,
                         paNoFlag,
                         audioCallback,
                         this);
@@ -245,6 +277,7 @@ void AudioWrapper::fileWriter() {
 
 void AudioWrapper::saveToMp3(const std::string &filename) {
     flushBufferMp3();
+
 
     //keepRunning = false;
     //if (fileWriterThread.joinable()) {
@@ -326,16 +359,17 @@ void AudioWrapper::saveToWav(const std::string &filename) {
     //    flushBufferWav(remainingData);
     //}
 
+
     sf_close(sndfile);
     sndfile = nullptr;
 }
 
 
 void AudioWrapper::flushBufferWav() {
-    if (!resampledData.empty()) {
+    if (!audioData.empty()) {
         //std::cout << "\nFlushing buffer wav, audioData size: " << audioData.size() << std::endl;
-
-        sf_write_float(sndfile, resampledData.data(), resampledData.size());
+        //resample();
+        sf_write_float(sndfile, audioData.data(), audioData.size());
     }
 }
 
@@ -375,7 +409,7 @@ AudioWrapper::~AudioWrapper() {
         }
     }
 
-    if (src_state) {
-        src_delete(src_state);
+    if (srcState) {
+        src_delete(srcState);
     }
 }

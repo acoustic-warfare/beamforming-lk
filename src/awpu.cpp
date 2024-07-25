@@ -207,7 +207,7 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) {
 }
 
 void AWProcessingUnit::play_audio() {
-    audioWrapper = new AudioWrapper(*pipeline->getStreams());
+    audioWrapper = new AudioWrapper(*pipeline);
     audioWrapper->start_audio_playback();
 }
 

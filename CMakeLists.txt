@@ -148,6 +148,12 @@ find_library(portaudio
 # MP3 Lame
 find_library(LAME_LIB mp3lame REQUIRED)
 
+# Libsamplerate
+find_library(SAMPLERATE_LIBRARIES samplerate REQUIRED)
+
+# SDL
+find_package(SDL2 REQUIRED)
+
 # SndFiles Wav
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
@@ -218,6 +224,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/pa_ringbuffer.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/pa_memorybarrier.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
 )
 
@@ -237,6 +245,8 @@ target_link_libraries(beamformer
         WaraPSClient::WaraPSClient
         mp3lame
         ${LIBSNDFILE_LIBRARIES}
+        samplerate
+        SDL2
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})

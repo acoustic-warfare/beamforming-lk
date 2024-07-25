@@ -26,10 +26,12 @@ public:
     void calibrate(const float reference_power_level = 1e-5);
     Spherical target();
 
+    Pipeline *pipeline;
+
 protected:
     int verbose;
     std::vector<Worker *> workers;
-    Pipeline *pipeline;
+    
     bool running;
 
     std::vector<Antenna> antennas;
