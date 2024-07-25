@@ -6,7 +6,7 @@
 # and not in the config files scattered around in the project or those who were
 # created as a product of this file
 
-
+VERSION: 3.1
 
 # Beamforming 
 
@@ -15,6 +15,10 @@ USE_MIMO: false
 X_RES: 1024
 Y_RES: 1024
 RESIZE_HEATMAP: false
+MIMO_RES: 101
+MIMO_SIZE: 256
+RECORD: false
+VERBOSE: false
 
 # Application
 APPLICATION_NAME: "Beamforming"
