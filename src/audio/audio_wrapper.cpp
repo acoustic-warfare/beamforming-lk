@@ -143,15 +143,13 @@ static void printDevices() {
     }
 }
 
-AudioWrapper::AudioWrapper(Pipeline *pipeline) : AudioWrapper(pipeline, true) {}
-
-AudioWrapper::AudioWrapper(Pipeline *pipeline, bool debug) : pipeline(pipeline), debug_(debug) {
+AudioWrapper::AudioWrapper(Pipeline *pipeline) : pipeline(pipeline) {
     // Initializes port audio
     PaError err = paNoError;
     err = Pa_Initialize();
     checkErr(err);
 
-    if (debug) {
+    if (DEBUG) {
         printDevices();
     }
 

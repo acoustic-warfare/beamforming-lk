@@ -23,18 +23,8 @@
  */
 class AudioWrapper {
 private:
-    /**
-     * @brief Constructs an AudioWrapper instance with optional debug mode.
-     * @param pipeline Pointer to a Pipeline object for data streaming.
-     * @param debug Flag indicating if debug information should be printed.
-     */
-    AudioWrapper(Pipeline *pipeline, bool debug);
-
     // Flag if audio is on
     std::atomic<bool> is_on_ = false;
-
-    // Flag if additional info about audio devices should be printed
-    bool debug_ = false;
 
     // A PaStream providing acces to audio hardware
     PaStream *audio_stream_ = nullptr;
@@ -89,7 +79,7 @@ public:
      * @brief Constructs an AudioWrapper instance.
      * @param pipeline Pointer to a Pipeline object for data streaming.
      */
-    explicit AudioWrapper(Pipeline *pipeline);
+    AudioWrapper(Pipeline *pipeline);
 
     // Delete copy constructor and assignment operators.
     AudioWrapper(const AudioWrapper &) = delete;
