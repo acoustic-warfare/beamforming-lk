@@ -28,16 +28,35 @@
 
 #define BUFFER_BYTES N_SAMPLES * sizeof(float)
 
+/**
+ * Multiple ring-buffers can be thought of as:
+ * 
+ * id       ring-buffer
+ * 
+ * 0: [0 1 2 3 ... 0 1 2 3]
+ * 1: [0 1 2 3 ... 0 1 2 3]
+ * 2: [0 1 2 3 ... 0 1 2 3]
+ *              ·
+ *              ·
+ *              ·
+ * x: [0 1 2 3 ... 0 1 2 3]
+ * 
+ */
 class Streams {
 public:
+    // Multiple ring-buffers
     std::unordered_map<unsigned, float *> buffers;
+
+    // Reader start position in ring-buffer
     unsigned position;
+    int _position;
 
 
-    Streams() : position(0){
+    Streams() : position(0), _position(0){};
 
-                };
-
+    /**
+     * Create a ring-buffer for a specific index
+     */
     bool create_stream(unsigned index) {
         if (this->buffers.find(index) != this->buffers.end()) {
             std::cout << "Stream: " << index << " already exists" << std::endl;
@@ -55,16 +74,26 @@ public:
         return true;
     }
 
+    /**
+     * Getter for a buffer with offset
+     */
     float *get_signal(unsigned index, int offset) {
         return (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float));
     }
 
+    /**
+     * Fast write to buffer using wrap-around memcpy
+     */
     inline void write_stream(unsigned index, float *data) {
         memcpy((char *) this->buffers[index] + this->position, data, BUFFER_BYTES);
     }
 
+    /**
+     * Fast read from buffer using wrap-around memcpy
+     */
     inline void read_stream(unsigned index, float *data, unsigned offset = 0) {
-        memcpy(data, (char *) this->buffers[index] + this->position + offset * sizeof(float), BUFFER_BYTES);
+        //memcpy(data, &buffers[index][_position + offset], N_ITEMS_BUFFER);
+        memcpy(data, (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float)), PAGE_SIZE);
     }
 
 #if 1// Only debugging
@@ -81,15 +110,24 @@ public:
     }
 
     /**
-    Reserved only for producer
-    
+     * Reserved only for producer
      */
     void forward() {
         this->position = (this->position + BUFFER_BYTES) % PAGE_SIZE;
+        //_position = (_position + N_SAMPLES) % N_ITEMS_BUFFER;
     }
 
 
 private:
+    /**
+     * Allocate virtual memory ring buffers.
+     * 
+     * We use two pages of contigious memory mapped to the same region
+     * meaning that when data overflows from region1 over to region2
+     * it is mapped to the beginning of the "actual" buffer. As long 
+     * as reading and writing is less than the buffer size, no other checks 
+     * must be done making it a very optimized buffer.
+     */
     float *allocate_buffer() {
         int fd = memfd_create("float", 0);
         if (fd == -1) {

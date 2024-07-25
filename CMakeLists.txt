@@ -11,7 +11,10 @@ IF (NOT PYTHON)
     find_program(PYTHON "python3")
 ENDIF ()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -O3")
+set(EXTENDED_OPTIMIZATIONS "-fno-signaling-nans -fcx-limited-range -fno-math-errno -funsafe-math-optimizations -fassociative-math -freciprocal-math -ffinite-math-only -fno-signed-zeros -fno-trapping-math -frounding-math -fsingle-precision-constant -fcx-fortran-rules")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -Ofast -save-temps -fverbose-asm -ffloat-store -ffast-math -fno-rounding-math")
+
+set(CMAKE_CXX_FLAGS_ASM "-S")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,16 +36,13 @@ add_custom_command(
         # Generate Python build/config.py
         COMMAND ${PYTHON} ${CONFIG_MAKER} ${CONFIG_FILE} ${CMAKE_CURRENT_BINARY_DIR} --python
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/config.py
-        # cp ${CMAKE_CURRENT_BINARY_DIR}/config.py ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
-        #
 
         OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_BINARY_DIR}/config.py
         ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
 
-        #DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${MY_RESOURCE_FILE}
-        # OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/module/config.py
+        # Required by module
         COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/__init__.py
 
         # Generate C/C++ config.h
@@ -111,8 +111,6 @@ add_custom_command(DEPENDS ${PYTHON_VENV_DIR} ${MODULE_SOURCES}
         # Build modules
         COMMENT "Starting build"
         COMMAND ${PYTHON} ${SETUP_PY} build_ext
-        #COMMAND ${PYTHON_VENV_DIR}/bin/python ${SETUP_PY} build_ext 
-        # --build-lib=lib --build-temp=build
 
         # Generate timestamp
         COMMAND ${CMAKE_COMMAND} -E touch ${PY_OUTPUT}
@@ -179,33 +177,16 @@ mark_as_advanced(LIBSNDFILE_LIBRARY LIBSNDFILE_LIBRARIES LIBSNDFILE_INCLUDE_DIR 
 include(FindPkgConfig)
 pkg_search_module(SndFile REQUIRED sndfile)
 
-#find_library(libgps
-#        gps
-#        REQUIRED
-#)
+find_library(libgps
+        gps
+        REQUIRED
+)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # Include directories for SndFile
 include_directories(${SndFile_INCLUDE_DIRS})
-
-# # Configuration maker
-# add_custom_target(config #ALL DEPENDS
-#   
-#   # Generate C/C++ config.h
-#   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_SOURCE_DIR}/src --c
-#
-#   # Python 
-#   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/config_maker.py ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_BINARY_DIR} --python
-#
-# )
-#  add_executable(audio 
-# ${CMAKE_CURRENT_SOURCE_DIR}/src/audio.cpp
-# )
-#
-#
-# target_link_libraries(audio PkgConfig::RtAudio)
 
 set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
@@ -215,10 +196,14 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/mimo.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/target_handler.cpp
 )
 
 
@@ -242,6 +227,34 @@ target_link_libraries(beamformer
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
 
 
+add_executable(awpu
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/receiver.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/antenna.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/mimo.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/argparse.hpp
+)
+
+# Linking
+target_link_libraries(awpu
+        Eigen3::Eigen
+        ${OpenCV_LIBS}
+)
+
+# Add a custom target to generate assembly code for delay.cpp
+add_custom_target(assembly
+    COMMAND ${CMAKE_CXX_COMPILER} -S -fverbose-asm  ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp -o ${CMAKE_BINARY_DIR}/delay.s 
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/delay.cpp
+)
+
 
 add_dependencies(beamformer config)
 
@@ -250,15 +263,9 @@ add_custom_target(test.udp
         COMMAND udpreplay -i lo ${CMAKE_CURRENT_SOURCE_DIR}/udp/converted/test.pcap
 )
 
-# # Testbench
-# add_custom_target(test
-#   COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
-# )
-
+# Testbench
 add_custom_target(test
-        # COMMAND ${PYTHON} -m unittest discover -s ..
-        # COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.sh
-        COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv #--failfast
+        COMMAND ${PYTHON} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR} -vv
 
 )
 

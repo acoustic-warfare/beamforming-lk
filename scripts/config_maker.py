@@ -118,7 +118,10 @@ class C(ConfigBuilder):
 
     def convert(self, item):
         if isinstance(item, bool):
-            return 1 * item
+            if item:
+                return "true"
+            else:
+                return "false"
         else:
             return item
 

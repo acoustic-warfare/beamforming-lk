@@ -4,22 +4,22 @@
 #define ANTENNA_H
 
 
-
-
-
-#include "config.h"
 #include <Eigen/Dense>
 #include <cmath>
 
+#include "config.h"
 #include "geometry.h"
 
+const int second[16] = {
+        0, 2, 4, 6,    // first column
+        16, 18, 20, 22,//
+        32, 34, 36, 38,//
+        48, 50, 52, 54
+
+};
 
 
-
-const int second_sector[16] = {0, 1, 2, 3,
-                               8, 9, 10, 11,
-                               16, 17, 18, 19,
-                               24, 25, 26, 27};
+const int second_sector[16] = {0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27};
 
 const int first_sector[16] = {4, 5, 6, 7,
                               12, 13, 14, 15,
@@ -41,18 +41,17 @@ bool in_sector(const int *sector, const int i);
 bool in_sector(const int sector_index, const int i);
 
 struct Sector {
-  int sector; // 1, 2, 3, 4
-  int usable = 0;
-  int index[16];
+    int sector;// 1, 2, 3, 4
+    int usable = 0;
+    int index[16];
 
-  //void construct_sector(const int *sensors, const int n, int sector) : sector(sector) {
-  //  for (int i = 0; i < n; i++) {
-  //    if (in_sector(sector, i)) {
-  //      this->index[this->usable++] = sensors[i];
-  //    }
-  //  }
-  //}
-
+    //void construct_sector(const int *sensors, const int n, int sector) : sector(sector) {
+    //  for (int i = 0; i < n; i++) {
+    //    if (in_sector(sector, i)) {
+    //      this->index[this->usable++] = sensors[i];
+    //    }
+    //  }
+    //}
 };
 
 /**
@@ -60,36 +59,36 @@ struct Sector {
  */
 struct Antenna {
 
-  /**
+    /**
    * The 3D representation of the antenna
    */
-  Eigen::MatrixXf points; // The 3D representation of the antenna
-  int id;
-  int usable = 0; // Number of usable elements;
-  int *index; // Index of usable element
-  float *power_correction_mask; // Correction of microphone to reach some value
-  float mean; // Pseudo valid metrics for checking the power level of antenna during auto calibration
-  float median;
+    Eigen::MatrixXf points;// The 3D representation of the antenna
+    int id;
+    int usable = 0;              // Number of usable elements;
+    int *index;                  // Index of usable element
+    float *power_correction_mask;// Correction of microphone to reach some value
+    float mean;                  // Pseudo valid metrics for checking the power level of antenna during auto calibration
+    float median;
 
 
-  // TODO calculate angle correction
-  float *angle_correction_mask; // How much to compensate for non-isotropic elements
-  int angle_resolution;
+    // TODO calculate angle correction
+    float *angle_correction_mask;// How much to compensate for non-isotropic elements
+    int angle_resolution;
 
-  //Sector sectors[4];
+    //Sector sectors[4];
 
-  ~Antenna() {
-    if (usable > 0) {
-      delete[] index;
-      delete[] power_correction_mask;
+    ~Antenna() {
+        if (usable > 0) {
+            delete[] index;
+            delete[] power_correction_mask;
+        }
     }
-  }
 
-  //void setup_sectors() {
-  //  for (int i = 0; i < 4; i++) {
-  //    sectors[i].construct_sector(this->index, usable, i);
-  //  }
-  //}
+    //void setup_sectors() {
+    //  for (int i = 0; i < 4; i++) {
+    //    sectors[i].construct_sector(this->index, usable, i);
+    //  }
+    //}
 };
 
 /**
