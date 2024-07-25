@@ -1,6 +1,6 @@
 #include "gradient_ascend.h"
 
-constexpr double start_rate = 1e-0;
+constexpr double start_rate = 1e-1;
 
 float theta_limit = M_PI / 2;
 
@@ -17,11 +17,12 @@ void GradientParticle::random() {
 }
 
 void GradientParticle::jump() {
-    constexpr double step = TO_RADIANS(2);
+    constexpr double step = TO_RADIANS(45);
     directionCurrent.theta += (drandom() * 2.0 -1.0) * step;
     directionCurrent.phi += (drandom() * 2.0 - 1.0) * step;
     directionCurrent.phi = wrapAngle(directionCurrent.phi);
     directionCurrent.theta = clip(directionCurrent.theta, 0.0, theta_limit);
+    jumped = true;
 }
 
 void GradientParticle::step(double rate) {
@@ -100,6 +101,19 @@ void GradientParticle::update() {
     gradient = fabs(directionGradient.theta) + fabs(directionGradient.phi);
 }
 
+void GradientParticle::track(Spherical direction) {
+    directionCurrent = direction;
+    tracking = true;
+    start = std::chrono::high_resolution_clock::now();
+}
+bool GradientParticle::isClose(const GradientParticle &other, const double angle) {
+    return (directionCurrent.angle(other.directionCurrent) < angle);
+}
+
+bool GradientParticle::isClose(const Spherical &direction, const double angle) {
+    return (directionCurrent.angle(direction) < angle);
+}
+
 
 SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations, float fov) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations), fov(fov) {
     this->n_trackers = 5;
@@ -110,7 +124,7 @@ SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool 
     for (int i = 0; i < n_trackers; i++) {
         currentTrackers.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = currentTrackers.back();
-        particle.delta = TO_RADIANS(5);
+        particle.delta = TO_RADIANS(4);
     }
 
     initialize_particles();
@@ -123,7 +137,7 @@ void SphericalGradient::initialize_particles() {
     for (int i = 0; i < swarm_size; i++) {
         particles.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = particles.back();
-        particle.delta = TO_RADIANS(15.0);//1.0 + drandom() * 1.0);
+        particle.delta = TO_RADIANS(4);//1.0 + drandom() * 1.0);
     }
 }
 
@@ -187,12 +201,17 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
 
-        int m = 255; //(int) (mag / maxValue * 255.0);
+        int m;
+        if (particle.jumped) {
+            m = 100;
+            particle.jumped = false;
+        } else {
+            m = 255;
+        }
+
+        //int m = 255; //(int) (mag / maxValue * 255.0);
 
         cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 5.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
-
-
-        //heatmap->at<uchar>(x, y) = 255;
     }
 #endif
 }
@@ -204,9 +223,9 @@ void SphericalGradient::reset() {
 }
 
 void SphericalGradient::update() {
-    //std::cout << "Jumping" << std::endl;
     while (canContinue()) {
         
+        // Run trackers
         int n_tracking = 0;
         for (auto &particle: currentTrackers) {
             if (particle.tracking) {
@@ -220,6 +239,7 @@ void SphericalGradient::update() {
             }
         }
 
+        // Stop trackers
         for (int m = 0; m < n_trackers; m++) {
             if (!currentTrackers[m].tracking) {
                 continue;
@@ -229,30 +249,67 @@ void SphericalGradient::update() {
                 if (!currentTrackers[n].tracking) {
                     continue;
                 }
-                if (currentTrackers[m].directionCurrent.angle(currentTrackers[n].directionCurrent) < M_PI / 20.0) {
-                    currentTrackers[m].tracking = false;
+
+                if (currentTrackers[m].isClose(currentTrackers[n], M_PI / 40.0)) {
+                    if (currentTrackers[m] > currentTrackers[n]) {
+                        currentTrackers[m].tracking = false;
+                    }
                 }
             }
         }
+
+        float tmpMean = 0.0;
+        int validCount = 0;
+
+        // Run seekers
         for (auto &particle: particles) {
             particle.step(start_rate);
+
+            // Compare with trackers and jump if too close
+            bool jumped = false;
+            for (auto &tracker : tracking) {
+                if (particle.isClose(tracker.direction, M_PI / 40)) {
+                    particle.jump();
+                    jumped = true;
+                    break;
+                }
+            }
+
+            if (jumped) {
+                continue;
+            }
+
+            // Dispatch trackers if converged
+            validCount++;
+            tmpMean += particle.magnitude;
+
             if (n_tracking < n_trackers) {
-                if (particle.gradient < 1e-2) {
+                if (particle.gradient < 1e-1 && particle.magnitude > mean) {
                     for (auto &tracker: currentTrackers) {
-                        if (!tracker.tracking && tracker.directionCurrent.angle(particle.directionCurrent) > M_PI / 20.0) {
-                            tracker.tracking = true;
-                            tracker.directionCurrent = particle.directionCurrent;
+                        if (!tracker.tracking) {
+                            tracker.track(particle.directionCurrent);
+                            particle.jump();
                         }
                     }
                 }
             }
         }
-    }
 
+        mean = tmpMean / static_cast<float>(validCount);
+    }
+#if 0
+    int size = particles.size();
+    for (int m = 0; m < size; m++) {
+        for (int n = m + 1; n < size; n++) {
+        }
+    }
+#endif
+
+    // Fill the tracking vector to the DSP chain
     tracking.clear();
     for (auto &tracker: currentTrackers) {
         if (tracker.tracking) {
-            tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient);
+            tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient, tracker.start);
         }
     }
 }
