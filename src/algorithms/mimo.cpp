@@ -92,12 +92,11 @@ void MIMOWorker::populateHeatmap(cv::Mat *heatmap) {
             minV = value;
         }
     }
+
+    //std::cout << "Difference" <<(maxV - minV) / maxV << std::endl;
     float alpha = 0.2;
     prevPower = maxV * alpha + (1 - alpha) * prevPower;
 
-    //std::cout << maxV << std::endl;
-
-    //float lerp = (maxV*0.9 + minV*0.1) / 2.0
     int i = 0;
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < columns; c++) {
@@ -145,35 +144,24 @@ void MIMOWorker::update() {
     float powMin = 1000000.0;
     for (int m = 0; m < maxIndex; m++) {
         float out[N_SAMPLES] = {0.0};
+        int count = 0;
         for (int s = 0; s < antenna.usable; s++) {
             int i = antenna.index[s];
-            //std::cout << "Index: " << i <<" M="<<m<< std::endl;
             float fraction = fractionalDelays[m][i];
-            //std::cout << "Fraction: " << fraction << std::endl;
             int offset = offsetDelays[m][i];
-            //std::cout << "Offset: " << offset << " Of: "<<N_ITEMS_BUFFER<< std::endl;
-            //std::cout << "Fraction: " << fraction << std::endl;
-            //std::cout << "Value: " << signals[s][offset] << std::endl;// << fraction<<offset<<std::endl;
-
-            //float *signal = this->streams->get_signal(static_cast<unsigned>(i), offset);
             delay(&out[0], &signals[s][offset], fraction);
+            count++;
         }
         float power = 0.0;
         for (int i = 0; i < N_SAMPLES; i++) {
             power += powf(out[i], 2);
         }
 
-        power /= static_cast<float>(N_SAMPLES * antenna.usable);
-        //if (power < powMin) powMin = power;
-        //if (power > powMax) powMax = power;
-
-        //std::cout << "Power: " << power << " Reference: " << reference << " Ratio: " << power / reference << std::endl;
+        power /= static_cast<float>(N_SAMPLES * count);
 
         //if (power < reference*10.0) {
         //    power = 0.0;
         //}
-
-        
 
         powerdB[m] = power;
     }
