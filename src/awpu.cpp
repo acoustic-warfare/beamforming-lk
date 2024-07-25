@@ -1,6 +1,6 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int verbose, bool debug) : fov(fov), verbose(verbose), debug(debug) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool debug) : fov(fov), small_res(small_res), verbose(verbose), debug(debug) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();
@@ -67,14 +67,12 @@ bool AWProcessingUnit::start(const worker_t worker) {
             //            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
             //            break;
         case MIMO:
-            //job = static_cast<Worker *>(new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, 175));
-            job = new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, fov);
+            job = new MIMOWorker(pipeline, antennas[0], &running, small_res, small_res, fov);
             break;
         case SOUND:
             job = nullptr;
             break;
         case GRADIENT:
-            //job = static_cast<Worker *>(new SphericalGradient(pipeline, antennas[0], &running, 50, 10));
             job = new SphericalGradient(pipeline, antennas[0], &running, 50, 10, fov);
             break;
         default:
@@ -238,14 +236,19 @@ void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) const {
 }
 
 void AWProcessingUnit::draw(cv::Mat *compact, cv::Mat *normal) const {
+    
     for (auto& worker : workers) {
         if (worker->get_type() == MIMO) {
             worker->draw(compact);
-        } else {
+        }
+    }
+    cv::resize(*compact, *normal, (*normal).size(), 0, 0, cv::INTER_LINEAR);
+    
+    for (auto &worker: workers) {
+        if (worker->get_type() != MIMO) {
             worker->draw(normal);
         }
     }
-    //workers[0]->draw(heatmap);
 }
 
 std::vector<Target> AWProcessingUnit::targets() {

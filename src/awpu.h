@@ -13,11 +13,11 @@
 #include "worker.h"
 
 
-#define MIMO_SIZE 100
+#define MIMO_SIZE 256
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *address, const int port, float fov = FOV, int verbose = 1, bool debug = false);
+    AWProcessingUnit(const char *address, const int port, float fov = FOV, int small_res = MIMO_SIZE, int verbose = 1, bool debug = false);
     AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool debug = false);
     ~AWProcessingUnit();
 
@@ -34,6 +34,7 @@ public:
 
 
 protected:
+    int small_res;
     float fov;
     int verbose;
     bool debug;

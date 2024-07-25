@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
     for (const int port : ports) {
         const char *addr = ip_address.c_str();
         std::cout << "Starting MIMO: " << port << std::endl;
-        awpus.emplace_back(ip_address.c_str(), port, fov);
+        awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res);
         AWProcessingUnit &awpu = awpus.back();
         if (tracking) { awpu.start(GRADIENT); }
         if (mimo) { awpu.start(MIMO); }
@@ -230,7 +230,13 @@ int main(int argc, char* argv[]) {
             //awpus[i]->draw(&smallFrames[i], &bigFrames[i]);
             awpus[i].draw(&smallFrames[i], &bigFrames[i]);
             //cv::Mat tmp;
-            cv::resize(smallFrames[i], bigFrames[i], bigFrames[i].size(), 0, 0, cv::INTER_LINEAR);
+            //cv::resize(smallFrames[i], tmp, bigFrames[i].size(), 0, 0, cv::INTER_LINEAR);
+            //cv::Mat result;
+            //bigFrames[i].copyTo(result, tmp);
+            //tmp.copyTo(bigFrames[i], tmp);
+            //bigFrames[i] = result;
+            //bigFrames[i] = tmp;
+            //cv::resize(smallFrames[i], bigFrames[i], bigFrames[i].size(), 0, 0, cv::INTER_LINEAR);
             //cv::addWeighted(tmp, 1.0, bigFrames[i], 1.0, 0, bigFrames[i]);
             // Blur the image with a Gaussian kernel
             cv::GaussianBlur(bigFrames[i], bigFrames[i],
