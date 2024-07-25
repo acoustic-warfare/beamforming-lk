@@ -87,7 +87,7 @@ void AWControlUnit::publishData() {
         }
     }
 
-    client_.PublishMessage("sensor/heading", std::to_string(90.0));// Currently not a real value
+    client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
