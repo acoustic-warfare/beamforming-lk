@@ -23,6 +23,7 @@ public:
     Antenna &antenna;
     Streams *streams;
 
+    // Monopulse require comparing 4 items
     int offset_delays[4][ELEMENTS];
     float fractional_delays[4][ELEMENTS];
 
@@ -53,10 +54,7 @@ private:
 
 
 /**
- * delta = 1e-6
-    grad_theta = (function(theta + delta, phi) - function(theta - delta, phi)) / (2 * delta)
-    grad_phi = (function(theta, phi + delta) - function(theta, phi - delta)) / (2 * delta)
-    return np.array([grad_theta, grad_phi])
+ * Worker for finding sources using spherical Gradient descent
  */
 class SphericalGradient : public Worker {
 public:

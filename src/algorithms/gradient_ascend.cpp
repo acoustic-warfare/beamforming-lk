@@ -137,7 +137,7 @@ void SphericalGradient::initialize_particles() {
     for (int i = 0; i < swarm_size; i++) {
         particles.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = particles.back();
-        particle.delta = TO_RADIANS(4);//1.0 + drandom() * 1.0);
+        particle.delta = TO_RADIANS(4);
     }
 }
 
@@ -148,7 +148,6 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     double x_res = (double) heatmap->rows;
     double y_res = (double) heatmap->cols;
 
-#if 1
     float ratio = (float) sin((double) fov);
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
@@ -166,18 +165,13 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         heatmap->at<uchar>(y, x) = (255);
 
-        int m = 255;//(int) clip(particle.magnitude / 1e-6, 0.0, 255.0);
+        int m = 255;
 
         cv::Mat &frame = *heatmap;
 
         cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradient * 15.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
-
-        //cv::circle(frame, cv::Point(x, y), 1 + static_cast<int>(gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
-
-
-        //heatmap->at<uchar>(y, x) = 255;
     }
-//#else
+
     float maxValue = 0.0;
     for (GradientParticle &particle: particles) {
         if (particle.magnitude > maxValue) {
@@ -197,9 +191,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
-        //heatmap->at<uchar>(x,y) = (255);
-
-        float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
+        float mag = particle.magnitude;
 
         int m;
         if (particle.jumped) {
@@ -209,11 +201,8 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
             m = 255;
         }
 
-        //int m = 255; //(int) (mag / maxValue * 255.0);
-
         cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 5.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
     }
-#endif
 }
 
 void SphericalGradient::reset() {
@@ -297,13 +286,6 @@ void SphericalGradient::update() {
 
         mean = tmpMean / static_cast<float>(validCount);
     }
-#if 0
-    int size = particles.size();
-    for (int m = 0; m < size; m++) {
-        for (int n = m + 1; n < size; n++) {
-        }
-    }
-#endif
 
     // Fill the tracking vector to the DSP chain
     tracking.clear();
