@@ -83,8 +83,6 @@ WORKDIR /
 RUN git clone https://github.com/p-ranav/argparse.git
 WORKDIR /argparse
 RUN mkdir build && cd build && cmake .. && make -j4 && make -j4 install
-#RUN cmake -S . -B build \
-#    && cmake --build build/ --target install
 
 RUN ldconfig
 
