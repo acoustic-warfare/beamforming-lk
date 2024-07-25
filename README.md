@@ -12,17 +12,7 @@ Go to the directory
 
     cd beamforming-lk
 
-## Prerequisites
-
-The program requires some modules to run: 
-
-* ***Eigen3*** Linear algebra and vector ops. (https://eigen.tuxfamily.org)
-
-* ***OpenCV2*** Camera feed and application window (https://opencv.org/)
-
-* ***RtAudio*** Audio playback (https://www.music.mcgill.ca/~gary/rtaudio/)
-
-### Realtime Kernel
+## Realtime Kernel
 
 It is also good to have a realtime kernel. see https://ubuntu.com/pro.
 
@@ -42,22 +32,26 @@ Then edit the limit configuration `/etc/security/limits.conf`
 @realtime     hard    priority        99
 @realtime     hard    memlock     102400
 ```
+## Prerequisites (automatic)
+By running the script `start.h` the prerequistes are set up, build and run automatically.
 
-## Prerequisites (Docker)
+    ./start.sh
 
-The project may also be compiled and executed inside a Docker environment. A working Docker installation is required and Docker without root privileges is recommended. 
+## Prerequisites (manual)
 
-### To build the container run the following command:
+The project may also be compiled and executed inside a Docker environment manually. A working Docker installation is required and Docker without root privileges is recommended. 
+
+#### To build the container run the following command:
 
     docker build -t beamformer .
 
-### To run the container
+#### To run the container run the following command:
 
-    docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+    docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd beamformer bash
 
 ## Configuration
 
-Configurations can be made to the `config.yaml` file. All settings will be converted to config files in respective languages in `src/`. *do not edit any other config.\* file* since they will be overwritten on next build.
+Configurations can be made to the `config.yaml` file. All settings will be converted to config files in respective languages in `src/`. ***Do not edit any other config.\* file*** since they will be overwritten on next build.
 
 ## Building
 
@@ -85,6 +79,8 @@ Build the program
 Run the program
 
     ./beamformer
+
+It will wait until an incoming stream of data arrives. If connected to a booted FPGA and arrays the system will run on this data. 
 
 ## Offline usage 
 You may want to test the system without an FPGA connected, you may look at the
