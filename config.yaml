@@ -94,10 +94,10 @@ USE_KALMAN_FILTER: true
 # Audio 
 AUDIO: true
 USE_AUDIO: AUDIO
-#AUDIO_FILE: true
-BUFFER_THRESHOLD: SAMPLE_RATE * 10
-#MP3: false
-#WAV: true
+AUDIO_FILE: true
+BUFFER_THRESHOLD: SAMPLE_RATE * 3 # Flushing buffer every 3 seconds
+MP3: true
+WAV: true
 
 # Networking 
 #UDP_ADDRESS: "10.0.0.1"

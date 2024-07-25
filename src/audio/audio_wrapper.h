@@ -7,7 +7,6 @@
 
 #include <lame/lame.h>
 #include <portaudio.h>
-#include <samplerate.h>
 #include <sndfile.h>
 
 #include <atomic>
@@ -27,21 +26,19 @@ private:
     bool debug_ = true;
     PaStream *audio_stream_ = nullptr;
 
+    //Pipeline *pipeline;
+    //std::vector<float> audioData;
+
     void initAudioFiles();
 
     void saveToMp3(const std::string &filename);
     void saveToWav(const std::string &filename);
 
-    SNDFILE *sndfile = nullptr;
-    SF_INFO sfinfo{};
+    SNDFILE *sndfile_ = nullptr;
+    SF_INFO sfinfo_{};
 
-    FILE *mp3File;
+    FILE *mp3File_;
     lame_t lame_ = nullptr;
-
-    std::vector<float> ringBufferData;
-    std::thread fileWriterThread;
-    std::atomic<bool> keepRunning;
-    void fileWriter();
 
 public:
     explicit AudioWrapper(Pipeline &pipeline);
@@ -57,31 +54,13 @@ public:
     void flushBufferMp3();
     void flushBufferWav();
 
-    //void flushBufferMp3(const std::vector<float> &buffer);
-    //void flushBufferWav(const std::vector<float> &buffer);
-
     Pipeline &pipeline;
-    Streams _streams;
     std::vector<float> audioData;
 
-    PaUtilRingBuffer ringBuffer;
-
-    SRC_STATE* srcState;
-    SRC_DATA srcData;
-    void resample();
-    std::vector<float> resampledData;
-    //void resampleData(int inputRate, int outputRate);
-    //std::vector<float> resampledData;
-
-    size_t bufferSize;
-    int inputSampleRate = 44100;
-    int outputSampleRate = 48828;
-
-    std::vector<float> inputBuffer; 
-    std::vector<float> outputBuffer; 
+    //Pipeline *getPipeline(); 
+    //std::vector<float> getAudioData();
 
     ~AudioWrapper();
 };
-
 
 #endif//BEAMFORMER_AUDIO_WRAPPER_H
