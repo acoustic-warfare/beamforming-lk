@@ -60,8 +60,7 @@ RUN apt-get install -y \
     alsa-utils \
     pulseaudio \
     libmp3lame-dev \
-    libsndfile1-dev \
-    libsamplerate0-dev
+    libsndfile1-dev
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
