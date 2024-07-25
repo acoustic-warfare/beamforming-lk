@@ -5,6 +5,7 @@
 #ifndef TARGETHANDLER_H
 #define TARGETHANDLER_H
 #include <gps.h>
+#include <ranges>
 #include <wara_ps_client.h>
 
 #include "../awpu.h"
@@ -15,6 +16,12 @@
  * Takes two or more active AWPUS as inputs and classifies the targets based on the target function
  */
 class TargetHandler {
+    struct CartesianTarget {
+        Eigen::Vector3d position;
+        double power;
+        double probability;
+    };
+
     std::vector<Eigen::Vector3d> targets_;
     Eigen::Vector3d loudestTarget_;
     double loudestTargetPower_ = 0;
@@ -27,15 +34,26 @@ class TargetHandler {
 
     gps_data_t *gpsData_;
 
-    std::vector<AWProcessingUnit *> awpus_;
+    std::vector<std::reference_wrapper<AWProcessingUnit> > awpus_;
+    std::vector<Eigen::Vector3d> awpu_positions_;
+
     double minProbability_ = 0.5;
 
     std::thread workerThread_;
     std::mutex mutex_;
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
 
+    // Mysig funktionssignatur, precis lagom lång
+    static void FindTargetsRecursively(
+        const std::vector<CartesianTarget> &toCompare,
+        std::vector<std::vector<CartesianTarget> >::iterator begin,
+        std::vector<std::vector<CartesianTarget> >::iterator end,
+        std::vector<Eigen::Vector3d> &out
+    );
+
 public:
-    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {}
+    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {
+    }
 
     ~TargetHandler();
 
@@ -47,13 +65,15 @@ public:
 
     std::vector<Eigen::Vector3d> getTargets();
 
-    TargetHandler &operator<<(AWProcessingUnit *awpu);
+    TargetHandler &operator<<(AWProcessingUnit &awpu);
 
-    void FindTargets(std::vector<Target> &targets);
+    void FindTargets(std::vector<std::vector<Target> > &targets);
 
     void DisplayTarget(bool toggle);
 
     Eigen::Vector3d getLoudestTarget();
+
+    // Neeej cpp är inte ett wordy språk alls
 };
 
 

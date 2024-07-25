@@ -30,7 +30,7 @@ void AWControlUnit::Start() {
             }
         });
 
-        targetHandler_ << &awpu1 << &awpu2;
+        targetHandler_ << awpu1 << awpu2;
         targetHandler_.Start();
         targetHandler_.DisplayTarget(true);
     }

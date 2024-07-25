@@ -3,6 +3,9 @@
 //
 
 #include "target_handler.h"
+
+#include <ranges>
+
 #include "../algorithms/triangulate.h"
 
 #define LK_DISTANCE 6 // TODO: Fixa mer konkret värde?
@@ -22,11 +25,9 @@ void TargetHandler::Start() {
     *running = true;
     workerThread_ = std::thread([&] {
         while (*running) {
-            std::vector<Target> targets;
-            for (const auto awpu: awpus_) {
-                for (auto [direction, power, probability]: awpu->targets()) {
-                    targets.emplace_back(direction, power, probability);
-                }
+            std::vector<std::vector<Target> > targets;
+            for (AWProcessingUnit awpu: awpus_) {
+                targets.push_back(awpu.targets());
             }
             FindTargets(targets);
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -47,42 +48,24 @@ std::vector<Eigen::Vector3d> TargetHandler::getTargets() {
     return targets;
 }
 
-TargetHandler &TargetHandler::operator<<(AWProcessingUnit *awpu) {
-    awpus_.push_back(awpu);
+TargetHandler &TargetHandler::operator<<(AWProcessingUnit &awpu) {
+    awpus_.emplace_back(awpu);
     return *this;
 }
 
-void TargetHandler::FindTargets(std::vector<Target> &targets) {
+void TargetHandler::FindTargets(std::vector<std::vector<Target> > &targets) {
     std::vector<Eigen::Vector3d> foundTargets;
 
-    for (auto target: targets) {
-        if (target.probability < minProbability_)
-            continue;
-        for (auto target2: targets) {
-            if (target == target2 || target2.probability < minProbability_) {
-                continue;
-            }
-            Eigen::Vector3d foundPoint =
-                    triangulatePoint(target.direction.toCartesian(), target2.direction.toCartesian(),
-                                     LK_DISTANCE);
-
-
-            if (foundPoint.norm() == 0 || foundPoint.norm() > 50) {
-                continue;
-            }
-
-            loudestTargetPower_ = loudestTargetPower_ * targetDecay_ + (target.power + target2.power) * (
-                                      1 - targetDecay_);
-
-            if ((target.power + target2.power) / 2 > loudestTargetPower_) {
-                kf_.update(foundPoint.cast<float>());
-                loudestTarget_ = kf_.getState().cast<double>();
-                loudestTargetPower_ = (target.power + target2.power) / 2;
-            }
-
-            foundTargets.push_back(foundPoint);
+    std::vector<std::vector<CartesianTarget> > translatedTargets;
+    for (int i = 0; i < targets.size(); ++i) {
+        for (auto [direction, power, probability]: targets[i]) {
+            translatedTargets[i].emplace_back(direction.toCartesian() + awpu_positions_[i], power,
+                                              probability);
         }
     }
+
+    FindTargetsRecursively(translatedTargets[0], translatedTargets.begin()+1, translatedTargets.end(), foundTargets);
+
     mutex_.lock();
     targets_ = std::move(foundTargets);
     mutex_.unlock();
@@ -101,11 +84,11 @@ void TargetHandler::DisplayTarget(const bool toggle) {
 
     targetClient_.Start();
     targetClient_.PublishMessage("sensor/position", nlohmann::json{
-                                             {"longitude", 0},
-                                             {"latitude", 0},
-                                             {"altitude", 0},
-                                             {"type", "GeoPoint"}
-                                         }.dump());
+                                     {"longitude", 0},
+                                     {"latitude", 0},
+                                     {"altitude", 0},
+                                     {"type", "GeoPoint"}
+                                 }.dump());
 
     targetThread_ = std::thread([&] {
         while (targetClient_.running()) {
