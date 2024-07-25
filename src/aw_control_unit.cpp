@@ -11,8 +11,8 @@
 #include "WaraPS/target_handler.h"
 
 void AWControlUnit::Start() {
-    auto awpu1 = AWProcessingUnit("10.0.0.1", 21875);
-    auto awpu2 = AWProcessingUnit("10.0.0.1", 21878);
+    auto awpu2 = AWProcessingUnit("10.0.0.1", 21875);
+    auto awpu1 = AWProcessingUnit("10.0.0.1", 21876);
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
@@ -22,6 +22,9 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
+    targetHandler_.AddAWPU(&awpu1, {0, 2.6, 0})
+            .AddAWPU(&awpu2, {0, -2.6, 0});
+
     if (usingWaraPS_) {
         data_thread_ = std::thread([this] {
             while (client_.running()) {
@@ -30,9 +33,8 @@ void AWControlUnit::Start() {
             }
         });
 
-        targetHandler_ << awpu1 << awpu2;
-        targetHandler_.Start();
         targetHandler_.DisplayTarget(true);
+        targetHandler_.Start();
     }
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {

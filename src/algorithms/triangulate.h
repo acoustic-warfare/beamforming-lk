@@ -11,7 +11,7 @@
 
 #include "../geometry.h"
 
-Eigen::Vector3d triangulatePoint(Eigen::Vector3d v1, Eigen::Vector3d v2, double distance);
+Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2);
 
 nlohmann::json PositionToGPS(const Eigen::Vector3d &position, const gps_data_t &lk_position);
 
