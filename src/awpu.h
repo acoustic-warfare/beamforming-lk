@@ -11,13 +11,11 @@
 #include "antenna.h"
 #include "pipeline.h"
 #include "worker.h"
-
-
-#define MIMO_SIZE 100
+#include "config.h"
 
 class AWProcessingUnit {
 public:
-    AWProcessingUnit(const char *address, const int port, int verbose = 1, bool debug = false);
+    AWProcessingUnit(const char *address, const int port, float fov = FOV, int small_res = MIMO_SIZE, int verbose = 1, bool debug = false);
     AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool debug = false);
     ~AWProcessingUnit();
 
@@ -30,15 +28,18 @@ public:
     void synthetic_calibration();
     std::vector<Target> targets();
 
+    void draw(cv::Mat *compact, cv::Mat *normal) const;
+
 
 protected:
+    int small_res;
+    float fov;
     int verbose;
     bool debug;
     std::vector<Worker *> workers;
     Pipeline *pipeline;
     bool running = false;
     Spherical spherical;
-
     std::vector<Antenna> antennas;
 };
 

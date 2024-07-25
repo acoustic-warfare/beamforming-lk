@@ -1,6 +1,6 @@
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verbose, bool debug) : verbose(verbose), debug(debug) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool debug) : fov(fov), small_res(small_res), verbose(verbose), debug(debug) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();
@@ -9,21 +9,6 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, int verb
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
         antennas.push_back(antenna);
     }
-    //    int n_sources;
-    //    // Connect to FPGA
-    //    if (debug) {
-    //        this->spherical.theta = TO_RADIANS(0);
-    //        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
-    //        this->pipeline->start_synthetic(this->spherical);
-    //        n_sources = 1;
-    //    } else {
-    //        this->pipeline->connect();
-    //        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
-    //    }
-    //    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
-    //        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-    //        antennas.push_back(antenna);
-    //    }
 
     calibrate();
 }
@@ -62,20 +47,17 @@ AWProcessingUnit::~AWProcessingUnit() {
 bool AWProcessingUnit::start(const worker_t worker) {
     Worker *job;
     switch (worker) {
-            //        case PSO:
-            //
-            //            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
-            //            break;
+        //case PSO:
+        //    job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
+        //    break;
         case MIMO:
-            //job = static_cast<Worker *>(new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, 175));
-            job = new MIMOWorker(pipeline, antennas[0], &running, MIMO_SIZE, MIMO_SIZE, 180);
+            job = new MIMOWorker(pipeline, antennas[0], &running, small_res, small_res, fov);
             break;
         case SOUND:
             job = nullptr;
             break;
         case GRADIENT:
-            //job = static_cast<Worker *>(new SphericalGradient(pipeline, antennas[0], &running, 50, 10));
-            job = new SphericalGradient(pipeline, antennas[0], &running, 50, 10);
+            job = new SphericalGradient(pipeline, antennas[0], &running, 50, 10, fov);
             break;
         default:
             return false;
@@ -156,9 +138,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             float current_power_level = power[s];
             float diff = fabs(power[s] - median);
             if (diff > 1e-4) {// Too small
-                //std::cout << " [BAD Large]";
             } else if (power[s] < median * 1e-3) {// Too big
-                //std::cout << " [BAD Small]";
             } else {
                 if (current_power_level > mmax) {
                     mmax = current_power_level;
@@ -210,8 +190,9 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
 bool AWProcessingUnit::stop(const worker_t worker) {
     for (auto it = workers.begin(); it != workers.end();) {
         if ((*it)->get_type() == worker) {
-            //std::cout << "Stopping worker from AWPU Workers" << std::endl;
-            //(*it)->looping = false;
+            if (verbose) {
+                std::cout << "Stopping worker from AWPU Workers" << std::endl;
+            }
             it = workers.erase(it);
             delete (*it);
             return true;
@@ -235,6 +216,22 @@ void AWProcessingUnit::resume() {
 
 void AWProcessingUnit::draw_heatmap(cv::Mat *heatmap) const {
     workers[0]->draw(heatmap);
+}
+
+void AWProcessingUnit::draw(cv::Mat *compact, cv::Mat *normal) const {
+    
+    for (auto& worker : workers) {
+        if (worker->get_type() == MIMO) {
+            worker->draw(compact);
+        }
+    }
+    cv::resize(*compact, *normal, (*normal).size(), 0, 0, cv::INTER_LINEAR);
+    
+    for (auto &worker: workers) {
+        if (worker->get_type() != MIMO) {
+            worker->draw(normal);
+        }
+    }
 }
 
 std::vector<Target> AWProcessingUnit::targets() {

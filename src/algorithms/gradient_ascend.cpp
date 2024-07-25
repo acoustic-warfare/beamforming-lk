@@ -1,6 +1,8 @@
 #include "gradient_ascend.h"
 
-constexpr double start_rate = 1e-0;
+constexpr double start_rate = 1e-1;
+
+float theta_limit = M_PI / 2;
 
 GradientParticle::GradientParticle(Antenna &antenna, Streams *streams) : antenna(antenna), streams(streams) {
     this->epsilon = 1e-9f;
@@ -10,16 +12,17 @@ GradientParticle::GradientParticle(Antenna &antenna, Streams *streams) : antenna
 }
 
 void GradientParticle::random() {
-    directionCurrent.theta = drandom() * (M_PI / 2.0);
+    directionCurrent.theta = drandom() * (theta_limit);
     directionCurrent.phi = drandom() * (2.0 * M_PI);
 }
 
 void GradientParticle::jump() {
-    constexpr double step = TO_RADIANS(2);
+    constexpr double step = TO_RADIANS(45);
     directionCurrent.theta += (drandom() * 2.0 -1.0) * step;
     directionCurrent.phi += (drandom() * 2.0 - 1.0) * step;
     directionCurrent.phi = wrapAngle(directionCurrent.phi);
-    directionCurrent.theta = clip(directionCurrent.theta, 0.0, M_PI / 2.0);
+    directionCurrent.theta = clip(directionCurrent.theta, 0.0, theta_limit);
+    jumped = true;
 }
 
 void GradientParticle::step(double rate) {
@@ -31,7 +34,7 @@ void GradientParticle::step(double rate) {
     newDirection.phi = directionCurrent.phi + (rate * directionGradient.phi) / sin(1e-9 + directionCurrent.theta);
 
     newDirection.phi = wrapAngle(newDirection.phi);
-    newDirection.theta = clip(newDirection.theta, 0.0, M_PI / 2.0);
+    newDirection.theta = clip(newDirection.theta, 0.0, theta_limit);
 
     directionCurrent = newDirection;
 }
@@ -41,7 +44,7 @@ void GradientParticle::nearby() {
     for (int i = 0; i < 4; i++) {
         directionNearby[i] = near[i];
         directionNearby[i].phi = wrapAngle(directionNearby[i].phi);
-        directionNearby[i].theta = clip(directionNearby[i].theta, 0.0, M_PI / 2.0);
+        directionNearby[i].theta = clip(directionNearby[i].theta, 0.0, theta_limit);
     }
 }
 
@@ -85,6 +88,8 @@ void GradientParticle::update() {
         }
 
         power[n] /= static_cast<float>(N_SAMPLES);
+
+        power[n] = powf(power[n], 3);
     }
 
     float thetaPower = fmax(fabs(power[NORTH]), fabs(power[SOUTH]));
@@ -96,14 +101,30 @@ void GradientParticle::update() {
     gradient = fabs(directionGradient.theta) + fabs(directionGradient.phi);
 }
 
+void GradientParticle::track(Spherical direction) {
+    directionCurrent = direction;
+    tracking = true;
+    start = std::chrono::high_resolution_clock::now();
+}
+bool GradientParticle::isClose(const GradientParticle &other, const double angle) {
+    return (directionCurrent.angle(other.directionCurrent) < angle);
+}
 
-SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations) {
+bool GradientParticle::isClose(const Spherical &direction, const double angle) {
+    return (directionCurrent.angle(direction) < angle);
+}
+
+
+SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations, float fov) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations), fov(fov) {
     this->n_trackers = 5;
+
+    this->fov = TO_RADIANS(fov/2.0);
+    theta_limit = this->fov;
 
     for (int i = 0; i < n_trackers; i++) {
         currentTrackers.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = currentTrackers.back();
-        particle.delta = TO_RADIANS(5);
+        particle.delta = TO_RADIANS(4);
     }
 
     initialize_particles();
@@ -116,7 +137,7 @@ void SphericalGradient::initialize_particles() {
     for (int i = 0; i < swarm_size; i++) {
         particles.emplace_back(this->antenna, this->streams);
         GradientParticle &particle = particles.back();
-        particle.delta = TO_RADIANS(15.0);//1.0 + drandom() * 1.0);
+        particle.delta = TO_RADIANS(4);
     }
 }
 
@@ -127,7 +148,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     double x_res = (double) heatmap->rows;
     double y_res = (double) heatmap->cols;
 
-#if 1
+    float ratio = (float) sin((double) fov);
     for (GradientParticle &particle: currentTrackers) {
         if (!particle.tracking) {
             continue;
@@ -135,27 +156,22 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
         // 0.5 to get the sphere in the first sector in the cartesian coordinate system
         Cartesian position = Cartesian::convert(particle.directionCurrent, 1.0);
-
+        
         // Use the position values to plot over the heatmap
-        int x = static_cast<int>(x_res * (position.x / 2.0 + 0.5));
-        int y = static_cast<int>(y_res * (position.y / 2.0 + 0.5));
+        int x = static_cast<int>(x_res * (position.x/ratio / 2.0 + 0.5));
+        int y = static_cast<int>(y_res * (position.y/ratio / 2.0 + 0.5));
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
         heatmap->at<uchar>(y, x) = (255);
 
-        int m = 255;//(int) clip(particle.magnitude / 1e-6, 0.0, 255.0);
+        int m = 255;
 
         cv::Mat &frame = *heatmap;
 
-        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
-
-        //cv::circle(frame, cv::Point(x, y), 1 + static_cast<int>(gradient * 10.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
-
-
-        //heatmap->at<uchar>(y, x) = 255;
+        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradient * 15.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
     }
-#else
+
     float maxValue = 0.0;
     for (GradientParticle &particle: particles) {
         if (particle.magnitude > maxValue) {
@@ -170,23 +186,23 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         Cartesian position = Cartesian::convert(particle.directionCurrent, 1.0);
 
         // Use the position values to plot over the heatmap
-        int x = (int) (x_res * (position.x / 2.0 + 0.5));
-        int y = (int) (y_res * (position.y / 2.0 + 0.5));
+        int x = (int) (x_res * (position.x/ratio / 2.0 + 0.5));
+        int y = (int) (y_res * (position.y/ratio / 2.0 + 0.5));
 
         float gradient = 1.0 - clip(particle.gradient, 0.0, 2.0) / 2.0;
 
-        //heatmap->at<uchar>(x,y) = (255);
+        float mag = particle.magnitude;
 
-        float mag = particle.magnitude; //20 * std::log10(particle.magnitude * 1e5);
+        int m;
+        if (particle.jumped) {
+            m = 100;
+            particle.jumped = false;
+        } else {
+            m = 255;
+        }
 
-        int m = 200; //(int) (mag / maxValue * 255.0);
-
-        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 10.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
-
-
-        //heatmap->at<uchar>(x, y) = 255;
+        cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int)(gradient * 5.0), cv::Scalar(m,m,m), cv::FILLED, 8, 0);
     }
-#endif
 }
 
 void SphericalGradient::reset() {
@@ -196,9 +212,9 @@ void SphericalGradient::reset() {
 }
 
 void SphericalGradient::update() {
-    //std::cout << "Jumping" << std::endl;
     while (canContinue()) {
         
+        // Run trackers
         int n_tracking = 0;
         for (auto &particle: currentTrackers) {
             if (particle.tracking) {
@@ -212,6 +228,7 @@ void SphericalGradient::update() {
             }
         }
 
+        // Stop trackers
         for (int m = 0; m < n_trackers; m++) {
             if (!currentTrackers[m].tracking) {
                 continue;
@@ -221,30 +238,60 @@ void SphericalGradient::update() {
                 if (!currentTrackers[n].tracking) {
                     continue;
                 }
-                if (currentTrackers[m].directionCurrent.angle(currentTrackers[n].directionCurrent) < M_PI / 20.0) {
-                    currentTrackers[m].tracking = false;
+
+                if (currentTrackers[m].isClose(currentTrackers[n], M_PI / 40.0)) {
+                    if (currentTrackers[m] > currentTrackers[n]) {
+                        currentTrackers[m].tracking = false;
+                    }
                 }
             }
         }
+
+        float tmpMean = 0.0;
+        int validCount = 0;
+
+        // Run seekers
         for (auto &particle: particles) {
             particle.step(start_rate);
+
+            // Compare with trackers and jump if too close
+            bool jumped = false;
+            for (auto &tracker : tracking) {
+                if (particle.isClose(tracker.direction, M_PI / 40)) {
+                    particle.jump();
+                    jumped = true;
+                    break;
+                }
+            }
+
+            if (jumped) {
+                continue;
+            }
+
+            // Dispatch trackers if converged
+            validCount++;
+            tmpMean += particle.magnitude;
+
             if (n_tracking < n_trackers) {
-                if (particle.gradient < 1e-2) {
+                if (particle.gradient < 1e-1 && particle.magnitude > mean) {
                     for (auto &tracker: currentTrackers) {
-                        if (!tracker.tracking && tracker.directionCurrent.angle(particle.directionCurrent) > M_PI / 20.0) {
-                            tracker.tracking = true;
-                            tracker.directionCurrent = particle.directionCurrent;
+                        if (!tracker.tracking) {
+                            tracker.track(particle.directionCurrent);
+                            particle.jump();
                         }
                     }
                 }
             }
         }
+
+        mean = tmpMean / static_cast<float>(validCount);
     }
 
+    // Fill the tracking vector to the DSP chain
     tracking.clear();
     for (auto &tracker: currentTrackers) {
         if (tracker.tracking) {
-            tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient);
+            tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient, tracker.start);
         }
     }
 }

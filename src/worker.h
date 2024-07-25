@@ -4,6 +4,7 @@
 #include <mutex>
 #include <opencv2/opencv.hpp>// cv::Mat
 #include <thread>
+#include <chrono>
 
 #include "pipeline.h"
 
@@ -29,9 +30,17 @@ struct Target {
     // Pseudo-scientific value of how valid the target actually is
     float probability;
 
+    // Time when target was first found
+    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+
     bool operator==(const Target &other) const {
         return fabs(direction.phi - other.direction.phi) < 1e-2 && fabs(direction.theta - other.direction.theta) < 1e-2;
     }
+
+    //Target(Spherical direction, float power, float probability) {
+    //    // Record the time of object creation
+    //    start = std::chrono::high_resolution_clock::now();
+    //};
 
 };
 

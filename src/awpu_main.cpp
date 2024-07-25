@@ -1,183 +1,352 @@
+#include <ctime>
+#include <iomanip>
+#include <iostream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include <sstream>
 
+#include "argparse/argparse.hpp"
 #include "awpu.h"
-#include "kf.h"
+#include "config.h"
 
-KalmanFilter3D kf(0.2);
+/**
+ * Create a name for the video file
+ */
+std::string generateUniqueFilename() {
+    // Get the current time
+    std::time_t now = std::time(nullptr);
+    std::tm* localTime = std::localtime(&now);
 
-const Position start(3.0, 0.0, 1.4);
+    // Format the time into a string
+    std::ostringstream oss;
+    oss << std::put_time(localTime, "%Y%m%d_%H%M%S");// Format: YYYYMMDD_HHMMSS
 
+    // Create the filename with the .avi extension
+    std::string filename = oss.str() + ".avi";
 
-void point3d(const Spherical &spherical1, const Spherical &spherical2, const double separation) {
-    double alpha = spherical1.phi - M_PI / 2.0;
-    double beta = 3.0 * M_PI / 2.0 - spherical2.phi;
-    double x = -separation * (sin(alpha) * sin(beta)) / sin(alpha + beta);
-
-    double y = -x / tan(alpha);
-
-    double alpha2 = M_PI / 2.0 - spherical1.theta;
-    double beta2 = M_PI / 2.0 - spherical2.theta;
-
-    double z = separation * sin(alpha2) * sin(beta2) / sin(alpha2 + beta2);
-
-    Position point(y, z, x);
-    point = point + start;
-
-    kf.update(point);
-
-    Position p = kf.getState();
-
-    //std::cout <<" P0 " << spherical1 << std::endl;
-    //std::cout << " P1 " << spherical2 << std::endl;
-
-    std::cout << "Point: (" << p(0) << ", " << p(1) << ", " << p(2) << ")" << std::endl;
+    return filename;
 }
 
-void draw(cv::Mat &heatmap, Target &target) {
-    double x_res = (double) heatmap.rows;
-    double y_res = (double) heatmap.cols;
+/**
+ * Initiate the videostream writer
+ */
+int startRecording(cv::VideoWriter& videoWriter, cv::Size frame_size, double fps) {
 
-    // If we convert to sphere with radius 0.5 we don't have to normalize it other than add
-    // 0.5 to get the sphere in the first sector in the cartesian coordinate system
-    Cartesian position = Cartesian::convert(target.direction, 1.0);
+    // Define the codec and create VideoWriter object to write the video to a file
+    int codec = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');// Codec type                                   // Frames per second
+    videoWriter = cv::VideoWriter(generateUniqueFilename(), codec, fps, frame_size);
 
-    // Use the position values to plot over the heatmap
-    int x = static_cast<int>(x_res * (position.x / 2.0 + 0.5));
-    int y = static_cast<int>(y_res * (position.y / 2.0 + 0.5));
+    if (!videoWriter.isOpened()) {
+        std::cerr << "Error: Could not open the video file for write." << std::endl;
+        return -1;
+    }
 
-    int m = 255;
-
-    cv::circle(heatmap, cv::Point(y, x), 5, cv::Scalar(m, m, m), cv::FILLED, 8, 0);
+    return 0;
 }
 
-#if 1
-int main() {
+/**
+ * Stop the videostream writer
+ */
+void stopRecording(cv::VideoWriter& videoWriter) {
+    videoWriter.release();
+}
 
-    std::cout << "Connecting to FPGA" << std::endl;
-#if 0
-    AWProcessingUnit awpu = AWProcessingUnit("127.0.0.1", 21844);
-#elif 0
-    Pipeline pipeline(5000, Spherical(0, 0));
-    AWProcessingUnit awpu5(&pipeline);
-    AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
-#elif 1
-    Pipeline pipeline5("10.0.0.1", 21875);
-    AWProcessingUnit awpu51 = AWProcessingUnit(&pipeline5);
-    AWProcessingUnit awpu52 = AWProcessingUnit(&pipeline5);
+/**
+ * Setup argparse with different arguments
+ */
+void setupArgumentParser(argparse::ArgumentParser &program) {
+    program.add_argument("--camera")
+            .default_value(std::string("false"))
+            .help("Camera option, default is false");
 
-    Pipeline pipeline8("10.0.0.1", 21878);
-    AWProcessingUnit awpu81 = AWProcessingUnit(&pipeline8);
-    AWProcessingUnit awpu82 = AWProcessingUnit(&pipeline8);
+    program.add_argument("--ip-address")
+            .default_value(std::string(UDP_ADDRESS))
+            .help("IP address");
 
-#else
-    AWProcessingUnit awpu5 = AWProcessingUnit("10.0.0.1", 21875);
-    AWProcessingUnit awpu8 = AWProcessingUnit("10.0.0.1", 21878);
-#endif
+    program.add_argument("--audio")
+            .default_value(AUDIO)
+            .implicit_value(true)
+            .help("Audio option");
 
-    std::cout << "Connected to FPGA" << std::endl;
+    program.add_argument("--mimo")
+            .default_value(USE_MIMO)
+            .implicit_value(true)
+            .help("MIMO option");
 
-    //std::cout << "Starting Gradient" << std::endl;
+    program.add_argument("--record")
+            .default_value(RECORD)
+            .implicit_value(true)
+            .help("Record option");
 
-    awpu51.start(GRADIENT);
-    awpu52.start(MIMO);
+    program.add_argument("--mimo-res")
+            .default_value(MIMO_RES)
+            .scan<'i', int>()
+            .help("MIMO Resolution");
 
-    awpu81.start(GRADIENT);
-    awpu82.start(MIMO);
+    program.add_argument("--tracking")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Tracking option");
 
-    std::cout << "Starting listening" << std::endl;
+    program.add_argument("--verbose")
+            .default_value(VERBOSE)
+            .implicit_value(true)
+            .help("Program output");
+
+    program.add_argument("--fov")
+            .scan<'f', float>()
+            .default_value(FOV)
+            .help("Field of view");
+
+    program.add_argument("--port")
+            .append()
+            .scan<'i', int>()
+            .help("PORT numbers");
+}
+
+int main(int argc, char* argv[]) {
+    argparse::ArgumentParser program(argv[0]);
+    setupArgumentParser(program);
+    try {
+        program.parse_args(argc, argv);
+    } catch (const std::exception& err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
+
+
+    // Retrieve the parsed arguments
+    std::string camera = program.get<std::string>("--camera");
+    std::string ip_address = program.get<std::string>("--ip-address");
+    bool audio = program.get<bool>("--audio");
+    bool mimo = program.get<bool>("--mimo");
+    bool tracking = program.get<bool>("--tracking");
+    float fov = program.get<float>("--fov");
+    int mimo_res = program.get<int>("--mimo-res");
+    bool record = program.get<bool>("--record");
+    std::vector<int> ports = program.get<std::vector<int>>("--port");
+    bool verbose = program.get<bool>("--verbose");
+    bool use_camera = (camera.compare("false") != 0);
+
+    if (verbose) {
+        // Display the parsed argument values
+        std::cout << "Camera: " << camera << std::endl;
+        std::cout << "IP Address: " << ip_address << std::endl;
+        std::cout << "Audio: " << audio << std::endl;
+        std::cout << "MIMO: " << mimo << std::endl;
+        std::cout << "Tracking: " << tracking << std::endl;
+        std::cout << "FOV: " << fov << std::endl;
+        std::cout << "Ports: ";
+        for (const auto& port: ports) {
+            std::cout << port << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Use camera: " << use_camera << std::endl;
+    }
+    
+
+    cv::VideoCapture cap;
+    cv::VideoWriter videoWriter;
+
+    bool running = true;
+    bool recording = false;
+
+    int delay = 1;
+    double fps = 60.0;
+
+
+    if (use_camera) {
+        cap = cv::VideoCapture(camera);
+        if (!cap.isOpened()) {
+            std::cerr << "Error: Could not open the webcam." << std::endl;
+            return -1;
+        }
+
+        // Get the frames per second of the video
+        fps = cap.get(cv::CAP_PROP_FPS);
+
+        // Calculate the delay between frames
+        delay = 1000 / fps;
+
+        // Get the width and height of frames from the webcam
+        int frame_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+        int frame_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+        cv::Size frame_size(frame_width, frame_height);
+    }
+
+    // Setup AWPUS
+    std::vector<AWProcessingUnit> awpus;
+
+    int i = 0;
+    for (const int port : ports) {
+        const char *addr = ip_address.c_str();
+        if (verbose) {
+            std::cout << "Starting MIMO: " << port << std::endl;
+        }
+        
+        awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
+        AWProcessingUnit &awpu = awpus.back();
+
+        // Start different modes
+        if (tracking) { awpu.start(GRADIENT); }
+        if (mimo) { awpu.start(MIMO); }
+    }
+
+    int awpu_count = awpus.size();
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
-    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH * 2, APPLICATION_HEIGHT);
 
-    cv::Mat frame1(Y_RES, X_RES, CV_8UC1);
-    cv::Mat frame2(Y_RES, X_RES, CV_8UC1);
-    cv::Mat frame(Y_RES, X_RES * 2, CV_8UC1);
-    cv::Mat colorFrame(Y_RES, X_RES * 2, CV_8UC1);
+    cv::Mat combinedFrame;
+    cv::Mat colorFrame;
+    if (awpu_count != 0) {
+        combinedFrame = cv::Mat(Y_RES, X_RES * awpu_count, CV_8UC1);
+        colorFrame = cv::Mat(Y_RES, X_RES * awpu_count, CV_8UC1);
+        cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH * awpu_count, APPLICATION_HEIGHT);
 
-    cv::Mat small1(MIMO_SIZE, MIMO_SIZE, CV_8UC1);
-    cv::Mat small2(MIMO_SIZE, MIMO_SIZE, CV_8UC1);
+    } else {
+        combinedFrame = cv::Mat(Y_RES, X_RES, CV_8UC1);
+        colorFrame = cv::Mat(Y_RES, X_RES, CV_8UC1);
+        cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
+    }
+
+    std::vector<cv::Mat> smallFrames;
+    std::vector<cv::Mat> bigFrames;
+
+    colorFrame.setTo(cv::Scalar(0));
+    combinedFrame.setTo(cv::Scalar(0));
+
+    for (int i = 0; i < awpu_count; i++) {
+        smallFrames.push_back(cv::Mat(mimo_res, mimo_res, CV_8UC1));
+        bigFrames.push_back(cv::Mat(Y_RES, X_RES, CV_8UC1));
+    }
+
+    while (running) {
+
+        cv::Mat frame;
+
+        if (use_camera) {
+            cap >> frame;// Capture a new frame from the webcam
+
+            if (frame.empty()) {
+                std::cerr << "Error: Could not read a frame from the webcam." << std::endl;
+                break;
+            }
+
+            if (recording && awpu_count == 0) {
+                videoWriter.write(frame);// Write the frame to the video file
+            }
+        }
 
 
-    while (1) {
+        for (int i = 0; i < awpu_count; i++) {
 
+            // Reset frames
+            smallFrames[i].setTo(cv::Scalar(0));
+            bigFrames[i].setTo(cv::Scalar(0));
 
-        // Reset heatmap
-        frame1.setTo(cv::Scalar(0));
-        frame2.setTo(cv::Scalar(0));
-        small1.setTo(cv::Scalar(0));
-        small2.setTo(cv::Scalar(0));
+            // Draw onto frames
+            awpus[i].draw(&smallFrames[i], &bigFrames[i]);
 
-#if 1
-        //awpu5.draw_heatmap(&frame1);
-        //awpu8.draw_heatmap(&frame2);
-        awpu52.draw_heatmap(&small1);
-        awpu82.draw_heatmap(&small2);
-#endif
+            // Blur the image with a Gaussian kernel
+            cv::GaussianBlur(bigFrames[i], bigFrames[i],
+                             cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 
-        //for (Target &target : awpu5.targets()) {
-        //    draw(frame1, target);
-        //}
-        //for (Target &target: awpu8.targets()) {
-        //    draw(frame2, target);
-        //}
+            // Pretty colors
+            cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_JET);
 
-        //std::cout << "Tracking: " << targets.size() << " objects" << std::endl;
+            // Overlay onto camera
+            if (use_camera) {
+                cv::resize(frame, frame, cv::Size(bigFrames[i].cols, bigFrames[i].rows), 0, 0, cv::INTER_LINEAR);
+                cv::addWeighted(frame, 1.0, bigFrames[i], 0.5, 0, bigFrames[i]);
+            } else {
 
-        //for ()
-        //awpu.draw_heatmap(&frame);
-        //std::cout << "Best direction: " << awpu5.target() << std::endl;
-        // Apply color map
-        //cv::GaussianBlur(small, small,
-        //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-        cv::resize(small1, frame1, frame1.size(), 0, 0, cv::INTER_LINEAR);
-        cv::resize(small2, frame2, frame2.size(), 0, 0, cv::INTER_LINEAR);
-        awpu51.draw_heatmap(&frame1);
-        awpu81.draw_heatmap(&frame2);
-        cv::hconcat(frame1, frame2, frame);
+                // Create a circle around view
 
-        // Blur the image with a Gaussian kernel
-        cv::GaussianBlur(frame, colorFrame,
-                         cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-        cv::applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
-        cv::imshow(APPLICATION_NAME, colorFrame);
-        if (cv::waitKey(1) == 'q') {
-            std::cout << "Stopping application..." << std::endl;
-            break;
+                // Create a mask with the same dimensions as the image, initialized to black
+                cv::Mat mask = cv::Mat::zeros(bigFrames[i].size(), bigFrames[i].type());
+
+                // Define the circle parameters
+                int radius = bigFrames[i].rows / 2;                                // Radius of the circles
+                cv::Point center1(radius, bigFrames[i].rows / 2);                  // Center of the first circle
+                cv::Point center2(bigFrames[i].cols - radius, bigFrames[i].rows / 2);// Center of the second circle
+
+                // Draw filled white circles on the mask
+                cv::circle(mask, center1, radius, cv::Scalar(255, 255, 255), -1);
+                cv::circle(mask, center2, radius, cv::Scalar(255, 255, 255), -1);
+
+                // Apply the mask to the original image
+                cv::Mat result;
+                bigFrames[i].copyTo(result, mask);
+                bigFrames[i] = result;
+            }
+            
+        }
+
+        if (awpu_count == 0) {
+            combinedFrame = frame;
+        } else if (awpu_count == 1) {
+            combinedFrame = bigFrames[0];
+        } else {
+            cv::hconcat(bigFrames[0], bigFrames[1], combinedFrame);
+        }
+        
+
+        if (recording){
+            // Write the frame to the video file
+            videoWriter.write(combinedFrame);
+        }
+
+        // Display the frame
+        cv::imshow(APPLICATION_NAME, combinedFrame);
+
+        // Wait for a key press and get the ASCII code
+        int key = cv::waitKey(delay);
+
+        // Check for specific keys
+        switch (key) {
+            case 'q':// Quit the application
+                std::cout << "Quit key pressed ('q'). Exiting..." << std::endl;
+                running = false;
+                break;
+            case 'r':
+                if (recording) {
+                    stopRecording(videoWriter);
+                    recording = false;
+                    std::cout << "Stopped recording" << std::endl;
+                } else 
+                {
+                    if (use_camera && awpu_count == 0) {
+                        int frame_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+                        int frame_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+                        cv::Size frame_size(frame_width, frame_height);
+                        startRecording(videoWriter, frame_size, fps);
+                    } else {
+                        startRecording(videoWriter, combinedFrame.size(), fps);
+                    }
+                    
+                    recording = true;
+                    std::cout << "Started recording" << std::endl;
+                }
+                break;
+            default:
+                // Handle other keys or no key press
+                break;
         }
     }
 
-    std::cout << "Pausing listening" << std::endl;
 
-    //awpu5.pause();
-    //awpu8.pause();
-    //awpu.pause();
+    if (use_camera) {
+        cap.release();  
+    }
 
-    std::cout << "Stopping PSO" << std::endl;
+    if (recording) {
+        stopRecording(videoWriter);
+    }
 
-    //awpu.stop(PSO);
-
-    //awpu5.stop(PSO);
-    //awpu8.stop(PSO);
-
-    std::cout << "Stopping program" << std::endl;
+    cv::destroyAllWindows();
 
     return 0;
 }
-
-#else
-
-int main(int argc, char const *argv[]) {
-    Spherical a(TO_RADIANS(90), TO_RADIANS(179));
-    Spherical b(TO_RADIANS(90), TO_RADIANS(0));
-
-    double theta = a.angle(b);
-
-    std::cout << theta << std::endl;
-
-    return 0;
-}
-
-#endif
