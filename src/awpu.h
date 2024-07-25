@@ -11,9 +11,7 @@
 #include "antenna.h"
 #include "pipeline.h"
 #include "worker.h"
-
-
-#define MIMO_SIZE 256
+#include "config.h"
 
 class AWProcessingUnit {
 public:
@@ -42,7 +40,6 @@ protected:
     Pipeline *pipeline;
     bool running = false;
     Spherical spherical;
-
     std::vector<Antenna> antennas;
 };
 

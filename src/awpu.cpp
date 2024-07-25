@@ -9,21 +9,6 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fo
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
         antennas.push_back(antenna);
     }
-    //    int n_sources;
-    //    // Connect to FPGA
-    //    if (debug) {
-    //        this->spherical.theta = TO_RADIANS(0);
-    //        this->spherical.phi = TO_RADIANS(0);// = Spherical(TO_RADIANS(30), TO_RADIANS(0));
-    //        this->pipeline->start_synthetic(this->spherical);
-    //        n_sources = 1;
-    //    } else {
-    //        this->pipeline->connect();
-    //        n_sources = this->pipeline->get_n_sensors() / ELEMENTS;
-    //    }
-    //    for (int n_antenna = 0; n_antenna < n_sources; n_antenna++) {
-    //        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-    //        antennas.push_back(antenna);
-    //    }
 
     calibrate();
 }
@@ -62,10 +47,9 @@ AWProcessingUnit::~AWProcessingUnit() {
 bool AWProcessingUnit::start(const worker_t worker) {
     Worker *job;
     switch (worker) {
-            //        case PSO:
-            //
-            //            job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
-            //            break;
+        //case PSO:
+        //    job = (Worker *) new PSOWorker(pipeline, antennas[0], &running, SWARM_SIZE, SWARM_ITERATIONS);
+        //    break;
         case MIMO:
             job = new MIMOWorker(pipeline, antennas[0], &running, small_res, small_res, fov);
             break;
@@ -154,9 +138,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
             float current_power_level = power[s];
             float diff = fabs(power[s] - median);
             if (diff > 1e-4) {// Too small
-                //std::cout << " [BAD Large]";
             } else if (power[s] < median * 1e-3) {// Too big
-                //std::cout << " [BAD Small]";
             } else {
                 if (current_power_level > mmax) {
                     mmax = current_power_level;
@@ -208,8 +190,9 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
 bool AWProcessingUnit::stop(const worker_t worker) {
     for (auto it = workers.begin(); it != workers.end();) {
         if ((*it)->get_type() == worker) {
-            //std::cout << "Stopping worker from AWPU Workers" << std::endl;
-            //(*it)->looping = false;
+            if (verbose) {
+                std::cout << "Stopping worker from AWPU Workers" << std::endl;
+            }
             it = workers.erase(it);
             delete (*it);
             return true;

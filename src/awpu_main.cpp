@@ -10,7 +10,9 @@
 #include "awpu.h"
 #include "config.h"
 
-
+/**
+ * Create a name for the video file
+ */
 std::string generateUniqueFilename() {
     // Get the current time
     std::time_t now = std::time(nullptr);
@@ -26,6 +28,9 @@ std::string generateUniqueFilename() {
     return filename;
 }
 
+/**
+ * Initiate the videostream writer
+ */
 int startRecording(cv::VideoWriter& videoWriter, cv::Size frame_size, double fps) {
 
     // Define the codec and create VideoWriter object to write the video to a file
@@ -40,38 +45,42 @@ int startRecording(cv::VideoWriter& videoWriter, cv::Size frame_size, double fps
     return 0;
 }
 
+/**
+ * Stop the videostream writer
+ */
 void stopRecording(cv::VideoWriter& videoWriter) {
     videoWriter.release();
 }
 
-int main(int argc, char* argv[]) {
-    argparse::ArgumentParser program(argv[0]);
-
+/**
+ * Setup argparse with different arguments
+ */
+void setupArgumentParser(argparse::ArgumentParser &program) {
     program.add_argument("--camera")
             .default_value(std::string("false"))
             .help("Camera option, default is false");
 
     program.add_argument("--ip-address")
-            .default_value(std::string("127.0.0.1"))
+            .default_value(std::string(UDP_ADDRESS))
             .help("IP address");
 
     program.add_argument("--audio")
-            .default_value(false)
+            .default_value(AUDIO)
             .implicit_value(true)
             .help("Audio option");
 
     program.add_argument("--mimo")
-            .default_value(false)
+            .default_value(USE_MIMO)
             .implicit_value(true)
             .help("MIMO option");
 
     program.add_argument("--record")
-            .default_value(false)
+            .default_value(RECORD)
             .implicit_value(true)
             .help("Record option");
 
     program.add_argument("--mimo-res")
-            .default_value(100)
+            .default_value(MIMO_RES)
             .scan<'i', int>()
             .help("MIMO Resolution");
 
@@ -80,16 +89,25 @@ int main(int argc, char* argv[]) {
             .implicit_value(true)
             .help("Tracking option");
 
+    program.add_argument("--verbose")
+            .default_value(VERBOSE)
+            .implicit_value(true)
+            .help("Program output");
+
     program.add_argument("--fov")
             .scan<'f', float>()
-            .default_value(90.0f)
+            .default_value(FOV)
             .help("Field of view");
 
     program.add_argument("--port")
             .append()
             .scan<'i', int>()
             .help("PORT numbers");
+}
 
+int main(int argc, char* argv[]) {
+    argparse::ArgumentParser program(argv[0]);
+    setupArgumentParser(program);
     try {
         program.parse_args(argc, argv);
     } catch (const std::exception& err) {
@@ -97,6 +115,7 @@ int main(int argc, char* argv[]) {
         std::cerr << program;
         std::exit(1);
     }
+
 
     // Retrieve the parsed arguments
     std::string camera = program.get<std::string>("--camera");
@@ -108,24 +127,25 @@ int main(int argc, char* argv[]) {
     int mimo_res = program.get<int>("--mimo-res");
     bool record = program.get<bool>("--record");
     std::vector<int> ports = program.get<std::vector<int>>("--port");
-
-
-    // Display the parsed argument values
-    std::cout << "Camera: " << camera << std::endl;
-    std::cout << "IP Address: " << ip_address << std::endl;
-    std::cout << "Audio: " << audio << std::endl;
-    std::cout << "MIMO: " << mimo << std::endl;
-    std::cout << "Tracking: " << tracking << std::endl;
-    std::cout << "FOV: " << fov << std::endl;
-    std::cout << "Ports: ";
-    for (const auto& port: ports) {
-        std::cout << port << " ";
-    }
-    std::cout << std::endl;
-
+    bool verbose = program.get<bool>("--verbose");
     bool use_camera = (camera.compare("false") != 0);
 
-    std::cout << "Use camera: " << use_camera << std::endl;
+    if (verbose) {
+        // Display the parsed argument values
+        std::cout << "Camera: " << camera << std::endl;
+        std::cout << "IP Address: " << ip_address << std::endl;
+        std::cout << "Audio: " << audio << std::endl;
+        std::cout << "MIMO: " << mimo << std::endl;
+        std::cout << "Tracking: " << tracking << std::endl;
+        std::cout << "FOV: " << fov << std::endl;
+        std::cout << "Ports: ";
+        for (const auto& port: ports) {
+            std::cout << port << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Use camera: " << use_camera << std::endl;
+    }
+    
 
     cv::VideoCapture cap;
     cv::VideoWriter videoWriter;
@@ -138,7 +158,6 @@ int main(int argc, char* argv[]) {
 
 
     if (use_camera) {
-        // Open the default webcam
         cap = cv::VideoCapture(camera);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open the webcam." << std::endl;
@@ -157,22 +176,22 @@ int main(int argc, char* argv[]) {
         cv::Size frame_size(frame_width, frame_height);
     }
 
-
-
+    // Setup AWPUS
     std::vector<AWProcessingUnit> awpus;
 
     int i = 0;
     for (const int port : ports) {
         const char *addr = ip_address.c_str();
-        std::cout << "Starting MIMO: " << port << std::endl;
-        awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res);
+        if (verbose) {
+            std::cout << "Starting MIMO: " << port << std::endl;
+        }
+        
+        awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
         AWProcessingUnit &awpu = awpus.back();
+
+        // Start different modes
         if (tracking) { awpu.start(GRADIENT); }
         if (mimo) { awpu.start(MIMO); }
-        //AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov);
-        //if (tracking) { awpu->start(GRADIENT); }
-        //if (mimo) { awpu->start(MIMO); }
-        //awpus.push_back(awpu);
     }
 
     int awpu_count = awpus.size();
@@ -223,30 +242,28 @@ int main(int argc, char* argv[]) {
 
 
         for (int i = 0; i < awpu_count; i++) {
+
+            // Reset frames
             smallFrames[i].setTo(cv::Scalar(0));
-            //cv::resize(bigFrames[i], bigFrames[i], bigFrames[i].size(), 0, 0, cv::INTER_LINEAR);
             bigFrames[i].setTo(cv::Scalar(0));
-            //awpus[i]->draw_heatmap(&smallFrames[i]);
-            //awpus[i]->draw(&smallFrames[i], &bigFrames[i]);
+
+            // Draw onto frames
             awpus[i].draw(&smallFrames[i], &bigFrames[i]);
-            //cv::Mat tmp;
-            //cv::resize(smallFrames[i], tmp, bigFrames[i].size(), 0, 0, cv::INTER_LINEAR);
-            //cv::Mat result;
-            //bigFrames[i].copyTo(result, tmp);
-            //tmp.copyTo(bigFrames[i], tmp);
-            //bigFrames[i] = result;
-            //bigFrames[i] = tmp;
-            //cv::resize(smallFrames[i], bigFrames[i], bigFrames[i].size(), 0, 0, cv::INTER_LINEAR);
-            //cv::addWeighted(tmp, 1.0, bigFrames[i], 1.0, 0, bigFrames[i]);
+
             // Blur the image with a Gaussian kernel
             cv::GaussianBlur(bigFrames[i], bigFrames[i],
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+
+            // Pretty colors
             cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_JET);
 
+            // Overlay onto camera
             if (use_camera) {
                 cv::resize(frame, frame, cv::Size(bigFrames[i].cols, bigFrames[i].rows), 0, 0, cv::INTER_LINEAR);
                 cv::addWeighted(frame, 1.0, bigFrames[i], 0.5, 0, bigFrames[i]);
             } else {
+
+                // Create a circle around view
 
                 // Create a mask with the same dimensions as the image, initialized to black
                 cv::Mat mask = cv::Mat::zeros(bigFrames[i].size(), bigFrames[i].type());
@@ -277,15 +294,16 @@ int main(int argc, char* argv[]) {
         }
         
 
-        if (recording){// && !use_camera) {
-            videoWriter.write(combinedFrame);// Write the frame to the video file
+        if (recording){
+            // Write the frame to the video file
+            videoWriter.write(combinedFrame);
         }
 
         // Display the frame
         cv::imshow(APPLICATION_NAME, combinedFrame);
 
         // Wait for a key press and get the ASCII code
-        int key = cv::waitKey(delay);// Wait for 10 ms
+        int key = cv::waitKey(delay);
 
         // Check for specific keys
         switch (key) {
@@ -293,7 +311,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "Quit key pressed ('q'). Exiting..." << std::endl;
                 running = false;
                 break;
-            case 'r':// Respond to 'g' key
+            case 'r':
                 if (recording) {
                     stopRecording(videoWriter);
                     recording = false;
@@ -329,10 +347,6 @@ int main(int argc, char* argv[]) {
     }
 
     cv::destroyAllWindows();
-
-    //for (auto& awpu: awpus) {
-    //    delete awpu;
-    //}
 
     return 0;
 }
