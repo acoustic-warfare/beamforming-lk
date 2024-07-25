@@ -6,52 +6,50 @@
 #include "nlohmann/json.hpp"
 #include <opencv2/core/matx.hpp>
 
-Eigen::Vector3d triangulatePoint(Eigen::Vector3d v1, Eigen::Vector3d v2, const double distance) {
+Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2) {
     using Vec3 = Eigen::Vector3d;
 
-    // Matrix to rotate the vectors from a lying down perspective (z "outwards") to a standing up perspective (z upwards)
-    const Eigen::Matrix3d rotationMatrix = (Eigen::Matrix3d() << 0, 0, 1,
-                                            1, 0, 0,
-                                            0, 1, 0).finished();
-    v1 = rotationMatrix * v1;
-    v2 = rotationMatrix * v2;
+    const Vec3 p1 = l1.origin();
+    const Vec3 p2 = l2.origin();
+    Vec3 d1 = l1.direction();
+    Vec3 d2 = l2.direction();
 
+    Eigen::Matrix3d rotationMatrix;
+    rotationMatrix << 1, 0, 0,
+            0, 0, 1,
+            0, 1, 0;
 
-    const Vec3 a_start(distance / 2, 0, 0);
-    const Vec3 b_start(-distance / 2, 0, 0);
+    d1 = rotationMatrix * d1;
+    d2 = rotationMatrix * d2;
 
-    const Vec3 u = v1.normalized();
-    const Vec3 v = v2.normalized();
-    const Vec3 w0 = a_start - b_start;
+    const Vec3 w0 = p1 - p2;
+    const double a = d1.dot(d1); // d1·d1
+    const double b = d1.dot(d2); // d1·d2
+    const double c = d2.dot(d2); // d2·d2
+    const double d = d1.dot(w0); // d1·(p1 - p2)
+    const double e = d2.dot(w0); // d2·(p1 - p2)
 
-    const double a_dot_a = u.dot(u);
-    const double b_dot_b = v.dot(v);
-    const double a_dot_b = u.dot(v);
-    const double a_dot_w0 = u.dot(w0);
-    const double b_dot_w0 = v.dot(w0);
+    const double denominator = a * c - b * b;
+    double t, s;
 
-    const double denominator = a_dot_a * b_dot_b - a_dot_b * a_dot_b;
-
+    // Check if the lines are parallel
     if (std::abs(denominator) < 1e-6) {
+        return Vec3::Zero();
+    } else {
+        // Lines are not parallel, calculate the nearest points
+        t = (b * e - c * d) / denominator;
+        s = (a * e - b * d) / denominator;
+    }
+
+    // Calculate the nearest points
+    const Vec3 closestPoint1 = p1 + t * d1;
+    const Vec3 closestPoint2 = p2 + s * d2;
+
+    if((closestPoint1 - closestPoint2).norm() > 1) {
         return Vec3::Zero();
     }
 
-    const double ta = (a_dot_b * b_dot_w0 - b_dot_b * a_dot_w0) / denominator;
-    const double tb = (a_dot_a * b_dot_w0 - a_dot_b * a_dot_w0) / denominator;
-
-    const Vec3 closest_point_a = a_start + ta * u;
-    const Vec3 closest_point_b = b_start + tb * v;
-
-    if ((closest_point_a - closest_point_b).norm() > 1)
-        return Vec3::Zero();
-
-    // Midpoint of the closest approach
-    Vec3 midpoint = (closest_point_a + closest_point_b) / 2.0;
-
-    if (midpoint.x() < 0)
-        midpoint *= -1;
-
-    return midpoint;
+    return (closestPoint1 + closestPoint2) / 2.0;
 }
 
 nlohmann::json PositionToGPS(const Eigen::Vector3d &position, const gps_data_t &lk_position) {

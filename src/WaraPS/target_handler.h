@@ -5,6 +5,7 @@
 #ifndef TARGETHANDLER_H
 #define TARGETHANDLER_H
 #include <gps.h>
+#include <ranges>
 #include <wara_ps_client.h>
 
 #include "../awpu.h"
@@ -15,25 +16,6 @@
  * Takes two or more active AWPUS as inputs and classifies the targets based on the target function
  */
 class TargetHandler {
-    std::vector<Eigen::Vector3d> targets_;
-    Eigen::Vector3d loudestTarget_;
-    double loudestTargetPower_ = 0;
-    const double targetDecay_ = 0.9;
-    std::thread targetThread_;
-    WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
-                                              std::getenv("MQTT_PASSWORD"));
-    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(200);
-    KalmanFilter3D kf_{0.4};
-
-    gps_data_t *gpsData_;
-
-    std::vector<AWProcessingUnit *> awpus_;
-    double minProbability_ = 0.5;
-
-    std::thread workerThread_;
-    std::mutex mutex_;
-    std::shared_ptr<bool> running = std::make_shared<bool>(false);
-
 public:
     explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {}
 
@@ -47,13 +29,54 @@ public:
 
     std::vector<Eigen::Vector3d> getTargets();
 
-    TargetHandler &operator<<(AWProcessingUnit *awpu);
+    TargetHandler& AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d& position);
 
-    void FindTargets(std::vector<Target> &targets);
+    void FindTargets(std::vector<std::vector<Target> > &targets);
 
     void DisplayTarget(bool toggle);
 
-    Eigen::Vector3d getLoudestTarget();
+    Eigen::Vector3d getLoudestTarget() const;
+
+protected:
+    struct CartesianTarget {
+        Eigen::ParametrizedLine<double, 3> directionLine;
+        double power;
+        double gradient;
+    };
+
+    struct TriangulatedTarget {
+        Eigen::Vector3d position;
+        double powerAverage;
+        std::chrono::duration<long> timeAlive;
+    };
+
+    std::vector<TriangulatedTarget> targets_;
+    TriangulatedTarget loudestTarget_{};
+    const double targetDecay_ = 0.9;
+    std::thread targetThread_;
+    WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
+                                              std::getenv("MQTT_PASSWORD"));
+    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(500);
+    KalmanFilter3D kf_{static_cast<float>(targetUpdateInterval_.count() / 500)};
+
+    gps_data_t *gpsData_;
+
+    std::vector<AWProcessingUnit*> awpus_;
+    std::vector<Eigen::Vector3d> awpu_positions_;
+
+    double minGradient_ = 1000;
+
+    std::thread workerThread_;
+    std::mutex mutex_;
+    std::shared_ptr<bool> running = std::make_shared<bool>(false);
+
+    // Mysig funktionssignatur, precis lagom lång
+     void FindTargetsRecursively(
+         std::vector<CartesianTarget> &toCompare,
+         std::vector<std::vector<CartesianTarget>>::iterator begin,
+         std::vector<std::vector<CartesianTarget>>::iterator end,
+         std::vector<TriangulatedTarget> &out
+     );
 };
 
 
