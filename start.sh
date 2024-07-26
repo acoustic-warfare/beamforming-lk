@@ -23,7 +23,7 @@ fi
 if [ -z "$(uname -a | grep PREEMPT_RT)" ]; then
     echo -e "$Red[WARNING]$Color_Off System does not have Realtime kernel enabled"
     echo "Please install one: https://ubuntu.com/pro"
-    RT_ARGS=""
+    RT_ARGS="--network=host --cpus=$(nproc)"
 else
     RT_ARGS="--network=host --ulimit rtprio=99 --cpus=$(nproc) --cap-add=SYS_NICE"
 fi

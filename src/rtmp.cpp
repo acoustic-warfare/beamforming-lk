@@ -55,6 +55,13 @@ RtmpStreamer::RtmpStreamer()
     initialize_streamer();
 }
 
+RtmpStreamer::RtmpStreamer(uint width, uint height)
+    : screen_width(width),
+      screen_height(height),
+      want_data(true) {
+    initialize_streamer();
+}
+
 
 RtmpStreamer::~RtmpStreamer() {
     g_print("set to null.\n");

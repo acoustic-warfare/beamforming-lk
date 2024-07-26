@@ -12,6 +12,7 @@
 #include <wara_ps_client.h>
 #include "awpu.h"
 #include "WaraPS/target_handler.h"
+#include "rtmp.hpp"
 
 class AWControlUnit {
 private:
@@ -32,11 +33,14 @@ private:
 
     bool paused_ = false;
 
+    RtmpStreamer streamer;
+
     void publishData();
 public:
     AWControlUnit();
     AWControlUnit(const AWControlUnit&) = delete;
     AWControlUnit operator=(const AWControlUnit&) = delete;
+
 
     /**
      * Spools up the AW Control unit and blocks the current thread until it finished.

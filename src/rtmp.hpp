@@ -10,20 +10,23 @@ public:
     GstBus *bus;
 
     RtmpStreamer();
+    RtmpStreamer(uint width, uint height);
+    RtmpStreamer(const RtmpStreamer &) = delete;
+    RtmpStreamer &operator=(const RtmpStreamer &) = delete;
     ~RtmpStreamer();
+
+    bool send_frame(cv::Mat frame);
 
     void start_stream();
     void stop_stream();
-    bool send_frame(cv::Mat frame);
+
     void start_rtmp_stream();
     void stop_rtmp_stream();
     void start_local_stream();
     void stop_local_stream();
 
     [[nodiscard]] bool check_error() const;
-
     void async_streamer_control_unit();
-
     void debug_info();
 
 private:
@@ -37,6 +40,7 @@ private:
     bool disconnect_sink_bin_from_source_bin(
             GstElement *source_bin, GstElement *sink_bin, GstPad *tee_pad,
             const char *tee_ghost_pad_src_name);
+
 
     gboolean check_links();
     void initialize_streamer();

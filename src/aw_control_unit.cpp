@@ -1,14 +1,19 @@
-//
+
 // Created by janne on 2024-07-04.
 //
 
-#include <stdexcept>
+#include "aw_control_unit.h"
+
+#include <gps.h>
+#include <unistd.h>
+
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include "aw_control_unit.h"
+#include <stdexcept>
 
 #include "WaraPS/target_handler.h"
+#include "config.h"
 
 void AWControlUnit::Start() {
     auto awpu1 = AWProcessingUnit("10.0.0.1", 21875);
@@ -16,8 +21,8 @@ void AWControlUnit::Start() {
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
-    namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
-    cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
+    // namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+    // cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
@@ -41,7 +46,8 @@ void AWControlUnit::Start() {
         GaussianBlur(frame, colorFrame,
                      cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
-        imshow(APPLICATION_NAME, colorFrame);
+        // imshow(APPLICATION_NAME, colorFrame);
+        streamer.send_frame(colorFrame);
 
         std::unique_lock lock(pauseMutex_);
         pausedCV_.wait(lock, [&] { return !paused_; });
@@ -73,16 +79,15 @@ void AWControlUnit::publishData() {
             // Sending NaN breaks WARA PS Arena
 
             const nlohmann::json gpsJson = {
-                {"longitude", std::to_string(gpsData_.fix.longitude)},
-                {"latitude", std::to_string(gpsData_.fix.latitude)},
-                {"altitude", std::to_string(gpsData_.fix.altitude)},
-                {"type", "GeoPoint"}
-            };
+                    {"longitude", std::to_string(gpsData_.fix.longitude)},
+                    {"latitude", std::to_string(gpsData_.fix.latitude)},
+                    {"altitude", std::to_string(gpsData_.fix.altitude)},
+                    {"type", "GeoPoint"}};
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
     }
 
-    client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
+    client_.PublishMessage("sensor/heading", std::to_string(90.0));// Currently not a real value
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
@@ -91,18 +96,42 @@ void AWControlUnit::publishData() {
 AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,
                                          std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
                                          std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")),
-                                 targetHandler_(&gpsData_) {
-    int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
-    gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
+                                 targetHandler_(&gpsData_),
+                                 streamer(X_RES, Y_RES) {
 
-    if (gpsError != 0) {
-        std::cerr << "GPS Error: " << gps_errstr(gpsError) << std::endl;
-        std::cerr << "Continuing without gps" << std::endl;
-        usingGps_ = false;
-    } else {
-        usingGps_ = true;
-    }
+    // int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
+    // gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
 
+
+    // if (gpsError != 0) {
+    //     std::cerr << "GPS Error: " << gps_errstr(gpsError) << std::endl;
+    //     std::cerr << "Continuing without gps" << std::endl;
+    //     usingGps_ = false;
+    // } else {
+    //     usingGps_ = true;
+    // }
+    usingGps_ = false;
+
+    client_.SetCommandCallback("start-stream", [&](const nlohmann::json &payload) {
+        streamer.start_stream();
+    });
+    client_.SetCommandCallback("stop-stream", [&](const nlohmann::json &payload) {
+        streamer.stop_stream();
+    });
+
+    client_.SetCommandCallback("start-rtmp-stream", [&](const nlohmann::json &payload) {
+        streamer.start_rtmp_stream();
+    });
+    client_.SetCommandCallback("stop-rtmp-stream", [&](const nlohmann::json &payload) {
+        streamer.stop_rtmp_stream();
+    });
+
+    client_.SetCommandCallback("start-local-stream", [&](const nlohmann::json &payload) {
+        streamer.start_local_stream();
+    });
+    client_.SetCommandCallback("stop-local-stream", [&](const nlohmann::json &payload) {
+        streamer.stop_local_stream();
+    });
     try {
         client_.Start();
         usingWaraPS_ = true;

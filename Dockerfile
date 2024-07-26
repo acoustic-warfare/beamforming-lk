@@ -35,11 +35,11 @@ ARG GCC_VERSION=10
 ARG CMAKE_VERSION=3.23.0
 
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
-      -q -O /tmp/cmake-install.sh \
-      && chmod u+x /tmp/cmake-install.sh \
-      && mkdir /usr/bin/cmake \
-      && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake \
-      && rm /tmp/cmake-install.sh
+    -q -O /tmp/cmake-install.sh \
+    && chmod u+x /tmp/cmake-install.sh \
+    && mkdir /usr/bin/cmake \
+    && /tmp/cmake-install.sh --skip-license --prefix=/usr/bin/cmake \
+    && rm /tmp/cmake-install.sh
 
 ENV PATH="/usr/bin/cmake/bin:${PATH}"
 
@@ -79,10 +79,51 @@ WORKDIR /WARA-PS-MQTT-Agent
 RUN cmake -S . -B build \
     && cmake --build build/ --target install
 
+RUN apt-get install -y libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libgstreamer-plugins-bad1.0-dev \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    gstreamer1.0-tools \
+    gstreamer1.0-x \
+    gstreamer1.0-alsa \
+    gstreamer1.0-gl \
+    gstreamer1.0-gtk3 \
+    gstreamer1.0-qt5 \
+    gstreamer1.0-pulseaudio
+
+WORKDIR /
+RUN git clone https://github.com/ninja-build/ninja.git
+WORKDIR /ninja
+RUN mkdir build && \
+    cmake -B build -S . && \
+    cmake --build build/ --target install
+
+
+RUN apt-get install -y gdb
+RUN apt-get install -y meson pkgconf
+
+WORKDIR /
+RUN git clone https://github.com/acoustic-warfare/DynRT-streamer.git DynRT-streamer
+WORKDIR /DynRT-streamer
+RUN  meson setup build/ && \
+    ninja -C build/ && \
+    ninja -C build install
+
+RUN apt-get install -y vim sudo 
 RUN ldconfig
 
 # Create app directory
 RUN mkdir -p /usr/src/app
+
+RUN groupadd -f admin
+
+RUN useradd -rm -d /home/newuser -s /bin/bash -g admin -G sudo -G audio -u 1000 newuser
+RUN echo "newuser:pass" | chpasswd
+USER newuser
 
 # Set working directory
 WORKDIR /usr/src/app

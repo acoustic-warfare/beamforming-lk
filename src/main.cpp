@@ -5,6 +5,6 @@
 #include "aw_control_unit.h"
 
 int main() {
-    AWControlUnit controlUnit;
+    AWControlUnit controlUnit = AWControlUnit();
     controlUnit.Start();
 }

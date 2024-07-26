@@ -133,6 +133,7 @@ find_package(Eigen3 REQUIRED)
 # MQTT Communication
 find_package(WaraPSClient REQUIRED)
 
+
 # Generating UUID:s
 find_package(Boost REQUIRED)
 
@@ -143,6 +144,7 @@ find_package(OpenCV REQUIRED)
 # Find GStreamer
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0>=1.0 gstreamer-base-1.0>=1.0)
+pkg_check_modules(DYNRT REQUIRED dynrt)
 
 
 find_library(portaudio
@@ -150,10 +152,10 @@ find_library(portaudio
         REQUIRED
 )
 
-#find_library(libgps
-#        gps
-#        REQUIRED
-#)
+find_library(libgps
+       gps
+       REQUIRED
+)
 
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -197,6 +199,8 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/target_handler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.hpp
 )
 
 
@@ -204,6 +208,7 @@ set(SOURCES
 add_executable(beamformer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
         ${SOURCES}
+        ${GSTREAMER}
 )
 
 # Linking
@@ -213,6 +218,7 @@ target_link_libraries(beamformer
         portaudio
         gps
         WaraPSClient::WaraPSClient
+        ${GSTREAMER_LIBS}
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
@@ -231,15 +237,12 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.hpp
 )
 
 # Linking
 target_link_libraries(awpu
         Eigen3::Eigen
         ${OpenCV_LIBS}
-        ${GSTREAMER_LIBRARIES}
 )
 
 
