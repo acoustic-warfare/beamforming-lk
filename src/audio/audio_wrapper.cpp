@@ -188,8 +188,6 @@ std::vector<float> *AudioWrapper::getAudioData() {
 
 void AudioWrapper::start_audio_playback() {
     Pa_StartStream(audio_stream_);
-    std::cout << "start_audio_playback: " << std::endl;
-
     is_on_ = true;
 }
 

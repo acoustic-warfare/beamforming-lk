@@ -7,7 +7,7 @@
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include "aw_control_unit.h"
+#include <stdexcept>
 
 #include "WaraPS/target_handler.h"
 

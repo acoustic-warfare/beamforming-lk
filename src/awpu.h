@@ -4,15 +4,16 @@
 #define AWPU_H
 
 #include <algorithm>
+#include <optional>
 
 #include "algorithms/gradient_ascend.h"
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
 #include "audio/audio_wrapper.h"
+#include "config.h"
 #include "pipeline.h"
 #include "worker.h"
-#include "config.h"
 
 class AWProcessingUnit {
 public:
@@ -44,7 +45,7 @@ protected:
     Spherical spherical;
     std::vector<Antenna> antennas;
 
-    AudioWrapper *audioWrapper;
+    std::optional<AudioWrapper> audioWrapper;
 };
 
 
