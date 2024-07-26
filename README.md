@@ -53,6 +53,8 @@ The project may also be compiled and executed inside a Docker environment manual
 
 Configurations can be made to the `config.yaml` file. All settings will be converted to config files in respective languages in `src/`. ***Do not edit any other config.\* file*** since they will be overwritten on next build.
 
+Configurations may need to be done for realtime sound recording in the `daemon.conf` file. The current standards should work for most machines. 
+
 ## Building
 
 Building the project is the same for within the Docker container and normal installation. 

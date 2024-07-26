@@ -98,3 +98,7 @@ USER newuser
 
 # Set working directory
 WORKDIR /usr/src/app
+
+# Add configs for sound and start pulse audio
+COPY daemon.conf /etc/pulse/daemon.conf
+RUN pulseaudio --start

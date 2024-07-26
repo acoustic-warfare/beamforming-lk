@@ -165,7 +165,7 @@ AudioWrapper::AudioWrapper(Pipeline *pipeline) : pipeline(pipeline) {
                         nullptr,
                         &out_param,
                         SAMPLE_RATE,
-                        N_SAMPLES,
+                        N_SAMPLES * 2,
                         paNoFlag,
                         audioCallback,
                         this);
