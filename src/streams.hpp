@@ -1,10 +1,10 @@
 /** @file streams.hpp
  * @author Irreq
- * @brief TODO:
-*/
+ * @brief Manages ring buffers used in streaming data.
+ */
 
-#ifndef STREAMS_H
-#define STREAMS_H
+#ifndef BEAMFORMER_STREAMS_H
+#define BEAMFORMER_STREAMS_H
 
 
 #include <assert.h>
@@ -35,7 +35,7 @@
 
 /**
  * @class Streams
- * @brief TODO:
+ * @brief Manages multiple ring buffers for streaming data.
  */
 /**
  * Multiple ring-buffers can be thought of as:
@@ -53,18 +53,20 @@
  */
 class Streams {
 public:
-    // Multiple ring-buffers
+    /// Map to store ring buffers, where the key is the buffer index and the value is a pointer to the buffer.
     std::unordered_map<unsigned, float *> buffers;
 
-    // Reader start position in ring-buffer
+    /// Reader start position in ring-buffer
     unsigned position;
     int _position;
 
-
-    Streams() : position(0), _position(0){};
+    /// Default constructor.
+    Streams() : position(0), _position(0) {};
 
     /**
-     * @brief Create a ring-buffer for a specific index
+     * @brief Create a ring-buffer for a specific index.
+     * @param index The index of the ring buffer to create.
+     * @return true if success, false otherwise.
      */
     bool create_stream(unsigned index) {
         if (this->buffers.find(index) != this->buffers.end()) {
@@ -84,7 +86,10 @@ public:
     }
 
     /**
-     * @brief Getter for a buffer with offset
+     * @brief Gets a pointer to a specific location in the ring buffer with an offset. 
+     * @param index The index of the buffer.
+     * @param offset The offset from the current position.
+     * @return Pointer to the buffer location.
      */
     float *get_signal(unsigned index, int offset) {
         return (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float));
@@ -92,6 +97,8 @@ public:
 
     /**
      * @brief Fast write to buffer using wrap-around memcpy
+     * @param index The index of the buffer.
+     * @param data Pointer to the data to write.
      */
     inline void write_stream(unsigned index, float *data) {
         memcpy((char *) this->buffers[index] + this->position, data, BUFFER_BYTES);
@@ -99,6 +106,9 @@ public:
 
     /**
      * @brief Fast read from buffer using wrap-around memcpy
+     * @param index The index of the buffer.
+     * @param data Pointer to where the data will be read into.
+     * @param offset The offset from the current position.
      */
     inline void read_stream(unsigned index, float *data, unsigned offset = 0) {
         //memcpy(data, &buffers[index][_position + offset], N_ITEMS_BUFFER);
@@ -110,7 +120,9 @@ public:
         memcpy(data, (char *) this->buffers[index], PAGE_SIZE);
     }
 #endif
-
+    /**
+     * @brief Destructor, cleanups of resources.
+     */
     ~Streams() {
         for (auto itr = this->buffers.begin(); itr != this->buffers.end(); ++itr) {
             // Free memory
@@ -119,13 +131,12 @@ public:
     }
 
     /**
-     * @brief Reserved only for producer
+     * @brief Reserved only for producer, advances the reader position in the buffer.
      */
     void forward() {
         this->position = (this->position + BUFFER_BYTES) % PAGE_SIZE;
         //_position = (_position + N_SAMPLES) % N_ITEMS_BUFFER;
     }
-
 
 private:
     /**
@@ -136,6 +147,7 @@ private:
      * it is mapped to the beginning of the "actual" buffer. As long 
      * as reading and writing is less than the buffer size, no other checks 
      * must be done making it a very optimized buffer.
+     * @return Pointer to the allocated buffer, or `nullptr` if allocation fails.
      */
     float *allocate_buffer() {
         int fd = memfd_create("float", 0);
@@ -170,5 +182,4 @@ private:
     }
 };
 
-
-#endif
+#endif //BEAMFORMER_STREAMS_H
