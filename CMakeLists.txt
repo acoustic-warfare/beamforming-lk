@@ -231,5 +231,5 @@ add_custom_target(test
 
 # Documentation
 add_custom_target(doc
-        COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+        COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/dconfig
 )

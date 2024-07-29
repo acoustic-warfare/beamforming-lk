@@ -56,7 +56,9 @@ RUN apt-get install -y \
     libssl-dev \
     nlohmann-json3-dev \
     libgps-dev \
-    libgps28
+    libgps28 \
+    doxygen \
+    graphviz
 
 RUN git clone https://github.com/eclipse/paho.mqtt.cpp
 WORKDIR /paho.mqtt.cpp
