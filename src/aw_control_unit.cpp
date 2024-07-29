@@ -65,6 +65,9 @@ void AWControlUnit::Start() {
         targetHandler_.Stop();
         data_thread_.join();
     }
+    if (USE_AUDIO) {
+        awpu1.stop_audio();
+    }
 }
 
 // Publishes data every second

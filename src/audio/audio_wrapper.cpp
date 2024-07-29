@@ -193,6 +193,18 @@ void AudioWrapper::start_audio_playback() {
 
 void AudioWrapper::stop_audio_playback() {
     is_on_ = false;
+
+    if (AUDIO_FILE) {
+        if (MP3) {
+            saveToMP3("output.mp3");
+            std::cout << "Mp3 Saved" << std::endl;
+        }
+
+        if (WAV) {
+            saveToWav("output.wav");
+            std::cout << "WAV file saved" << std::endl;
+        }
+    }
 }
 
 void AudioWrapper::processAudioData() {
@@ -216,16 +228,4 @@ AudioWrapper::~AudioWrapper() {
 
     Pa_StopStream(audio_stream_);
     Pa_Terminate();
-
-    if (AUDIO_FILE) {
-        if (MP3) {
-            saveToMP3("output.mp3");
-            std::cout << "Mp3 Saved" << std::endl;
-        }
-
-        if (WAV) {
-            saveToWav("output.wav");
-            std::cout << "WAV file saved" << std::endl;
-        }
-    }
 }
