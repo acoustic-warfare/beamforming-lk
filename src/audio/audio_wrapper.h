@@ -23,28 +23,28 @@
  */
 class AudioWrapper {
 private:
-    // Flag if audio is on
+    //! Flag if audio is on
     std::atomic<bool> is_on_ = false;
 
-    // A PaStream providing acces to audio hardware
+    //! A PaStream providing acces to audio hardware
     PaStream *audio_stream_ = nullptr;
 
-    // Pipeline to the FPGA from the PC
+    //! Pipeline to the FPGA from the PC
     Pipeline *pipeline;
 
-    // Vector of audio data filled from the incomming data
+    //! Vector of audio data filled from the incomming data
     std::vector<float> audioData;
 
-    // Struct handling the Wav file
+    //! Struct handling the Wav file
     SNDFILE *sndfile_ = nullptr;
 
-    // Information about the data in the Wav file
+    //! Information about the data in the Wav file
     SF_INFO sfinfo_{};
 
-    // The MP3 file
+    //! The MP3 file
     FILE *mp3File_;
 
-    // Handles informaton about MP3 file, global context handle
+    //! Handles informaton about MP3 file, global context handle
     lame_t lame_ = nullptr;
 
     /**
