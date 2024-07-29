@@ -45,6 +45,9 @@ bool in_sector(const int *sector, const int i);
 
 bool in_sector(const int sector_index, const int i);
 
+/**
+ * @brief TODO:
+ */
 struct Sector {
     int sector;// 1, 2, 3, 4
     int usable = 0;
@@ -65,7 +68,7 @@ struct Sector {
 struct Antenna {
 
     /**
-   * The 3D representation of the antenna
+   * @brief The 3D representation of the antenna
    */
     Eigen::MatrixXf points;// The 3D representation of the antenna
     int id;
@@ -97,28 +100,22 @@ struct Antenna {
 };
 
 /**
- * Find the center of antenna
+ * @brief Find the center of antenna
  */
 Position find_middle(const Antenna &antenna);
 
 /**
- * Place the antenna by positioning the center @ new position
+ * @brief Place the antenna by positioning the center @ new position
  */
 void place_antenna(Antenna &antenna, const Position position);
 
 /**
- * Generate a new antenna by specific options and place it ad the desired
+ * @brief Generate a new antenna by specific options and place it ad the desired
  * position.
  */
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance);
 
-/**
- * Compute the delay in regard to the Z value. Since the antenna is being
- * thought as a point cloud laying on the XY plane, the Z value will be the
- * distance to the target and is used to calculate the necessary delays to
- * accomodate for a planar wave
- */
 /**
  * @brief  Compute the delay in regard to the Z value. Since the antenna is
  * being thought as a point cloud laying on the XY plane, the Z value will be
@@ -131,7 +128,7 @@ Antenna create_antenna(const Position &position, const int columns,
 Eigen::VectorXf compute_delays(const Antenna &antenna);
 
 /**
- * Perform a rotation of the antenna in 3D space. This rotation consist of 3
+ * @brief Perform a rotation of the antenna in 3D space. This rotation consist of 3
  * rotations where the antenna must be projected onto the XY plane (Z values are
  * 0) (ZXZ extrinsic rotations). It is then rotated around the Z axis and
  * rotated around the X axis followed by the a negative rotation around the Z
@@ -143,25 +140,25 @@ Antenna steer(const Antenna &antenna, const double theta, const double phi);
 
 
 /**
- * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation
+ * @brief Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation
  * is up and down.
  */
 Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation);
 
 /**
- * Calculate the delays when antenna is steered towards a specific point located
+ * @brief Calculate the delays when antenna is steered towards a specific point located
  * on the unitsphere on the positive Z axis. A point may also not be located on
  * the unitsphere, however it must have a Z value >= 0
  */
 Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point);
 
 /**
- * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
+ * @brief Steer the antenna usin spherical coordinates where phi begins at Z+ axis
  */
 Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi);
 
 /**
- * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
+ * @brief Steer the antenna usin spherical coordinates where phi begins at Z+ axis
  */
 Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const Spherical &spherical);
 

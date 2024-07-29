@@ -59,6 +59,10 @@ public:
 
 //void pso_finder(Pipeline *pipeline, int stream_id, int n_arrays);
 #include <mutex>
+/**
+ * @class PSOWorker
+ * @brief TODO:
+ */
 class PSOWorker : public Worker {
 public:
     PSOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations);

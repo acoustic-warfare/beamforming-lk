@@ -41,12 +41,18 @@ public:
     Eigen::Vector3d getLoudestTarget() const;
 
 protected:
+    /**
+     * @brief TODO:
+     */
     struct CartesianTarget {
         Eigen::ParametrizedLine<double, 3> directionLine;
         double power;
         double gradient;
     };
 
+    /**
+    * @brief TODO:
+    */
     struct TriangulatedTarget {
         Eigen::Vector3d position;
         double powerAverage;

@@ -23,7 +23,6 @@ inline double drandom() {
 }
 
 /**
- * @class Target
  * @brief Target from the AWPU 
  */
 struct Target {
@@ -61,18 +60,22 @@ enum worker_t {
     GRADIENT
 };
 
+/**
+ * @class Worker
+ * @brief TODO:
+ */
 class Worker {
 public:
-    // If the worker should be running
+    //! If the worker should be running
     bool *running;
 
-    // If the worker is running
+    //! If the worker is running
     bool looping;
 
-    // Worker thread since parent thread is returned
+    //! Worker thread since parent thread is returned
     std::thread thread_loop;
 
-    // Inherited pipeline
+    //! Inherited pipeline
     Pipeline *pipeline;
 
     Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true), pipeline(pipeline), antenna(antenna),
@@ -97,7 +100,7 @@ public:
     };
 
     /**
-     * Getter for worker direction
+     * @brief Getter for worker direction
      */
     Spherical getDirection() const {
         return direction;

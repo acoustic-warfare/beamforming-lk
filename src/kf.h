@@ -16,7 +16,7 @@
  */
 
 /**
- * @class KalmanFIlter3D
+ * @class KalmanFilter3D
  * @brief TODO:
  */
 class KalmanFilter3D {

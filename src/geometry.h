@@ -24,17 +24,17 @@
 #define WEST 3
 
 /**
- * Clip value between two values
+ * @brief Clip value between two values
  */
 double clip(double n, double lower, double upper);
 
 /**
- * Modulo for radians
+ * @brief Modulo for radians
  */
 double wrapAngle(double angle);
 
 /**
- * Retrieve the relative smallest angle between two angles
+ * @brief Retrieve the relative smallest angle between two angles
  */
 double smallestAngle(double target, double current);
 
@@ -42,17 +42,17 @@ double smallestAngle(double target, double current);
 typedef Eigen::Vector3f Position;
 
 /**
- * Rotation around Z-axis
+ * @brief Rotation around Z-axis
  */
 Eigen::Matrix3f rotateZ(float angle);
 
 /**
- * Rotation around Y-axis
+ * @brief Rotation around Y-axis
  */
 Eigen::Matrix3f rotateY(float angle);
 
 /**
- * Convert spherical coordinates to cartesian coordinates
+ * @brief Convert spherical coordinates to cartesian coordinates
  */
 Position spherical_to_cartesian(double theta, double phi, double radius);
 
@@ -61,7 +61,7 @@ struct Spherical;
 struct Horizontal;// Horizontal with a 90degree rotation on y-axis
 
 /**
- * Spherical representation of a position
+ * @brief Spherical representation of a position
  */
 struct Spherical {
     double theta = 0;// Inclination angle
@@ -92,6 +92,9 @@ struct Spherical {
     }
 };
 
+/**
+ * @brief TODO:
+ */
 struct Horizontal {
     double azimuth, elevation;
     Horizontal(){};
@@ -113,6 +116,9 @@ struct Horizontal {
     }
 };
 
+/**
+ * @brief TODO:
+ */
 struct Cartesian {
     double x, y, z;
     Cartesian() : x(0), y(0), z(0){};

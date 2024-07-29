@@ -64,7 +64,8 @@ private:
 
 
 /**
- * Worker for finding sources using spherical Gradient descent
+ * @class SphericalGradient
+ * @brief Worker for finding sources using spherical Gradient descent
  */
 class SphericalGradient : public Worker {
 public:
