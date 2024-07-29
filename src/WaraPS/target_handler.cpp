@@ -63,8 +63,11 @@ void TargetHandler::FindTargets(std::vector<std::vector<Target> > &targets) {
 
     for (int i = 0; i < targets.size(); ++i) {
         translatedTargets[i].reserve(targets[i].size());
-        for (auto [direction, power, probability]: targets[i]) {
-            CartesianTarget t{{awpu_positions_[i], direction.toCartesian()}, power, probability};
+        for (auto target: targets[i]) {
+            CartesianTarget t{
+                {awpu_positions_[i], target.direction.toCartesian() / target.direction.toCartesian().norm()},
+                target.power, target.probability, target.start
+            };
             translatedTargets[i].emplace_back(std::move(t));
         }
     }
@@ -76,14 +79,17 @@ void TargetHandler::FindTargets(std::vector<std::vector<Target> > &targets) {
     mutex_.unlock();
 }
 
+double TargetHandler::CalculateTargetWeight(const TriangulatedTarget &triangulated_target) {
+    return triangulated_target.powerAverage;
+}
+
 void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
-                                           std::vector<std::vector<CartesianTarget> >::iterator begin,
-                                           std::vector<std::vector<CartesianTarget> >::iterator end,
+                                           const std::vector<std::vector<CartesianTarget> >::iterator begin,
+                                           const std::vector<std::vector<CartesianTarget> >::iterator end,
                                            std::vector<TriangulatedTarget> &out) {
     if (begin == end) {
         return;
     }
-
 
     // invariant: out will contain all viable intersections between toCompare and all vectors from begin -> it
     for (CartesianTarget &target: toCompare) {
@@ -103,13 +109,16 @@ void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompa
                 loudestTarget_.powerAverage = loudestTarget_.powerAverage * targetDecay_ + pow(
                                                   otherTarget.power + target.power, 2) * (1 - targetDecay_);
 
-                if (pow(otherTarget.power + target.power, 5) < loudestTarget_.powerAverage) {
-                    loudestTarget_ = {intersection, pow(otherTarget.power + target.power, 5), std::chrono::seconds(0)};
-                    continue;
+                TriangulatedTarget newTarget{
+                    intersection, (otherTarget.power + target.power) / 2,
+                    (otherTarget.startTime.time_since_epoch().count() + target.startTime.time_since_epoch().count())
+                };
+
+                if (CalculateTargetWeight(newTarget) > CalculateTargetWeight(loudestTarget_)) {
+                    loudestTarget_ = newTarget;
                 }
 
-                out.emplace_back(intersection, sqrt(pow(target.power, 5) + pow(otherTarget.power, 5)),
-                                 std::chrono::seconds(0));
+                out.emplace_back(std::move(newTarget));
             }
             std::advance(it, 1);
         }
@@ -137,17 +146,23 @@ void TargetHandler::DisplayTarget(const bool toggle) {
                                      {"type", "GeoPoint"}
                                  }.dump());
 
+
     targetThread_ = std::thread([&] {
         while (targetClient_.running()) {
             std::this_thread::sleep_for(targetUpdateInterval_);
-            std::cout << loudestTarget_.position.transpose() << std::endl;
             if (!isfinite(gpsData_->fix.latitude) ||
                 !isfinite(gpsData_->fix.longitude) ||
                 !isfinite(gpsData_->fix.altitude)) {
                 continue;
             }
 
-            const nlohmann::json targetJson = PositionToGPS(loudestTarget_.position, *gpsData_);
+            std::cout << "Target: " << loudestTarget_.position.transpose() << std::endl;
+
+            Eigen::Vector3d outPosition{
+                loudestTarget_.position.x(), loudestTarget_.position.z(), loudestTarget_.position.z()
+            };
+
+            const nlohmann::json targetJson = PositionToGPS(outPosition, *gpsData_);
 
             targetClient_.PublishMessage("sensor/position", targetJson.dump());
         }

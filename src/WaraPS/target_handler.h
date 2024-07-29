@@ -42,12 +42,13 @@ protected:
         Eigen::ParametrizedLine<double, 3> directionLine;
         double power;
         double gradient;
+        std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
     };
 
     struct TriangulatedTarget {
         Eigen::Vector3d position;
         double powerAverage;
-        std::chrono::duration<long> timeAlive;
+        long timeAlive;
     };
 
     std::vector<TriangulatedTarget> targets_;
@@ -64,11 +65,13 @@ protected:
     std::vector<AWProcessingUnit*> awpus_;
     std::vector<Eigen::Vector3d> awpu_positions_;
 
-    double minGradient_ = 1000;
+    double minGradient_ = 5;
 
     std::thread workerThread_;
     std::mutex mutex_;
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
+
+    static double CalculateTargetWeight(const TriangulatedTarget & triangulated_target);
 
     // Mysig funktionssignatur, precis lagom lång
      void FindTargetsRecursively(

@@ -22,8 +22,8 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
-    targetHandler_.AddAWPU(&awpu1, {0, 2.6, 0})
-            .AddAWPU(&awpu2, {0, -2.6, 0});
+    targetHandler_.AddAWPU(&awpu1, {2.6, 0, 0})
+            .AddAWPU(&awpu2, {-2.6, 0, 0});
 
     if (usingWaraPS_) {
         data_thread_ = std::thread([this] {
@@ -75,9 +75,9 @@ void AWControlUnit::publishData() {
             // Sending NaN breaks WARA PS Arena
 
             const nlohmann::json gpsJson = {
-                {"longitude", std::to_string(gpsData_.fix.longitude)},
-                {"latitude", std::to_string(gpsData_.fix.latitude)},
-                {"altitude", std::to_string(gpsData_.fix.altitude)},
+                {"longitude", gpsData_.fix.longitude},
+                {"latitude", gpsData_.fix.latitude},
+                {"altitude", gpsData_.fix.altitude},
                 {"type", "GeoPoint"}
             };
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
