@@ -3,11 +3,12 @@
  * @date 2024-07-04
 */
 
-#include <stdexcept>
+#include "aw_control_unit.h"
+
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include "aw_control_unit.h"
+#include <stdexcept>
 
 #include "WaraPS/target_handler.h"
 
@@ -16,6 +17,10 @@ void AWControlUnit::Start() {
     auto awpu1 = AWProcessingUnit("10.0.0.1", 21876);
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
+
+    if (USE_AUDIO) {
+        awpu1.play_audio();
+    }
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
@@ -62,6 +67,9 @@ void AWControlUnit::Start() {
         client_.Stop();
         targetHandler_.Stop();
         data_thread_.join();
+    }
+    if (USE_AUDIO) {
+        awpu1.stop_audio();
     }
 }
 

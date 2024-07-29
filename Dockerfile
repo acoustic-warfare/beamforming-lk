@@ -11,7 +11,7 @@
 # 
 # To run the container
 #
-# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix --user=$(id -u $USER) beamformer bash
+# docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd beamformer bash
 #
 
 FROM ubuntu:22.04 AS deps
@@ -57,6 +57,10 @@ RUN apt-get install -y \
     nlohmann-json3-dev \
     libgps-dev \
     libgps28 \
+    alsa-utils \
+    pulseaudio \
+    libmp3lame-dev \
+    libsndfile1-dev \
     doxygen \
     graphviz
 
@@ -91,5 +95,12 @@ RUN ldconfig
 # Create app directory
 RUN mkdir -p /usr/src/app
 
+RUN useradd -rm -d /home/newuser -s /bin/bash -g root -G sudo -G audio -u 1000 newuser
+USER newuser
+
 # Set working directory
 WORKDIR /usr/src/app
+
+# Add configs for sound and start pulse audio
+COPY src/audio/daemon.conf /etc/pulse/daemon.conf
+RUN pulseaudio --start

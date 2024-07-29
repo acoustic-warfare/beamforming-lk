@@ -7,14 +7,16 @@
 #define AWPU_H
 
 #include <algorithm>
+#include <optional>
 
 #include "algorithms/gradient_ascend.h"
 #include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
+#include "audio/audio_wrapper.h"
+#include "config.h"
 #include "pipeline.h"
 #include "worker.h"
-#include "config.h"
 
 /**
  * @class AWProcessingUnit
@@ -31,12 +33,13 @@ public:
     void pause();
     void resume();
     void draw_heatmap(cv::Mat *heatmap) const;
+    void play_audio();
+    void stop_audio();
     void calibrate(const float reference_power_level = 1e-5);
     void synthetic_calibration();
     std::vector<Target> targets();
 
     void draw(cv::Mat *compact, cv::Mat *normal) const;
-
 
 protected:
     int small_res;
@@ -48,6 +51,8 @@ protected:
     bool running = false;
     Spherical spherical;
     std::vector<Antenna> antennas;
+
+    std::optional<AudioWrapper> audioWrapper;
 };
 
 
