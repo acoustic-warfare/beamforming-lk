@@ -95,6 +95,11 @@ You may want to test the system without an FPGA connected, you may look at the
 ## Booting the FPGA
 A simple TFTP boot server is given in the directory `boot/`. This must be built manually. See [`boot/README.md`](https://github.com/acoustic-warfare/beamforming-lk/tree/main/boot) for more information
 
+## Documentation
+You may see a structural documentation of the project by building the `Doxygen`
+page which will generate a documentation page at `doc/html/index.html`
+
+    make doc
 
 
 
