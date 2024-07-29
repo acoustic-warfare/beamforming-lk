@@ -1,6 +1,8 @@
-//
-// Created by janne on 2024-07-18.
-//
+/** @file target_handler.h
+ * @author Janne
+ * @brief TODO:
+ * @date 2024-07-18
+*/
 
 #ifndef TARGETHANDLER_H
 #define TARGETHANDLER_H
@@ -12,7 +14,8 @@
 #include "../kf.h"
 
 /**
- * Class that classifies and draws targets to the WARA PS display.
+ * @class TargetHandler
+ * @brief Class that classifies and draws targets to the WARA PS display. 
  * Takes two or more active AWPUS as inputs and classifies the targets based on the target function
  */
 class TargetHandler {

@@ -1,6 +1,8 @@
-//
-// Created by janne on 2024-07-01.
-//
+/** @file audio_wrapper.h
+ * @author Janne, Tuva
+ * @brief Manages audio streaming and processing, with support for file encoding (and real-time playback)
+ * @date 2024-07-01
+*/
 
 #ifndef BEAMFORMER_AUDIO_WRAPPER_H
 #define BEAMFORMER_AUDIO_WRAPPER_H
@@ -10,6 +12,11 @@
 #include "../config.h"
 #include "../pipeline.h"
 #include <portaudio.h>
+
+/**
+ * @class AudioWrapper
+ * @brief Manages audio streaming and processing, with support for file encoding (and real-time playback)
+ */
 
 class AudioWrapper {
 private:

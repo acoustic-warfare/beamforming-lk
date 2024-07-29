@@ -1,6 +1,7 @@
-//
-// Created by janne on 2024-07-18.
-//
+/** @file target_handler.cpp
+ * @author Janne
+ * @date 2024-07-18
+*/
 
 #include "target_handler.h"
 
