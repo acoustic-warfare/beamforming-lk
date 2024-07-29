@@ -122,7 +122,7 @@ add_custom_target(module DEPENDS ${PY_OUTPUT})
 
 # ---- Program ----
 # Find packages
-
+find_package(Doxygen)
 
 # Matrix operations
 find_package(Eigen3 REQUIRED)
@@ -200,7 +200,6 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/argparse.hpp
 )
 
 # Linking
@@ -231,5 +230,5 @@ add_custom_target(test
 
 # Documentation
 add_custom_target(doc
-        COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/dconfig
+        COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
 )
