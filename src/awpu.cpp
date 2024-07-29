@@ -1,3 +1,7 @@
+/** @file awpu.cpp
+ * @author Irreq, Tuva
+*/
+
 #include "awpu.h"
 
 AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool debug) : fov(fov), small_res(small_res), verbose(verbose), debug(debug) {

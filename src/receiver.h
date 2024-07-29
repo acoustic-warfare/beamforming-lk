@@ -1,3 +1,8 @@
+/** @file receiver.h
+ * @author Irreq, Tuva
+ * @brief TODO:
+*/
+
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
@@ -11,10 +16,7 @@
 
 #include "config.h"
 
-
 #define RECEIVER_DEBUG 0
-
-#define HEADER_SIZE 2
 
 // @brief FPGA Protocol Version 2
 typedef struct __attribute__((__packed__)) _msg {
@@ -26,13 +28,20 @@ typedef struct __attribute__((__packed__)) _msg {
 } message;
 
 /**
- * Start the UDP receiver
+ * @brief Initializes a UDP connection to the FPGA.
+ * 
+ * @param address The IP address of the FPGA.
+ * @param port The port number to connect to.
+ * @return int The socket descriptor on success, -1 on failure.
  */
 int init_receiver(const char *address, const int port);
 
 /**
- * Receive an entire frame and add it to ringbuffer with an offset
+ * @brief Receive a single sample and populate the message with the data
+ * @param socket_desc The socket descriptor.
+ * @param msg Pointer to the message structure to store the received message.
+ * @return int 0 on success, -1 on failure.
  */
 int receive_message(int socket_desc, message *msg);
 
-#endif
+#endif // RECEIVER_H

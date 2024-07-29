@@ -1,6 +1,8 @@
-//
-// Created by janne on 2024-07-04.
-//
+/** @file aw_control_unit.h
+ * @author Janne
+ * @brief TODO:
+ * @date 2024-07-04
+*/
 
 #ifndef BEAMFORMER_AW_CONTROL_UNIT_H
 #define BEAMFORMER_AW_CONTROL_UNIT_H
@@ -13,6 +15,10 @@
 #include "awpu.h"
 #include "WaraPS/target_handler.h"
 
+/**
+ * @class AWControlUnit
+ * @brief TODO:
+ */
 class AWControlUnit {
 private:
     std::vector<AWProcessingUnit> processingUnits;

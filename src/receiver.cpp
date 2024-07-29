@@ -1,8 +1,14 @@
-#include "receiver.h"
+/** @file receiver.cpp
+ * @author Irreq, Tuva
+*/
 
+#include "receiver.h"
 
 #if RECEIVER_DEBUG
 
+/**
+ * Prints the binary representation of a 32-bit unsigned integer.
+ */
 void printBinary(uint32_t n) {
     for (int i = 31; i >= 0; --i) {
         // Bitwise AND operation to check if the ith bit is set
@@ -19,9 +25,6 @@ void printBinary(uint32_t n) {
 }
 #endif
 
-/**
- * Initiate the connection with the FPGA
- */
 int init_receiver(const char *address, const int port) {
     int socket_desc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -45,9 +48,6 @@ int init_receiver(const char *address, const int port) {
     return socket_desc;
 }
 
-/**
- * Receive a single sample and populate the message with the data
- */
 int receive_message(int socket_desc, message *msg) {
     if (recv(socket_desc, msg, sizeof(message), 0) < 0) {
         std::cerr << "Couldn't receive" << std::endl;

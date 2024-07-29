@@ -1,3 +1,8 @@
+/** @file streams.hpp
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #ifndef STREAMS_H
 #define STREAMS_H
 
@@ -29,6 +34,10 @@
 #define BUFFER_BYTES N_SAMPLES * sizeof(float)
 
 /**
+ * @class Streams
+ * @brief TODO:
+ */
+/**
  * Multiple ring-buffers can be thought of as:
  * 
  * id       ring-buffer
@@ -55,7 +64,7 @@ public:
     Streams() : position(0), _position(0){};
 
     /**
-     * Create a ring-buffer for a specific index
+     * @brief Create a ring-buffer for a specific index
      */
     bool create_stream(unsigned index) {
         if (this->buffers.find(index) != this->buffers.end()) {
@@ -75,21 +84,21 @@ public:
     }
 
     /**
-     * Getter for a buffer with offset
+     * @brief Getter for a buffer with offset
      */
     float *get_signal(unsigned index, int offset) {
         return (float *) ((char *) this->buffers[index] + this->position + offset * sizeof(float));
     }
 
     /**
-     * Fast write to buffer using wrap-around memcpy
+     * @brief Fast write to buffer using wrap-around memcpy
      */
     inline void write_stream(unsigned index, float *data) {
         memcpy((char *) this->buffers[index] + this->position, data, BUFFER_BYTES);
     }
 
     /**
-     * Fast read from buffer using wrap-around memcpy
+     * @brief Fast read from buffer using wrap-around memcpy
      */
     inline void read_stream(unsigned index, float *data, unsigned offset = 0) {
         //memcpy(data, &buffers[index][_position + offset], N_ITEMS_BUFFER);
@@ -110,7 +119,7 @@ public:
     }
 
     /**
-     * Reserved only for producer
+     * @brief Reserved only for producer
      */
     void forward() {
         this->position = (this->position + BUFFER_BYTES) % PAGE_SIZE;
@@ -120,7 +129,7 @@ public:
 
 private:
     /**
-     * Allocate virtual memory ring buffers.
+     * @brief Allocate virtual memory ring buffers.
      * 
      * We use two pages of contigious memory mapped to the same region
      * meaning that when data overflows from region1 over to region2

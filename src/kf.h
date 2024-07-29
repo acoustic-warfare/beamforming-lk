@@ -1,3 +1,8 @@
+/** @file kf.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #ifndef KALMAN
 #define KALMAN
 
@@ -10,6 +15,10 @@
  *
  */
 
+/**
+ * @class KalmanFIlter3D
+ * @brief TODO:
+ */
 class KalmanFilter3D {
 private:
     Eigen::Matrix<float, 9, 9> A;// State transition matrix

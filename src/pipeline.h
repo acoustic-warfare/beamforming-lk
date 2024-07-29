@@ -1,3 +1,8 @@
+/** @file pipeline.h
+ * @author Irreq, Tuva
+ * @brief Establish a pipeline to the FPGA from the PC
+*/
+
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
@@ -23,7 +28,6 @@
 /**
  * @class Pipeline
  * @brief Establish a pipeline to the FPGA from the PC
- *
  */
 class Pipeline {
 public:
@@ -32,33 +36,45 @@ public:
     ~Pipeline();
 
     /**
-     * Connect beamformer to antenna
+     * @brief Connect beamformer to antenna
+     * @return 0 if successful, -1 if error occured
      */
     int connect();
 
     /**
-     * Disconnect beamformer from antenna
+     * @brief Disconnect beamformer from antenna
+     * @return 0 if successful, -1 if error occured
      */
     int disconnect();
 
     /**
-     * Checks if the pipeline is online
+     * @brief Checks if the pipeline is online
+     * @return 0 if successful, -1 if error occured
      */
     int isRunning();
 
     /**
-     * check if no new data has been added
+     * @brief check if no new data has been added
+     * @return 0 if successful, -1 if error occured
      */
     int mostRecent();
 
 
     /**
-     * Wait until release
+     * @brief Wait until release
      */
     void barrier();
 
+    /**
+     * @brief Retrieves the steam of the pipeline
+     * @return The stream attribute
+     */
     Streams *getStreams() const;
 
+    /**
+     * @brief Fetches the number of sensors attribute
+     * @return The number of sensors
+     */
     int get_n_sensors() { return this->n_sensors; };
 
     int save_pipeline(std::string path);
@@ -112,17 +128,17 @@ private:
     bool synthetic;
 
     /**
-     * Allow the worker threads to continue
+     * @brief Allow the worker threads to continue
      */
     void release_barrier();
 
     /**
-     * Receive and fill ring buffers of new data
+     * @brief Receive and fill ring buffers of new data
      */
     void receive_exposure();
 
     /**
-     * The main distributer of data to the threads (this is also a thread)
+     * @brief The main distributer of data to the threads (this is also a thread)
      */
     void producer();
 

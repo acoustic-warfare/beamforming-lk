@@ -1,9 +1,5 @@
-/*
- * A functional approach to Antenna computation for Digital Antenna Arrays (DAA)
- *
- * This file contains functions for creating, moving, rotating, combining DAA's
- *
- * We use the physics convention where theta \in [0, pi/2] and \phi \in [0, 2*pi)
+/** @file antenna.cpp
+ * @author Irreq
  */
 
 #include "antenna.h"

@@ -1,6 +1,7 @@
-//
-// Created by janne on 2024-07-04.
-//
+/** @file aw_control_unit.cpp
+ * @author Janne, Irreq, Tuva
+ * @date 2024-07-04
+*/
 
 #include <stdexcept>
 #include <iostream>

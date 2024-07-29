@@ -1,3 +1,7 @@
+/** @file pso_seeker.cpp
+ * @author Irreq
+*/
+
 #if 0
 #include "pso_seeker.h"
 

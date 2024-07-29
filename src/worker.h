@@ -1,3 +1,8 @@
+/** @file worker.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #ifndef WORKER_H
 #define WORKER_H
 
@@ -11,14 +16,15 @@
 #include "geometry.h"
 
 /**
- * Random double between 0.0 and 1.0
+ * @brief Random double between 0.0 and 1.0
  */
 inline double drandom() {
     return static_cast<double>(rand()) / RAND_MAX;
 }
 
 /**
- * Target from the AWPU 
+ * @class Target
+ * @brief Target from the AWPU 
  */
 struct Target {
     // Direction of target in spherical coordinate system
@@ -84,7 +90,7 @@ public:
     };
 
     /**
-     * Worker type
+     * @brief Worker type
      */
     virtual worker_t get_type() {
         return worker_t::GENERIC;
@@ -98,7 +104,7 @@ public:
     };
 
     /**
-     * Getter for current targets
+     * @brief Getter for current targets
      */
     [[nodiscard]] std::vector<Target> getTargets() const {
         std::vector<Target> r_targets;
@@ -109,7 +115,7 @@ public:
     };
 
     /**
-     * Draw values onto a heatmap
+     * @brief Draw values onto a heatmap
      */
     void draw(cv::Mat *heatmap) {
         lock.lock();
@@ -150,7 +156,7 @@ protected:
     };
 
     /**
-     * Worker main loop
+     * @brief Worker main loop
      */
     void loop() {
         setup();

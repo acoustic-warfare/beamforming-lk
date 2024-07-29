@@ -1,3 +1,8 @@
+/** @file geometry.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 #include <Eigen/Dense>

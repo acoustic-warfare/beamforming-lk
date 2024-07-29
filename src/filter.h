@@ -1,4 +1,9 @@
 
+/** @file filter.h
+ * @author Melker
+ * @brief TODO:
+*/
+
 #ifndef FILTER_H
 #define FILTER_H
 

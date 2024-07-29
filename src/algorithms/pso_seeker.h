@@ -1,3 +1,8 @@
+/** @file pso_seeker.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #if 0
 #ifndef PSO_H
 #define PSO_H
@@ -21,6 +26,10 @@
 
 #define DIMENSIONS 2
 
+/**
+ * @class Particle
+ * @brief TODO:
+ */
 class Particle {
 public:
     Spherical direction_current;
