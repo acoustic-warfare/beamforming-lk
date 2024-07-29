@@ -100,5 +100,5 @@ USER newuser
 WORKDIR /usr/src/app
 
 # Add configs for sound and start pulse audio
-COPY daemon.conf /etc/pulse/daemon.conf
+COPY src/audio/daemon.conf /etc/pulse/daemon.conf
 RUN pulseaudio --start
