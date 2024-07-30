@@ -16,6 +16,7 @@
 #include "../streams.hpp"
 #include "../worker.h"
 
+#if 1
 /** 
  * @class MIMOWorker
  * @brief TODO:
@@ -23,7 +24,7 @@
 class MIMOWorker : public Worker {
 public:
     MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov);
-    ~MIMOWorker(){};
+    ~MIMOWorker() {};
     worker_t get_type() {
         return worker_t::MIMO;
     };
@@ -46,5 +47,32 @@ private:
     std::vector<std::vector<float>> fractionalDelays;
     std::vector<float> powerdB;
 };
+#else
+class MIMOWorker : public Worker {
+public:
+    MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov);
+    ~MIMOWorker() {};
+    worker_t get_type() {
+        return worker_t::MIMO;
+    };
+
+protected:
+    void reset() override {};
+    void update() override;
+    void populateHeatmap(cv::Mat *heatmap) override;
+    void setup() override {};
+
+private:
+    int index = 0;
+    int maxIndex;
+    const int columns;
+    const int rows;
+    const float fov;
+    float prevPower = 1.0;
+    void computeDelayLUT();
+    std::vector<Particle> pixels;
+    std::vector<float> powerdB;
+};
+#endif
 
 #endif

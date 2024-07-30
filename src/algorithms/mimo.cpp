@@ -45,10 +45,8 @@ void MIMOWorker::computeDelayLUT() {
 
             double phi = atan2(y, x);
 
-            Eigen::VectorXf delays = steering_vector_spherical(antenna, theta, phi);
-
             int i = 0;
-            for (float del: delays) {
+            for (float del: steering_vector_spherical(antenna, theta, phi)) {
                 double _offset;
                 float fraction;
                 fraction = static_cast<float>(modf((double) del, &_offset));
@@ -138,7 +136,7 @@ void MIMOWorker::update() {
         power /= static_cast<float>(N_SAMPLES * count);
 
 #if USE_REFERENCE
-        if (power < reference*10.0) {
+        if (power < reference * 10.0) {
             power = 0.0;
         }
 #endif
