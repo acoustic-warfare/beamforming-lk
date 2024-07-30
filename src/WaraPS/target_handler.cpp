@@ -30,7 +30,8 @@ void TargetHandler::Start() {
                 targets.push_back(awpu->targets());
             }
             FindTargets(targets);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            UpdateTracks();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     });
 }
@@ -38,17 +39,6 @@ void TargetHandler::Start() {
 
 void TargetHandler::SetSensitivity(const double sensitivity) {
     minGradient_ = sensitivity;
-}
-
-std::vector<Eigen::Vector3d> TargetHandler::getTargets() {
-    mutex_.lock();
-    std::vector<Eigen::Vector3d> targets;
-    for (TriangulatedTarget &target: targets_) {
-        targets.push_back(target.position);
-    }
-    mutex_.unlock();
-
-    return targets;
 }
 
 TargetHandler &TargetHandler::AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d &position) {
@@ -73,14 +63,50 @@ void TargetHandler::FindTargets(std::vector<std::vector<Target> > &targets) {
     }
 
     FindTargetsRecursively(translatedTargets[0], translatedTargets.begin() + 1, translatedTargets.end(), foundTargets);
-
-    mutex_.lock();
-    targets_ = std::move(foundTargets);
-    mutex_.unlock();
 }
 
 double TargetHandler::CalculateTargetWeight(const TriangulatedTarget &triangulated_target) {
     return triangulated_target.powerAverage;
+}
+
+void TargetHandler::UpdateTracks() {
+    int bestTrackHits = -1;
+    for (auto &track: tracks_) {
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - track.timeLastHit).count() > 2) {
+            track.valid = false;
+            continue;
+        }
+
+        if (track.hits > bestTrackHits) {
+            bestTarget_ = track.position;
+            bestTrackHits = track.hits;
+        }
+    }
+}
+
+void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
+    int invalidTrackIndex = -1;
+    for (int i = 0; i < tracks_.size(); ++i) {
+        if(!tracks_[i].valid) {
+            invalidTrackIndex = i;
+            continue;
+        }
+        if (constexpr double targetAcceptableDistance = 1;
+        abs(target.position.x() - tracks_[i].position.x()) < targetAcceptableDistance &&
+            abs(target.position.y() - tracks_[i].position.y()) < targetAcceptableDistance &&
+            abs(target.position.z() - tracks_[i].position.z()) < targetAcceptableDistance) {
+            tracks_[i].position = target.position;
+            tracks_[i].hits++;
+            return;
+        }
+    }
+
+    if(invalidTrackIndex != -1) {
+        tracks_[invalidTrackIndex] = {target.position, std::chrono::steady_clock::now(), true, 1};
+        return;
+    }
+
+    tracks_.emplace_back(target.position, std::chrono::steady_clock::now(), true, 1);
 }
 
 void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
@@ -106,19 +132,14 @@ void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompa
                     continue;
                 }
 
-                loudestTarget_.powerAverage = loudestTarget_.powerAverage * targetDecay_ + pow(
-                                                  otherTarget.power + target.power, 2) * (1 - targetDecay_);
+                std::cout << "Intersection: " << intersection.transpose() << std::endl;
 
                 TriangulatedTarget newTarget{
                     intersection, (otherTarget.power + target.power) / 2,
                     (otherTarget.startTime.time_since_epoch().count() + target.startTime.time_since_epoch().count())
                 };
 
-                if (CalculateTargetWeight(newTarget) > CalculateTargetWeight(loudestTarget_)) {
-                    loudestTarget_ = newTarget;
-                }
-
-                out.emplace_back(std::move(newTarget));
+                CheckTracksForTarget(newTarget);
             }
             std::advance(it, 1);
         }
@@ -156,11 +177,11 @@ void TargetHandler::DisplayTarget(const bool toggle) {
                 continue;
             }
 
-            std::cout << "Target: " << loudestTarget_.position.transpose() << std::endl;
-
             Eigen::Vector3d outPosition{
-                loudestTarget_.position.x(), loudestTarget_.position.z(), loudestTarget_.position.z()
+                bestTarget_.x(), bestTarget_.z(), bestTarget_.y()
             };
+
+            std::cout << "Best target: " << outPosition.transpose() << std::endl;
 
             const nlohmann::json targetJson = PositionToGPS(outPosition, *gpsData_);
 
@@ -169,6 +190,6 @@ void TargetHandler::DisplayTarget(const bool toggle) {
     });
 }
 
-Eigen::Vector3d TargetHandler::getLoudestTarget() const {
-    return loudestTarget_.position;
+Eigen::Vector3d TargetHandler::getBestTarget() const {
+    return bestTarget_;
 }

@@ -35,7 +35,7 @@ public:
 
     void DisplayTarget(bool toggle);
 
-    Eigen::Vector3d getLoudestTarget() const;
+    Eigen::Vector3d getBestTarget() const;
 
 protected:
     struct CartesianTarget {
@@ -47,18 +47,23 @@ protected:
 
     struct TriangulatedTarget {
         Eigen::Vector3d position;
-        double powerAverage;
-        long timeAlive;
+        double powerAverage = 0;
+        long timeAlive = 0;
     };
 
-    std::vector<TriangulatedTarget> targets_;
-    TriangulatedTarget loudestTarget_{};
-    const double targetDecay_ = 0.9;
+    struct Track {
+        Eigen::Vector3d position;
+        std::chrono::time_point<std::chrono::steady_clock> timeLastHit;
+        bool valid;
+        int hits;
+    };
+
+    std::vector<Track> tracks_;
+    Eigen::Vector3d bestTarget_;
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
                                               std::getenv("MQTT_PASSWORD"));
-    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(500);
-    KalmanFilter3D kf_{static_cast<float>(targetUpdateInterval_.count() / 500)};
+    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(200);
 
     gps_data_t *gpsData_;
 
@@ -72,6 +77,10 @@ protected:
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
 
     static double CalculateTargetWeight(const TriangulatedTarget & triangulated_target);
+
+    void UpdateTracks();
+
+    void CheckTracksForTarget(TriangulatedTarget &target);
 
     // Mysig funktionssignatur, precis lagom lång
      void FindTargetsRecursively(
