@@ -167,21 +167,21 @@ protected:
         std::cout << "Wrong update" << std::endl;
     };
 
-/**
+    /**
      * @brief 
      */
     virtual void reset() {
         std::cout << "Wrong reset" << std::endl;
     };
 
-/**
+    /**
      * @brief 
      */
     virtual void populateHeatmap(cv::Mat *heatmap) {
         std::cout << "Wrong heatmap" << std::endl;
     };
 
-/**
+    /**
      * @brief 
      */
     virtual void setup() {
@@ -206,7 +206,7 @@ protected:
     }
 
 private:
-    /// 
+    ///
     int start;
 
     /// Lock to prevent multiple access from outside and inside
