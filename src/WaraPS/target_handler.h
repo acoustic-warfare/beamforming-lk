@@ -1,6 +1,8 @@
-//
-// Created by janne on 2024-07-18.
-//
+/** @file target_handler.h
+ * @author Janne
+ * @brief TODO:
+ * @date 2024-07-18
+*/
 
 #ifndef TARGETHANDLER_H
 #define TARGETHANDLER_H
@@ -12,10 +14,12 @@
 #include "../kf.h"
 
 /**
- * Class that classifies and draws targets to the WARA PS display.
- * Takes two or more active AWPUS as inputs and classifies the targets provided.
  * @author Janne Schyffert
  * @date 2024-07-30
+ * @class TargetHandler
+ * @brief Class that classifies and draws targets to the WARA PS display.
+ * Class that classifies and draws targets to the WARA PS display.
+ * Takes two or more active AWPUS as inputs and classifies the targets provided.
  */
 class TargetHandler {
 public:
@@ -62,6 +66,9 @@ public:
     Eigen::Vector3d getBestTarget() const;
 
 protected:
+    /**
+     * @brief TODO:
+     */
     struct CartesianTarget {
         Eigen::ParametrizedLine<double, 3> directionLine;
         double power;
@@ -69,6 +76,9 @@ protected:
         std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
     };
 
+    /**
+    * @brief TODO:
+    */
     struct TriangulatedTarget {
         Eigen::Vector3d position;
         double powerAverage = 0;

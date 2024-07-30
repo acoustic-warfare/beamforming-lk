@@ -1,3 +1,8 @@
+/** @file mimo.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #ifndef MIMO_H
 #define MIMO_H
 
@@ -11,6 +16,10 @@
 #include "../streams.hpp"
 #include "../worker.h"
 
+/** 
+ * @class MIMOWorker
+ * @brief TODO:
+*/
 class MIMOWorker : public Worker {
 public:
     MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov);
