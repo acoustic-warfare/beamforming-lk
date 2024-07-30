@@ -68,10 +68,6 @@ void TargetHandler::FindIntersects(std::vector<std::vector<Target> > &targets) {
     FindIntersectsRecursively(translatedTargets[0], translatedTargets.begin() + 1, translatedTargets.end(), foundTargets);
 }
 
-double TargetHandler::CalculateTargetWeight(const TriangulatedTarget &triangulated_target) {
-    return triangulated_target.powerAverage;
-}
-
 void TargetHandler::UpdateTracks() {
     int bestTrackHits = -1;
     for (auto &track: tracks_) {
