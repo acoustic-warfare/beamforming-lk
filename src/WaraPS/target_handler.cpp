@@ -8,11 +8,11 @@
 
 #include "../algorithms/triangulate.h"
 
-#define LK_DISTANCE 6 // TODO: Fixa mer konkret värde?
-
 void TargetHandler::Stop() {
     *running = false;
     workerThread_.join();
+    if(debugLogging_)
+        logFile_.close();
 
     DisplayTarget(false);
 }
@@ -22,6 +22,8 @@ TargetHandler::~TargetHandler() {
 }
 
 void TargetHandler::Start() {
+    if(debugLogging_)
+        logFile_.open("Targets.txt");
     *running = true;
     workerThread_ = std::thread([&] {
         while (*running) {
@@ -29,8 +31,9 @@ void TargetHandler::Start() {
             for (const auto awpu: awpus_) {
                 targets.push_back(awpu->targets());
             }
-            FindTargets(targets);
+            FindIntersects(targets);
             UpdateTracks();
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     });
 }
@@ -46,7 +49,7 @@ TargetHandler &TargetHandler::AddAWPU(AWProcessingUnit *awpu, const Eigen::Vecto
     return *this;
 }
 
-void TargetHandler::FindTargets(std::vector<std::vector<Target> > &targets) {
+void TargetHandler::FindIntersects(std::vector<std::vector<Target> > &targets) {
     std::vector<TriangulatedTarget> foundTargets;
     std::vector<std::vector<CartesianTarget> > translatedTargets{targets.size()};
 
@@ -61,7 +64,7 @@ void TargetHandler::FindTargets(std::vector<std::vector<Target> > &targets) {
         }
     }
 
-    FindTargetsRecursively(translatedTargets[0], translatedTargets.begin() + 1, translatedTargets.end(), foundTargets);
+    FindIntersectsRecursively(translatedTargets[0], translatedTargets.begin() + 1, translatedTargets.end(), foundTargets);
 }
 
 double TargetHandler::CalculateTargetWeight(const TriangulatedTarget &triangulated_target) {
@@ -92,7 +95,7 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
             continue;
         }
 
-        // If two track hits are too close to each other, it's usually not a sound target
+        // If two track hits are too close to each other, it's usually not a sound target (pun not intended)
 
         if (constexpr double targetMinimumDistance = 1e-15;
             abs(target.position.x() - tracks_[i].position.x()) < targetMinimumDistance &&
@@ -119,7 +122,7 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
     tracks_.emplace_back(target.position, std::chrono::steady_clock::now(), true, 1);
 }
 
-void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
+void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
                                            const std::vector<std::vector<CartesianTarget> >::iterator begin,
                                            const std::vector<std::vector<CartesianTarget> >::iterator end,
                                            std::vector<TriangulatedTarget> &out) {
@@ -136,15 +139,29 @@ void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompa
                     continue;
                 }
 
+
+                logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
+                        transpose() << ";"
+                        << otherTarget.directionLine.origin().transpose() << "," << otherTarget.directionLine.
+                        direction().transpose() << std::endl;
+
                 Eigen::Vector3d intersection = triangulatePoint(target.directionLine, otherTarget.directionLine);
+
+                if (debugLogging_) {
+                    logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
+                            transpose() << ";"
+                            << otherTarget.directionLine.origin().transpose() << "," << otherTarget.directionLine.
+                            direction().transpose() << std::endl;
+                }
 
                 if (intersection.norm() == 0 || intersection.norm() > 50) {
                     continue;
                 }
 
+
                 TriangulatedTarget newTarget{
                     intersection, (otherTarget.power + target.power) / 2,
-                    (otherTarget.startTime.time_since_epoch().count() + target.startTime.time_since_epoch().count())
+                    otherTarget.startTime.time_since_epoch().count() + target.startTime.time_since_epoch().count()
                 };
 
                 CheckTracksForTarget(newTarget);
@@ -152,7 +169,7 @@ void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompa
             std::advance(it, 1);
         }
     }
-    FindTargetsRecursively(*begin, begin + 1, end, out);
+    FindIntersectsRecursively(*begin, begin + 1, end, out);
 }
 
 
@@ -178,7 +195,7 @@ void TargetHandler::DisplayTarget(const bool toggle) {
 
     targetThread_ = std::thread([&] {
         while (targetClient_.running()) {
-            std::this_thread::sleep_for(targetUpdateInterval_);
+            std::this_thread::sleep_for(waraPSUpdateInterval_);
 
             if (!isfinite(gpsData_->fix.latitude) ||
                 !isfinite(gpsData_->fix.longitude) ||
