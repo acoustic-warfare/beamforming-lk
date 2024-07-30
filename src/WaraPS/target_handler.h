@@ -59,11 +59,11 @@ protected:
     };
 
     std::vector<Track> tracks_;
-    Eigen::Vector3d bestTarget_;
+    Track bestTrack_{Eigen::Vector3d::Zero(), std::chrono::steady_clock::now(), false, 0};
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
                                               std::getenv("MQTT_PASSWORD"));
-    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(200);
+    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(500);
 
     gps_data_t *gpsData_;
 

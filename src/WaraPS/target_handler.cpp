@@ -31,7 +31,6 @@ void TargetHandler::Start() {
             }
             FindTargets(targets);
             UpdateTracks();
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     });
 }
@@ -72,13 +71,14 @@ double TargetHandler::CalculateTargetWeight(const TriangulatedTarget &triangulat
 void TargetHandler::UpdateTracks() {
     int bestTrackHits = -1;
     for (auto &track: tracks_) {
-        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - track.timeLastHit).count() > 2) {
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - track.timeLastHit).
+            count() > 1) {
             track.valid = false;
             continue;
         }
 
         if (track.hits > bestTrackHits) {
-            bestTarget_ = track.position;
+            bestTrack_ = track;
             bestTrackHits = track.hits;
         }
     }
@@ -87,21 +87,31 @@ void TargetHandler::UpdateTracks() {
 void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
     int invalidTrackIndex = -1;
     for (int i = 0; i < tracks_.size(); ++i) {
-        if(!tracks_[i].valid) {
+        if (!tracks_[i].valid) {
             invalidTrackIndex = i;
             continue;
         }
-        if (constexpr double targetAcceptableDistance = 1;
-        abs(target.position.x() - tracks_[i].position.x()) < targetAcceptableDistance &&
-            abs(target.position.y() - tracks_[i].position.y()) < targetAcceptableDistance &&
-            abs(target.position.z() - tracks_[i].position.z()) < targetAcceptableDistance) {
+
+        // If two track hits are too close to each other, it's usually not a sound target
+
+        if (constexpr double targetMinimumDistance = 1e-15;
+            abs(target.position.x() - tracks_[i].position.x()) < targetMinimumDistance &&
+            abs(target.position.y() - tracks_[i].position.y()) < targetMinimumDistance &&
+            abs(target.position.z() - tracks_[i].position.z()) < targetMinimumDistance) {
+            return;
+        }
+
+        if (constexpr double targetMaximumDistance = 1;
+            abs(target.position.x() - tracks_[i].position.x()) < targetMaximumDistance &&
+            abs(target.position.y() - tracks_[i].position.y()) < targetMaximumDistance &&
+            abs(target.position.z() - tracks_[i].position.z()) < targetMaximumDistance) {
             tracks_[i].position = target.position;
             tracks_[i].hits++;
             return;
         }
     }
 
-    if(invalidTrackIndex != -1) {
+    if (invalidTrackIndex != -1) {
         tracks_[invalidTrackIndex] = {target.position, std::chrono::steady_clock::now(), true, 1};
         return;
     }
@@ -131,8 +141,6 @@ void TargetHandler::FindTargetsRecursively(std::vector<CartesianTarget> &toCompa
                 if (intersection.norm() == 0 || intersection.norm() > 50) {
                     continue;
                 }
-
-                std::cout << "Intersection: " << intersection.transpose() << std::endl;
 
                 TriangulatedTarget newTarget{
                     intersection, (otherTarget.power + target.power) / 2,
@@ -171,17 +179,19 @@ void TargetHandler::DisplayTarget(const bool toggle) {
     targetThread_ = std::thread([&] {
         while (targetClient_.running()) {
             std::this_thread::sleep_for(targetUpdateInterval_);
+
             if (!isfinite(gpsData_->fix.latitude) ||
                 !isfinite(gpsData_->fix.longitude) ||
                 !isfinite(gpsData_->fix.altitude)) {
                 continue;
             }
 
+
             Eigen::Vector3d outPosition{
-                bestTarget_.x(), bestTarget_.z(), bestTarget_.y()
+                bestTrack_.position.x(), bestTrack_.position.z(), bestTrack_.position.y()
             };
 
-            std::cout << "Best target: " << outPosition.transpose() << std::endl;
+            std::cout << "Best target: " << outPosition.transpose() << " Hits: " << bestTrack_.hits << std::endl;
 
             const nlohmann::json targetJson = PositionToGPS(outPosition, *gpsData_);
 
@@ -191,5 +201,5 @@ void TargetHandler::DisplayTarget(const bool toggle) {
 }
 
 Eigen::Vector3d TargetHandler::getBestTarget() const {
-    return bestTarget_;
+    return bestTrack_.position;
 }
