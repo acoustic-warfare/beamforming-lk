@@ -177,7 +177,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Setup AWPUS
-    std::vector<AWProcessingUnit> awpus;
+    std::vector<AWProcessingUnit*> awpus;
 
     int i = 0;
     for (const int port : ports) {
@@ -185,13 +185,15 @@ int main(int argc, char* argv[]) {
         if (verbose) {
             std::cout << "Starting MIMO: " << port << std::endl;
         }
-        
-        awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
-        AWProcessingUnit &awpu = awpus.back();
+
+        AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose);
+        awpus.push_back(awpu);
+        //awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
+        //AWProcessingUnit &awpu = awpus.back();
 
         // Start different modes
-        if (tracking) { awpu.start(GRADIENT); }
-        if (mimo) { awpu.start(MIMO); }
+        if (tracking) { awpu->start(GRADIENT); }
+        if (mimo) { awpu->start(MIMO); }
     }
 
     int awpu_count = awpus.size();
@@ -248,7 +250,7 @@ int main(int argc, char* argv[]) {
             bigFrames[i].setTo(cv::Scalar(0));
 
             // Draw onto frames
-            awpus[i].draw(&smallFrames[i], &bigFrames[i]);
+            awpus[i]->draw(&smallFrames[i], &bigFrames[i]);
 
             // Blur the image with a Gaussian kernel
             cv::GaussianBlur(bigFrames[i], bigFrames[i],
@@ -344,6 +346,10 @@ int main(int argc, char* argv[]) {
 
     if (recording) {
         stopRecording(videoWriter);
+    }
+
+    for (auto &awpu : awpus) {
+        delete awpu;
     }
 
     cv::destroyAllWindows();
