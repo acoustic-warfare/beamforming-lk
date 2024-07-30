@@ -93,7 +93,7 @@ protected:
     gps_data_t *gpsData_;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 
-    constexpr bool debugLogging_ = false;
+    static constexpr bool debugLogging_ = false;
     std::ofstream logFile_;
 
     std::vector<AWProcessingUnit*> awpus_;
