@@ -1,6 +1,6 @@
 /** @file antenna.h
  * @author Irreq
- * @brief A functional approach to Antenna computation for Digital Antenna Arrays (DAA)
+ * @brief Antenna computation for Digital Antenna Arrays (DAA)
  * This file contains functions for creating, moving, rotating, combining DAA's
  * We use the physics convention where theta in [0, pi/2] and phi in [0, 2*pi)
  */
@@ -41,7 +41,7 @@ const int fourth_sector[16] = {36, 37, 38, 39,
                                60, 61, 62, 63};
 
 /**
- * @brief Check if the given index is within the specified sector.
+ * @brief Check if integer is in sector.
  * @param sector The sector array to check against.
  * @param i The index to check.
  * @return True if the index is in the sector, false otherwise.
@@ -49,7 +49,7 @@ const int fourth_sector[16] = {36, 37, 38, 39,
 bool in_sector(const int *sector, const int i);
 
 /**
- * @brief Check if the given index is within the specified sector by index.
+ * @brief Check if integer is in sector.
  * @param sector_index The index of the sector to check against.
  * @param i The index to check.
  * @return True if the index is in the sector, false otherwise.
@@ -118,14 +118,15 @@ struct Antenna {
 Position find_middle(const Antenna &antenna);
 
 /**
- * @brief Place the antenna by positioning its center at a new position.
+ * @brief Place the antenna by positioning the center @ new position.
  * @param antenna The antenna to be placed.
  * @param position The new position for the center of the antenna.
  */
 void place_antenna(Antenna &antenna, const Position position);
 
 /**
- * @brief Generate a new antenna with specific options and place it at the desired position.
+ * @brief Generate a new antenna by specific options and place it ad the desired
+ * position.
  * @param position The desired position for the new antenna.
  * @param columns The number of columns in the antenna array.
  * @param rows The number of rows in the antenna array.
@@ -136,10 +137,10 @@ Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance);
 
 /**
- * @brief  Compute the delay in regard to the Z value. Since the antenna is
- * being thought as a point cloud laying on the XY plane, the Z value will be
- * the distance to the target and is used to calculate the necessary delays to
- * accomodate for a planar wave
+ * @brief Compute the delay in regard to the Z value. Since the antenna is being
+ * thought as a point cloud laying on the XY plane, the Z value will be the
+ * distance to the target and is used to calculate the necessary delays to
+ * accomodate for a planar wave.
  *
  * @param antenna The antenna that will be used to compute the delays
  * @return a 1D vector of time delays
@@ -163,8 +164,8 @@ Antenna steer(const Antenna &antenna, const double theta, const double phi);
 
 
 /**
- * @brief Steer the antenna using horizontal angles. Bore-sight is the x-axis and azimuth is the left-to right angles and elevation
- * is up and down.
+ * @brief Steer the antenna using horizontal angles. bore-sight is the x-axis and 
+ * azimuth is the left-to right angles and elevation is up and down.
  * @param antenna The antenna to be steered.
  * @param azimuth The azimuth angle for steering.
  * @param elevation The elevation angle for steering.
@@ -183,7 +184,7 @@ Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double 
 Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point);
 
 /**
- * @brief Steer the antenna usin spherical coordinates where phi begins at Z+ axis.
+ * @brief Steer the antenna using spherical coordinates where phi begins at Z+ axis.
  * @param antenna The antenna to be steered.
  * @param theta The polar angle for steering.
  * @param phi The azimuthal angle for steering.
@@ -192,7 +193,7 @@ Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position
 Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi);
 
 /**
- * @brief Steer the antenna usin spherical coordinates where phi begins at Z+ axis.
+ * @brief Steer the antenna using spherical coordinates where phi begins at Z+ axis.
  * @param antenna The antenna to be steered.
  * @param spherical The spherical coordinates for steering.
  * @return A 1D vector representing the steering vector.
