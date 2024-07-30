@@ -18,7 +18,6 @@
  * @date 2024-07-30
  * @class TargetHandler
  * @brief Class that classifies and draws targets to the WARA PS display.
- * Class that classifies and draws targets to the WARA PS display.
  * Takes two or more active AWPUS as inputs and classifies the targets provided.
  */
 class TargetHandler {
@@ -28,17 +27,17 @@ public:
     ~TargetHandler();
 
     /**
-     * Spools up the target handler and worker thread. Does not block the current thread
+     * @brief Spools up the target handler and worker thread. Does not block the current thread
      */
     void Start();
 
     /**
-     * Gracefully stops the target thread.
+     * @brief Gracefully stops the target thread.
      */
     void Stop();
 
     /**
-     * Sets the minimum required target gradient
+     * @brief Sets the minimum required target gradient
      * @param sensitivity minimum target gradient to be valid for interferemetry
      */
     void SetSensitivity(double sensitivity);
@@ -46,7 +45,7 @@ public:
     std::vector<Eigen::Vector3d> getTargets();
 
     /**
-     * Add an AWPU worker to triangulate from
+     * @brief Add an AWPU worker to triangulate from
      * @param awpu AWPU worker
      * @param position The physical position of the microphone array in relation to ljudkriget (origin)
      * @return Self reference for cool chaining actions
@@ -54,20 +53,20 @@ public:
      TargetHandler& AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d& position);
 
     /**
-     * Set the target display on the WARA PS display
+     * @brief Set the target display on the WARA PS display
      * @param toggle bool
      */
     void DisplayTarget(bool toggle);
 
     /**
-     * Get the current best target (i.e the current active track with the most hits)
+     * @brief Get the current best target (i.e the current active track with the most hits)
      * @return The target position in relation to ljudkriget (origin)
      */
     Eigen::Vector3d getBestTarget() const;
 
 protected:
     /**
-     * @brief TODO:
+     * @brief AWPU Target converted a line with origin in the AWPU position
      */
     struct CartesianTarget {
         Eigen::ParametrizedLine<double, 3> directionLine;
@@ -77,7 +76,7 @@ protected:
     };
 
     /**
-    * @brief TODO:
+    * @brief An intersected target
     */
     struct TriangulatedTarget {
         Eigen::Vector3d position;
@@ -85,7 +84,10 @@ protected:
         long timeAlive = 0;
     };
 
-    struct Track {
+    /**
+     * @brief Track struct for intersected target quality tracking
+     */
+ struct Track {
         Eigen::Vector3d position;
         std::chrono::time_point<std::chrono::steady_clock> timeLastHit;
         bool valid;
