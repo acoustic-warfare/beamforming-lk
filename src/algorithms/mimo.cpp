@@ -1,3 +1,7 @@
+/** @file mimo.cpp
+ * @author Irreq
+*/
+
 #include "mimo.h"
 
 #define USE_REFERENCE 0

@@ -1,3 +1,7 @@
+/** @file gradient_ascend.cpp
+ * @author Irreq
+*/
+
 #include "gradient_ascend.h"
 
 constexpr double start_rate = 1e-1;

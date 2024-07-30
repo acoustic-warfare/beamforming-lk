@@ -1,6 +1,7 @@
-//
-// Created by janne on 2024-07-01.
-//
+/** @file audio_wrapper.cpp
+ * @author Janne, Tuva
+ * @date 2024-07-01
+*/
 
 #include "audio_wrapper.h"
 

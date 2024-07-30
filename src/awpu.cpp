@@ -1,6 +1,10 @@
+/** @file awpu.cpp
+ * @author Irreq, Tuva
+*/
+
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool debug) : fov(fov), small_res(small_res), verbose(verbose), debug(debug), audioWrapper(std::nullopt) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose) : fov(fov), small_res(small_res), verbose(verbose), audioWrapper(std::nullopt) {
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();
@@ -17,7 +21,7 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fo
     calibrate();
 }
 
-AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool debug) : pipeline(pipeline), verbose(verbose), debug(debug), audioWrapper(std::nullopt) {
+AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose) : pipeline(pipeline), verbose(verbose), audioWrapper(std::nullopt) {
     this->pipeline->connect();
     for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);

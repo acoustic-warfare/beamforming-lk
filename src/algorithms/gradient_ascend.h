@@ -1,3 +1,8 @@
+/** @file gradient_ascend.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
 #ifndef GRADIENT_H
 #define GRADIENT_H
 
@@ -10,6 +15,11 @@
 #include "../pipeline.h"
 #include "../streams.hpp"
 #include "../worker.h"
+
+/**
+ * @class GradientParticle
+ * @brief TODO:
+ */
 class GradientParticle {
 public:
     bool jumped = false;
@@ -54,7 +64,8 @@ private:
 
 
 /**
- * Worker for finding sources using spherical Gradient descent
+ * @class SphericalGradient
+ * @brief Worker for finding sources using spherical Gradient descent
  */
 class SphericalGradient : public Worker {
 public:

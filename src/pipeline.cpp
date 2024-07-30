@@ -1,3 +1,7 @@
+/** @file pipeline.cpp
+ * @author Irreq, Tuva
+*/
+
 #include "pipeline.h"
 
 Pipeline::Pipeline(const char *address, const int port, bool verbose) : address(address), port(port), verbose(verbose), synthetic(false) {

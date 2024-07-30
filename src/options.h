@@ -1,6 +1,8 @@
-//
-// Created by janne on 2024-06-24.
-//
+/** @file options.h
+ * @author Janne, Tuva
+ * @brief TODO:
+ * @date 2024-06-24
+*/
 
 #ifndef BEAMFORMER_OPTIONS_H
 #define BEAMFORMER_OPTIONS_H
@@ -13,7 +15,8 @@
 #include "config.h"
 
 /**
- * Multithreading-safe options for the beamforming application.
+ * @class BeamformingOptions
+ * @brief Multithreading-safe options for the beamforming application.
  * Should be readable by multiple threads and writeable by a single master
  * thread
  */

@@ -1,5 +1,10 @@
-#ifndef KALMAN
-#define KALMAN
+/** @file kf.h
+ * @author Irreq
+ * @brief TODO:
+*/
+
+#ifndef BEAMFORMER_KALMAN
+#define BEAMFORMER_KALMAN
 
 #include <Eigen/Dense>
 #include <cmath>
@@ -10,16 +15,20 @@
  *
  */
 
+/**
+ * @class KalmanFilter3D
+ * @brief TODO:
+ */
 class KalmanFilter3D {
 private:
-    Eigen::Matrix<float, 9, 9> A;// State transition matrix
-    Eigen::Matrix<float, 9, 9> Q;// Process noise covariance
-    Eigen::Matrix<float, 3, 9> H;// Measurement matrix
-    Eigen::Matrix<float, 3, 3> R;// Measurement noise covariance
-    Eigen::Matrix<float, 9, 9> P;// Error covariance matrix
-    Eigen::Vector<float, 9> x;   // State vector
-    Eigen::Vector<float, 9> B;   // Disturbance
-    Eigen::Matrix<float, 9, 9> I;// Identity
+    Eigen::Matrix<float, 9, 9> A;/// State transition matrix
+    Eigen::Matrix<float, 9, 9> Q;/// Process noise covariance
+    Eigen::Matrix<float, 3, 9> H;/// Measurement matrix
+    Eigen::Matrix<float, 3, 3> R;/// Measurement noise covariance
+    Eigen::Matrix<float, 9, 9> P;/// Error covariance matrix
+    Eigen::Vector<float, 9> x;   /// State vector
+    Eigen::Vector<float, 9> B;   /// Disturbance
+    Eigen::Matrix<float, 9, 9> I;/// Identity
 
 public:
     KalmanFilter3D(float dt) {
@@ -144,4 +153,4 @@ public:
     }
 };
 
-#endif
+#endif //BEAMFORMER_KALMAN
