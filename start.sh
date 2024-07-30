@@ -60,18 +60,14 @@ if [ -z "$(docker images | grep tftpd)" ]; then
     echo "Please see boot/README.md"
 fi
 
+AUDIO_ARGS="-e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd" 
+
 # Starting the container
 docker run -it \
     $RT_ARGS \
     -v $(pwd):/usr/src/app \
     -e DISPLAY=$DISPLAY  \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
-    --user=$(id -u $USER) \
+    $AUDIO_ARGS \
     beamformer bash
-
-
-
-
-
-
-
+    

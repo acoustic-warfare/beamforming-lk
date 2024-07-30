@@ -1,6 +1,7 @@
-//
-// Created by janne on 2024-07-17.
-//
+/** @file triangulate.cpp
+ * @author Janne
+ * @date 2024-07-17
+*/
 
 #include "triangulate.h"
 #include "nlohmann/json.hpp"

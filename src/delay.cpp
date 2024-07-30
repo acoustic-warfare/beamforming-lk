@@ -1,3 +1,7 @@
+/** @file delay.cpp
+ * @author Irreq, Melker
+*/
+
 #include "delay.h"
 #include <string.h>
 
