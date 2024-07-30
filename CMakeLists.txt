@@ -200,7 +200,6 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu_main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/geometry.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/argparse.hpp
 )
 
 # Linking
