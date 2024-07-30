@@ -210,7 +210,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 }
 
 void SphericalGradient::reset() {
-    if (resetCount++ % 32 == 0) {
+    if (resetCount++ % 64 == 0) {
         initialize_particles();
     }
 }
@@ -294,6 +294,10 @@ void SphericalGradient::update() {
     // Fill the tracking vector to the DSP chain
     tracking.clear();
     for (auto &tracker: currentTrackers) {
+        if (tracker.magnitude < mean * 1e-2) {
+            tracker.tracking = false;
+            continue;
+        }
         if (tracker.tracking) {
             tracking.emplace_back(tracker.directionCurrent, tracker.magnitude, 1 / tracker.gradient, tracker.start);
         }

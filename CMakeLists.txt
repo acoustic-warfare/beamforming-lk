@@ -67,10 +67,10 @@ set(SETUP_PY "${CMAKE_MODULE_DIR}/setup.py")
 set(PY_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/pytimestamp")
 
 
-configure_file(
-        ${SETUP_PY_IN}
-        ${SETUP_PY}
-)
+#configure_file(
+#        ${SETUP_PY_IN}
+#        ${SETUP_PY}
+#)
 
 # Define the Python virtual environment directory
 set(PYTHON_VENV_DIR "${CMAKE_MODULE_DIR}/venv")
