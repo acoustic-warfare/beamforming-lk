@@ -14,9 +14,11 @@
 #include "../kf.h"
 
 /**
+ * @author Janne Schyffert
+ * @date 2024-07-30
  * @class TargetHandler
- * @brief Class that classifies and draws targets to the WARA PS display. 
- * Takes two or more active AWPUS as inputs and classifies the targets based on the target function
+ * @brief Class that classifies and draws targets to the WARA PS display.
+ * Takes two or more active AWPUS as inputs and classifies the targets provided.
  */
 class TargetHandler {
 public:
@@ -24,63 +26,104 @@ public:
 
     ~TargetHandler();
 
+    /**
+     * @brief Spools up the target handler and worker thread. Does not block the current thread
+     */
     void Start();
 
+    /**
+     * @brief Gracefully stops the target thread.
+     */
     void Stop();
 
+    /**
+     * @brief Sets the minimum required target gradient
+     * @param sensitivity minimum target gradient to be valid for interferemetry
+     */
     void SetSensitivity(double sensitivity);
 
     std::vector<Eigen::Vector3d> getTargets();
 
-    TargetHandler& AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d& position);
+    /**
+     * @brief Add an AWPU worker to triangulate from
+     * @param awpu AWPU worker
+     * @param position The physical position of the microphone array in relation to ljudkriget (origin)
+     * @return Self reference for cool chaining actions
+     */
+     TargetHandler& AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d& position);
 
-    void FindTargets(std::vector<std::vector<Target> > &targets);
-
+    /**
+     * @brief Set the target display on the WARA PS display
+     * @param toggle bool
+     */
     void DisplayTarget(bool toggle);
 
-    Eigen::Vector3d getLoudestTarget() const;
+    /**
+     * @brief Get the current best target (i.e the current active track with the most hits)
+     * @return The target position in relation to ljudkriget (origin)
+     */
+    Eigen::Vector3d getBestTarget() const;
 
 protected:
     /**
-     * @brief TODO:
+     * @brief AWPU Target converted a line with origin in the AWPU position
      */
     struct CartesianTarget {
         Eigen::ParametrizedLine<double, 3> directionLine;
         double power;
         double gradient;
+        std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
     };
 
     /**
-    * @brief TODO:
+    * @brief An intersected target
     */
     struct TriangulatedTarget {
         Eigen::Vector3d position;
-        double powerAverage;
-        std::chrono::duration<long> timeAlive;
+        double powerAverage = 0;
+        long timeAlive = 0;
     };
 
-    std::vector<TriangulatedTarget> targets_;
-    TriangulatedTarget loudestTarget_{};
-    const double targetDecay_ = 0.9;
+    /**
+     * @brief Track struct for intersected target quality tracking
+     */
+ struct Track {
+        Eigen::Vector3d position;
+        std::chrono::time_point<std::chrono::steady_clock> timeLastHit;
+        bool valid;
+        int hits;
+    };
+
+    std::vector<Track> tracks_;
+    Track bestTrack_{Eigen::Vector3d::Zero(), std::chrono::steady_clock::now(), false, 0};
+
+
+    // WARA PS Related variables
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
                                               std::getenv("MQTT_PASSWORD"));
-    std::chrono::duration<double> targetUpdateInterval_ = std::chrono::milliseconds(500);
-    KalmanFilter3D kf_{static_cast<float>(targetUpdateInterval_.count() / 500)};
-
     gps_data_t *gpsData_;
+    std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
+
+    static constexpr bool debugLogging_ = false;
+    std::ofstream logFile_;
 
     std::vector<AWProcessingUnit*> awpus_;
     std::vector<Eigen::Vector3d> awpu_positions_;
 
-    double minGradient_ = 1000;
+    double minGradient_ = 5;
 
     std::thread workerThread_;
-    std::mutex mutex_;
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
 
+    void FindIntersects(std::vector<std::vector<Target> > &targets);
+
+    void UpdateTracks();
+
+    void CheckTracksForTarget(TriangulatedTarget &target);
+
     // Mysig funktionssignatur, precis lagom lång
-     void FindTargetsRecursively(
+     void FindIntersectsRecursively(
          std::vector<CartesianTarget> &toCompare,
          std::vector<std::vector<CartesianTarget>>::iterator begin,
          std::vector<std::vector<CartesianTarget>>::iterator end,

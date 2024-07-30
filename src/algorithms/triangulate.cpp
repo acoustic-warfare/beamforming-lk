@@ -10,43 +10,19 @@
 Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2) {
     using Vec3 = Eigen::Vector3d;
 
-    const Vec3 p1 = l1.origin();
-    const Vec3 p2 = l2.origin();
-    Vec3 d1 = l1.direction();
-    Vec3 d2 = l2.direction();
+    const Vec3 r1 = l1.origin();
+    const Vec3 e1 = l1.direction();
+    const Vec3 r2 = l2.origin();
+    const Vec3 e2 = l2.direction();
 
-    Eigen::Matrix3d rotationMatrix;
-    rotationMatrix << 1, 0, 0,
-            0, 0, 1,
-            0, 1, 0;
+    const Vec3 n = e1.cross(e2);
+    const double t1 = e2.cross(n).dot(r2-r1)/n.dot(n);
+    const double t2 = e1.cross(n).dot(r2-r1)/n.dot(n);
 
-    d1 = rotationMatrix * d1;
-    d2 = rotationMatrix * d2;
+    const Vec3 closestPoint1 = r1 + e1 * t1;
+    const Vec3 closestPoint2 = r2 + e2 * t2;
 
-    const Vec3 w0 = p1 - p2;
-    const double a = d1.dot(d1); // d1·d1
-    const double b = d1.dot(d2); // d1·d2
-    const double c = d2.dot(d2); // d2·d2
-    const double d = d1.dot(w0); // d1·(p1 - p2)
-    const double e = d2.dot(w0); // d2·(p1 - p2)
-
-    const double denominator = a * c - b * b;
-    double t, s;
-
-    // Check if the lines are parallel
-    if (std::abs(denominator) < 1e-6) {
-        return Vec3::Zero();
-    } else {
-        // Lines are not parallel, calculate the nearest points
-        t = (b * e - c * d) / denominator;
-        s = (a * e - b * d) / denominator;
-    }
-
-    // Calculate the nearest points
-    const Vec3 closestPoint1 = p1 + t * d1;
-    const Vec3 closestPoint2 = p2 + s * d2;
-
-    if((closestPoint1 - closestPoint2).norm() > 1) {
+    if((closestPoint1 - closestPoint2).norm() > 1 || (closestPoint1 + closestPoint2).z() < 0) {
         return Vec3::Zero();
     }
 
