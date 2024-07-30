@@ -25,6 +25,8 @@
 #define SOUTH 2
 #define WEST 3
 
+#define EPSILON 1e-9
+
 /**
  * @brief Clip value between two values.
  * @param n The value to be clipped.
@@ -88,7 +90,7 @@ struct Spherical {
     /// Azimuth angle in radians.
     double phi = 0;
     /// Radius of the spherical coordinate.
-    double radius = 1;
+    double radius = 1.0;
 
     Spherical(const Spherical &) = default;
     Spherical(Spherical &&) = default;
@@ -134,6 +136,14 @@ struct Spherical {
             << "° φ=" << TO_DEGREES(wrapAngle(direction.phi))
             << "° r=" << direction.radius;
         return out;
+    }
+
+    bool operator>(const double magnitude) const {
+        return radius > magnitude;
+    }
+
+    bool operator<(const double magnitude) const {
+        return radius < magnitude;
     }
 };
 

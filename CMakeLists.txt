@@ -203,6 +203,7 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/algorithms_common.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/target_handler.cpp
 )
 
@@ -236,6 +237,7 @@ add_executable(awpu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/options.h
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/pso_seeker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/gradient_ascend.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/algorithms_common.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/mimo.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/audio/audio_wrapper.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/awpu.cpp
