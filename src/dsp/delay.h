@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "config.h"
+#include "pipeline.h"
 
 #ifdef __AVX2__
 #include <immintrin.h>

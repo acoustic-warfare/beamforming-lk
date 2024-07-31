@@ -14,7 +14,8 @@
 #include <cstring>
 #include <iostream>
 
-#include "config.h"
+#define MAX_N_SENSORS 256
+#define N_SAMPLES 256
 
 #define RECEIVER_DEBUG 0
 

@@ -8,7 +8,7 @@
 
 #include <chrono>
 #include <mutex>
-#include <opencv2/opencv.hpp>// cv::Mat
+#include <opencv2/opencv.hpp>
 #include <thread>
 
 #include "geometry.h"
@@ -46,10 +46,11 @@ struct Target {
         return fabs(direction.phi - other.direction.phi) < 1e-2 && fabs(direction.theta - other.direction.theta) < 1e-2;
     }
 
-    //Target(Spherical direction, float power, float probability) {
-    //    // Record the time of object creation
-    //    start = std::chrono::high_resolution_clock::now();
-    //};
+    Target(Spherical direction, float power, float probability, std::chrono::time_point<std::chrono::high_resolution_clock> start) :
+    direction(direction), power(power), probability(probability), start(start) {
+        // Record the time of object creation
+        //start = std::chrono::high_resolution_clock::now();
+    };
 };
 
 /**

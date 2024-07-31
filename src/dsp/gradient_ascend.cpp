@@ -20,6 +20,7 @@ void GradientParticle::findNearby() {
 
 void GradientParticle::step(const double rate) {
     findNearby();
+#if 1
     float power[MONOPULSE_DIRECTIONS] = {0.0};
     const float norm = 1 / static_cast<float>(antenna.usable);
 
@@ -36,7 +37,26 @@ void GradientParticle::step(const double rate) {
     directionGradient.radius = static_cast<double>((power[NORTH] + power[EAST] + power[SOUTH] + power[WEST]) / static_cast<float>(MONOPULSE_DIRECTIONS));
 
     gradientError = fabs(directionGradient.theta) + fabs(directionGradient.phi);
+#else
 
+    float power[MONOPULSE_DIRECTIONS] = {0.0};
+    const float norm = 1 / static_cast<float>(antenna.usable);
+
+    for (int n = 0; n < MONOPULSE_DIRECTIONS; n++) {
+        steer(directionNearby[n]);
+        power[n] = pow(beam(), 3);
+    }
+
+    float thetaPower = fmax(fabs(power[NORTH]), fabs(power[SOUTH]));
+    float phiPower = fmax(fabs(power[EAST]), fabs(power[WEST]));
+
+    directionGradient.theta = static_cast<double>((power[SOUTH] - power[NORTH]) / thetaPower);
+    directionGradient.phi = static_cast<double>((power[EAST] - power[WEST]) / phiPower);
+    directionGradient.radius = static_cast<double>((power[NORTH] + power[EAST] + power[SOUTH] + power[WEST]) / static_cast<float>(MONOPULSE_DIRECTIONS));
+
+    gradientError = fabs(directionGradient.theta) + fabs(directionGradient.phi);
+
+#endif
 
     Particle::step(rate);
 }
@@ -246,7 +266,7 @@ void SphericalGradient::update() {
             continue;
         }
         if (tracker.tracking) {
-            tracking.emplace_back(tracker.directionCurrent, tracker.directionGradient.radius, 1 / tracker.gradientError, tracker.start);
+            tracking.emplace_back(tracker.directionCurrent, (float)tracker.directionGradient.radius, (float)(1 / tracker.gradientError), tracker.start);
         }
     }
 }

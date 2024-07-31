@@ -4,33 +4,43 @@
 
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose) : fov(fov), small_res(small_res), verbose(verbose), audioWrapper(std::nullopt) {
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose) : fov(fov), small_res(small_res), verbose(verbose)
+#if AUDIO
+, audioWrapper(std::nullopt) {
+#else
+    {
+#endif
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();
 
-    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
-        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-        antennas.push_back(antenna);
-    }
+    setupAntennas();
 
+#ifdef AUDIO
     if (AUDIO) {
         audioWrapper.emplace(pipeline);
     }
+#endif
 
     calibrate();
 }
 
-AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose) : pipeline(pipeline), verbose(verbose), audioWrapper(std::nullopt) {
+AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose) : pipeline(pipeline), verbose(verbose)
+#if AUDIO
+                                                                      ,
+                                                                      audioWrapper(std::nullopt) {
+#else
+{
+#endif
     this->pipeline->connect();
-    for (int n_antenna = 0; n_antenna < this->pipeline->get_n_sensors() / ELEMENTS; n_antenna++) {
-        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
-        antennas.push_back(antenna);
-    }
+    setupAntennas();
 
+
+#ifdef AUDIO
     if (AUDIO) {
         audioWrapper.emplace(pipeline);
     }
+#endif
 
     calibrate();
 }
@@ -39,9 +49,11 @@ AWProcessingUnit::~AWProcessingUnit() {
 
     pause();
 
+#if AUDIO
     if (AUDIO && audioWrapper->isRunning()) {
         stop_audio();
     }
+#endif
 
     for (auto it = workers.begin(); it != workers.end();) {
         it = workers.erase(it);
@@ -57,6 +69,16 @@ AWProcessingUnit::~AWProcessingUnit() {
 
     for (auto &job: workers) {
         delete job;
+    }
+}
+
+void AWProcessingUnit::setupAntennas() {
+    int n_antennas = this->pipeline->get_n_sensors() / ELEMENTS;
+    std::cout << n_antennas << "  " << this->pipeline->get_n_sensors() << " "<<ELEMENTS<< std::endl;
+    antennas.clear();
+    for (int n_antenna = 0; n_antenna < n_antennas; n_antenna++) {
+        Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
+        antennas.push_back(antenna);
     }
 }
 
@@ -109,6 +131,7 @@ void AWProcessingUnit::calibrate(const float reference_power_level) {
     for (int a = 0; a < antennas.size(); a++) {
 
         for (int s = 0; s < ELEMENTS; s++) {
+            //std::cout << s + a * ELEMENTS << " size: " << antennas.size()<< std::endl;
             streams->read_stream(s + a * ELEMENTS, &signals[a][s][0]);
         }
     }
@@ -255,15 +278,19 @@ std::vector<Target> AWProcessingUnit::targets() {
 }
 
 void AWProcessingUnit::play_audio() {
+#if AUDIO
     if (audioWrapper) {
         std::cout << "Starting audio playback" << std::endl;
         audioWrapper->start_audio_playback();
     }
+#endif
 }
 
 void AWProcessingUnit::stop_audio() {
+#if AUDIO
     if (audioWrapper) {
         std::cout << "Stopping audio" << std::endl;
         audioWrapper->stop_audio_playback();
     }
+#endif
 }

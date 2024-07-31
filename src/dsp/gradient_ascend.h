@@ -8,14 +8,12 @@
 
 #include <chrono>
 
-#include "../antenna.h"
-#include "../config.h"
-#include "../delay.h"
-#include "../geometry.h"
-#include "../pipeline.h"
-#include "../streams.hpp"
-#include "../worker.h"
-#include "algorithms_common.h"
+#include "antenna.h"
+#include "delay.h"
+#include "geometry.h"
+#include "pipeline.h"
+#include "worker.h"
+#include "particle.h"
 
 #define SEEKER_RESET_COUNTER 128
 #define SEEKER_SPREAD TO_RADIANS(15)

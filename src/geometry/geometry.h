@@ -10,8 +10,6 @@
 #include <cmath>
 #include <iostream>
 
-#include "config.h"
-
 #define X_INDEX 0
 #define Y_INDEX 1
 #define Z_INDEX 2

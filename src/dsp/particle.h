@@ -6,13 +6,12 @@
 #ifndef ALGORITHMS_COMMON_H
 #define ALGORITHMS_COMMON_H
 
-#include "../antenna.h"
-#include "../config.h"
-#include "../delay.h"
-#include "../geometry.h"
-#include "../pipeline.h"
-#include "../streams.hpp"
-#include "../worker.h"
+#include "antenna.h"
+#include "delay.h"
+#include "geometry.h"
+#include "pipeline.h"
+#include "streams.hpp"
+#include "worker.h"
 
 inline void normalizeSpherical(Spherical &direction, double theta_limit) {
     direction.phi = wrapAngle(direction.phi);

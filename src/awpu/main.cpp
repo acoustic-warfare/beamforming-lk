@@ -8,7 +8,17 @@
 
 #include "argparse/argparse.hpp"
 #include "awpu.h"
-#include "config.h"
+
+#define UDP_ADDRESS "10.0.0.1"
+
+#define APPLICATION_NAME "Beamforming"
+#define APPLICATION_WIDTH 1024
+#define APPLICATION_HEIGHT 1024
+#define RESOLUTION_MULTIPLIER 16
+#define X_RES 1024
+#define Y_RES 1024
+
+#define BLUR_KERNEL_SIZE 5
 
 /**
  * Create a name for the video file
@@ -55,7 +65,7 @@ void stopRecording(cv::VideoWriter& videoWriter) {
 /**
  * Setup argparse with different arguments
  */
-void setupArgumentParser(argparse::ArgumentParser &program) {
+void setupArgumentParser(argparse::ArgumentParser& program) {
     program.add_argument("--camera")
             .default_value(std::string("false"))
             .help("Camera option, default is false");
@@ -65,22 +75,22 @@ void setupArgumentParser(argparse::ArgumentParser &program) {
             .help("IP address");
 
     program.add_argument("--audio")
-            .default_value(AUDIO)
+            .default_value(false)
             .implicit_value(true)
             .help("Audio option");
 
     program.add_argument("--mimo")
-            .default_value(USE_MIMO)
+            .default_value(false)
             .implicit_value(true)
             .help("MIMO option");
 
     program.add_argument("--record")
-            .default_value(RECORD)
+            .default_value(false)
             .implicit_value(true)
             .help("Record option");
 
     program.add_argument("--mimo-res")
-            .default_value(MIMO_RES)
+            .default_value(100)
             .scan<'i', int>()
             .help("MIMO Resolution");
 
@@ -90,7 +100,7 @@ void setupArgumentParser(argparse::ArgumentParser &program) {
             .help("Tracking option");
 
     program.add_argument("--verbose")
-            .default_value(VERBOSE)
+            .default_value(false)
             .implicit_value(true)
             .help("Program output");
 
@@ -145,7 +155,7 @@ int main(int argc, char* argv[]) {
         std::cout << std::endl;
         std::cout << "Use camera: " << use_camera << std::endl;
     }
-    
+
 
     cv::VideoCapture cap;
     cv::VideoWriter videoWriter;
@@ -180,8 +190,8 @@ int main(int argc, char* argv[]) {
     std::vector<AWProcessingUnit*> awpus;
 
     int i = 0;
-    for (const int port : ports) {
-        const char *addr = ip_address.c_str();
+    for (const int port: ports) {
+        const char* addr = ip_address.c_str();
         if (verbose) {
             std::cout << "Starting MIMO: " << port << std::endl;
         }
@@ -271,8 +281,8 @@ int main(int argc, char* argv[]) {
                 cv::Mat mask = cv::Mat::zeros(bigFrames[i].size(), bigFrames[i].type());
 
                 // Define the circle parameters
-                int radius = bigFrames[i].rows / 2;                                // Radius of the circles
-                cv::Point center1(radius, bigFrames[i].rows / 2);                  // Center of the first circle
+                int radius = bigFrames[i].rows / 2;                                  // Radius of the circles
+                cv::Point center1(radius, bigFrames[i].rows / 2);                    // Center of the first circle
                 cv::Point center2(bigFrames[i].cols - radius, bigFrames[i].rows / 2);// Center of the second circle
 
                 // Draw filled white circles on the mask
@@ -284,7 +294,6 @@ int main(int argc, char* argv[]) {
                 bigFrames[i].copyTo(result, mask);
                 bigFrames[i] = result;
             }
-            
         }
 
         if (awpu_count == 0) {
@@ -294,9 +303,9 @@ int main(int argc, char* argv[]) {
         } else {
             cv::hconcat(bigFrames[0], bigFrames[1], combinedFrame);
         }
-        
 
-        if (recording){
+
+        if (recording) {
             // Write the frame to the video file
             videoWriter.write(combinedFrame);
         }
@@ -318,8 +327,7 @@ int main(int argc, char* argv[]) {
                     stopRecording(videoWriter);
                     recording = false;
                     std::cout << "Stopped recording" << std::endl;
-                } else 
-                {
+                } else {
                     if (use_camera && awpu_count == 0) {
                         int frame_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
                         int frame_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
@@ -328,7 +336,7 @@ int main(int argc, char* argv[]) {
                     } else {
                         startRecording(videoWriter, combinedFrame.size(), fps);
                     }
-                    
+
                     recording = true;
                     std::cout << "Started recording" << std::endl;
                 }
@@ -341,14 +349,14 @@ int main(int argc, char* argv[]) {
 
 
     if (use_camera) {
-        cap.release();  
+        cap.release();
     }
 
     if (recording) {
         stopRecording(videoWriter);
     }
 
-    for (auto &awpu : awpus) {
+    for (auto& awpu: awpus) {
         delete awpu;
     }
 

@@ -9,14 +9,18 @@
 #include <algorithm>
 #include <optional>
 
-#include "algorithms/gradient_ascend.h"
-#include "algorithms/mimo.h"
-#include "algorithms/pso_seeker.h"
+#include "gradient_ascend.h"
+#include "mimo.h"
+#include "pso_seeker.h"
 #include "antenna.h"
+#if AUDIO
 #include "audio/audio_wrapper.h"
-#include "config.h"
+#endif
 #include "pipeline.h"
 #include "worker.h"
+
+#define FOV 63.0
+#define MIMO_SIZE 256
 
 /**
  * @class AWProcessingUnit
@@ -45,6 +49,11 @@ public:
      * @brief Destructor, cleanups of resources.
      */
     ~AWProcessingUnit();
+
+    /**
+     * @brief Finds the number of antennas and usable microphones
+     */
+    void setupAntennas();
 
     /**
      * @brief Starts the processing unit with the specified worker.
@@ -133,7 +142,9 @@ protected:
     std::vector<Antenna> antennas;
 
     /// Optional audio wrapper for handling audio playback
+    #if AUDIO
     std::optional<AudioWrapper> audioWrapper;
+    #endif
 };
 
 #endif //BEAMFORMER_AWPU_H

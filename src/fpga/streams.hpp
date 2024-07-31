@@ -25,8 +25,6 @@
 #include <iostream>
 #include <unordered_map>
 
-#include "config.h"
-
 #define PAGE_SIZE getpagesize()
 
 #define N_ITEMS_BUFFER PAGE_SIZE / sizeof(float)

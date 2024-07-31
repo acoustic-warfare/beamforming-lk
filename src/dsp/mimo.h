@@ -9,12 +9,10 @@
 #include <Eigen/Dense>
 #include <atomic>
 
-#include "../antenna.h"
-#include "../config.h"
-#include "../delay.h"
-#include "../pipeline.h"
-#include "../streams.hpp"
-#include "../worker.h"
+#include "antenna.h"
+#include "delay.h"
+#include "pipeline.h"
+#include "worker.h"
 
 #if 1
 /** 
