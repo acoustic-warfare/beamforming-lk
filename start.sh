@@ -67,7 +67,6 @@ docker run -it \
     $RT_ARGS \
     --network=host \
     -v $(pwd):/usr/src/app \
-    --device /dev/video2 \
     -e DISPLAY=$DISPLAY  \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     $AUDIO_ARGS \
