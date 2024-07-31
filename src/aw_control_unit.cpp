@@ -39,7 +39,7 @@ void AWControlUnit::Start() {
             }
         });
 
-        targetHandler_.DisplayTarget(true);
+        targetHandler_.DisplayToWaraPS(true);
         targetHandler_.Start();
     }
 
