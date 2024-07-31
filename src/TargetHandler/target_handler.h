@@ -22,8 +22,7 @@
  */
 class TargetHandler {
 public:
-    explicit TargetHandler(gps_data_t *gpsData, const bool usingWaraPS = false) : usingWaraPS_(usingWaraPS),
-        gpsData_(gpsData) {
+    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {
     }
 
     TargetHandler(const TargetHandler &) = delete;
@@ -105,8 +104,6 @@ protected:
     std::vector<Track> tracks_;
     Track bestTrack_{Eigen::Vector3d::Zero(), std::chrono::steady_clock::now(), false, 0};
 
-    // WARA PS Related variables
-    bool usingWaraPS_;
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS,
                                               std::getenv("MQTT_USERNAME") == nullptr
@@ -118,7 +115,7 @@ protected:
     gps_data_t *gpsData_ = nullptr;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 
-    static constexpr bool debugLogging_ = false;
+    static constexpr bool debugLogging_ = true;
     std::ofstream logFile_;
 
     std::vector<AWProcessingUnit *> awpus_;

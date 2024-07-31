@@ -14,7 +14,7 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fo
         antennas.push_back(antenna);
     }
 
-    if (AUDIO) {
+    if constexpr (AUDIO) {
         audioWrapper.emplace(pipeline);
     }
 
@@ -28,7 +28,7 @@ AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose) : pipeline(p
         antennas.push_back(antenna);
     }
 
-    if (AUDIO) {
+    if constexpr (AUDIO) {
         audioWrapper.emplace(pipeline);
     }
 

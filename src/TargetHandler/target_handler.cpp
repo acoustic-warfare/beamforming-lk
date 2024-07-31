@@ -10,7 +10,7 @@
 void TargetHandler::Stop() {
     *running = false;
     workerThread_.join();
-    if (debugLogging_)
+    if constexpr (debugLogging_)
         logFile_.close();
 
     DisplayToWaraPS(false);
@@ -21,7 +21,7 @@ TargetHandler::~TargetHandler() {
 }
 
 void TargetHandler::Start() {
-    if (debugLogging_)
+    if constexpr (debugLogging_)
         logFile_.open("Targets.txt");
     *running = true;
     workerThread_ = std::thread([&] {
@@ -135,18 +135,16 @@ void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCo
                     continue;
                 }
 
-                logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
-                        transpose() << ";"
-                        << otherTarget.directionLine.origin().transpose() << "," << otherTarget.directionLine.
-                        direction().transpose() << std::endl;
 
                 Eigen::Vector3d intersection = triangulatePoint(target.directionLine, otherTarget.directionLine);
 
-                if (debugLogging_) {
+                if constexpr (debugLogging_) {
                     logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
                             transpose() << ";"
                             << otherTarget.directionLine.origin().transpose() << "," << otherTarget.directionLine.
-                            direction().transpose() << std::endl;
+                            direction().transpose() << ";" << std::chrono::system_clock::now().time_since_epoch().
+                            count() <<
+                            std::endl;
                 }
 
                 if (intersection.norm() == 0 || intersection.norm() > 50) {
@@ -169,7 +167,7 @@ void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCo
 
 
 void TargetHandler::DisplayToWaraPS(const bool toggle) {
-    if (!usingWaraPS_ || gpsData_ == nullptr)
+    if (gpsData_ == nullptr)
         return;
 
     if (!toggle && targetThread_.joinable()) {
