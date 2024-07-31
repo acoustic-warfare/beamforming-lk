@@ -4,8 +4,6 @@
 
 #include "gradient_ascend.h"
 
-constexpr double start_rate = 1e-1;
-
 
 /**
  * @brief Parent Gradient particle
@@ -117,8 +115,6 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         float gradientError = 1.0 - clip(particle.gradientError, 0.0, 2.0) / 2.0;
 
-        heatmap->at<uchar>(y, x) = (255);
-
         int m = 255;
 
         cv::Mat &frame = *heatmap;
@@ -173,7 +169,7 @@ void SphericalGradient::update() {
         for (auto &particle: trackers) {
             if (particle.tracking) {
                 for (int i = 0; i < trackerSteps; i++)
-                    particle.step(start_rate * trackerSlowdown);
+                    particle.step(PARTICLE_RATE * trackerSlowdown);
                 if (particle.gradientError > 1) {
                     particle.tracking = false;
                 } else {
@@ -206,7 +202,7 @@ void SphericalGradient::update() {
 
         // Run seekers
         for (auto &seeker: seekers) {
-            seeker.step(start_rate);
+            seeker.step(PARTICLE_RATE);
 
             // Compare with trackers and jump if too close
             bool jumped = false;
@@ -245,7 +241,7 @@ void SphericalGradient::update() {
     // Fill the tracking vector to the DSP chain
     tracking.clear();
     for (GradientTracker &tracker: trackers) {
-        if (tracker.directionGradient.radius < mean * 0.1) {
+        if (tracker.directionGradient.radius < mean * 0.001) {
             tracker.stopTracking();
             continue;
         }
