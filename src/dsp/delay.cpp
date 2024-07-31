@@ -5,7 +5,7 @@
 #include "delay.h"
 #include <string.h>
 
-#define USE_AVX 0
+#define USE_AVX 1
 
 #define K 8
 float h[K] = {0.0267, 0.1238, 0.3025, 0.3025, 0.1238, 0.0267, -0.0200, 0.0};

@@ -142,6 +142,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradientError * 15.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
     }
 
+#if DEBUG_GRADIENT
     double maxValue = 0.0;
     for (GradientSeeker &particle: seekers) {
         if (particle.directionGradient.radius > maxValue) {
@@ -173,6 +174,7 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradientError * 5.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
     }
+#endif
 }
 
 void SphericalGradient::reset() {
