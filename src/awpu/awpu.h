@@ -9,10 +9,6 @@
 #include <algorithm>
 #include <optional>
 
-#include "algorithms/gradient_ascend.h"
-#include "algorithms/mimo.h"
-#include "gradient_ascend.h"
-#include "mimo.h"
 #include "pso_seeker.h"
 #include "antenna.h"
 #include "audio_wrapper.h"
