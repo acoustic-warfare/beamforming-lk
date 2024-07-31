@@ -2,16 +2,22 @@ name: Docker Image CI and CMake Checks
 on:
   pull_request:
     branches: [ "main" ]
-  
 
 jobs:
   build-image:
     runs-on: ubuntu-latest
+    container:
+      image: karlkorv/beamformer:latest
+      options: --user root
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pull the Docker image
-        run: docker image pull karlkorv/beamformer:latest
+      - name: Ensure dependencies are installed
+        run: |
+          apt-get update
+          apt-get install -y cmake
 
       - name: Run cmake in the Docker image
-        run: docker run --rm -v ${{ github.workspace }}:/usr/src/app -w /usr/src/app karlkorv/beamformer:latest /bin/bash -c "cmake -S . -B /build && cmake --build /build"
+        run: |
+          cmake -S . -B /build
+          cmake --build /build
