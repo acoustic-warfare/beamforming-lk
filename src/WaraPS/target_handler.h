@@ -10,8 +10,13 @@
 #include <ranges>
 #include <wara_ps_client.h>
 
-#include "../awpu.h"
-#include "../kf.h"
+#include "awpu.h"
+#include "kf.h"
+
+#define WARAPS_NAME "ljudkriget"
+#define WARAPS_ADDRESS "mqtts://broker.waraps.org:8883"
+#define GPS_ADDRESS "localhost"
+#define GPS_PORT 2947
 
 /**
  * @author Janne Schyffert

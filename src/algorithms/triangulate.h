@@ -11,7 +11,7 @@
 #include <Eigen/Dense>
 #include <nlohmann/json_fwd.hpp>
 
-#include "../geometry.h"
+#include "geometry.h"
 
 Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2);
 

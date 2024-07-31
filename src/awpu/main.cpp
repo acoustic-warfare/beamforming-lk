@@ -196,7 +196,7 @@ int main(int argc, char* argv[]) {
             std::cout << "Starting MIMO: " << port << std::endl;
         }
 
-        AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose);
+        AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose, audio);
         awpus.push_back(awpu);
         //awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
         //AWProcessingUnit &awpu = awpus.back();

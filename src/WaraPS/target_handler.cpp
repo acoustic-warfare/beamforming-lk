@@ -7,7 +7,7 @@
 
 #include <ranges>
 
-#include "../algorithms/triangulate.h"
+#include "triangulate.h"
 
 void TargetHandler::Stop() {
     *running = false;

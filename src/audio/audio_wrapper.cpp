@@ -150,7 +150,7 @@ AudioWrapper::AudioWrapper(Pipeline *pipeline) : pipeline(pipeline) {
     err = Pa_Initialize();
     checkErr(err);
 
-    if (DEBUG) {
+    if (DEBUG_AUDIO) {
         printDevices();
     }
 

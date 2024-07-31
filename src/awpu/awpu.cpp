@@ -4,43 +4,29 @@
 
 #include "awpu.h"
 
-AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose) : fov(fov), small_res(small_res), verbose(verbose)
-#if AUDIO
-, audioWrapper(std::nullopt) {
-#else
-    {
-#endif
+AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool use_audio) : fov(fov), small_res(small_res), verbose(verbose), audioWrapper(std::nullopt) {
+
     // Allocate memory for pipeline
     this->pipeline = new Pipeline(address, port);
     this->pipeline->connect();
 
     setupAntennas();
 
-#ifdef AUDIO
-    if (AUDIO) {
+
+    if (use_audio) {
         audioWrapper.emplace(pipeline);
     }
-#endif
 
     calibrate();
 }
 
-AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose) : pipeline(pipeline), verbose(verbose)
-#if AUDIO
-                                                                      ,
-                                                                      audioWrapper(std::nullopt) {
-#else
-{
-#endif
+AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool use_audio) : pipeline(pipeline), verbose(verbose), audioWrapper(std::nullopt) {
     this->pipeline->connect();
     setupAntennas();
 
-
-#ifdef AUDIO
-    if (AUDIO) {
+    if (use_audio) {
         audioWrapper.emplace(pipeline);
     }
-#endif
 
     calibrate();
 }
@@ -49,11 +35,9 @@ AWProcessingUnit::~AWProcessingUnit() {
 
     pause();
 
-#if AUDIO
-    if (AUDIO && audioWrapper->isRunning()) {
+    if (audioWrapper && audioWrapper->isRunning()) {
         stop_audio();
     }
-#endif
 
     for (auto it = workers.begin(); it != workers.end();) {
         it = workers.erase(it);
@@ -278,19 +262,15 @@ std::vector<Target> AWProcessingUnit::targets() {
 }
 
 void AWProcessingUnit::play_audio() {
-#if AUDIO
     if (audioWrapper) {
         std::cout << "Starting audio playback" << std::endl;
         audioWrapper->start_audio_playback();
     }
-#endif
 }
 
 void AWProcessingUnit::stop_audio() {
-#if AUDIO
     if (audioWrapper) {
         std::cout << "Stopping audio" << std::endl;
         audioWrapper->stop_audio_playback();
     }
-#endif
 }

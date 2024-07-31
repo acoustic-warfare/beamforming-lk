@@ -13,8 +13,9 @@
 #include <condition_variable>
 #include <vector>
 
-#include "WaraPS/target_handler.h"
+#include "target_handler.h"
 #include "awpu.h"
+#include "config.h"
 
 /**
  * @class AWControlUnit
@@ -38,7 +39,7 @@ private:
     std::vector<AWProcessingUnit> awpus_;
 
     /// Classifies and draws targets to the WARA PS display
-    TargetHandler targetHandler_;
+    //TargetHandler targetHandler_;
 
     /// Condition variable to manage pausing of the control loop
     std::condition_variable pausedCV_{};

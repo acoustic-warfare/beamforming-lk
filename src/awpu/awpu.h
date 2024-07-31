@@ -13,9 +13,7 @@
 #include "mimo.h"
 #include "pso_seeker.h"
 #include "antenna.h"
-#if AUDIO
-#include "audio/audio_wrapper.h"
-#endif
+#include "audio_wrapper.h"
 #include "pipeline.h"
 #include "worker.h"
 
@@ -36,14 +34,14 @@ public:
      * @param small_res Resolution for MIMO processing.
      * @param verbose For extra logging.
      */
-    AWProcessingUnit(const char *address, const int port, float fov = FOV, int small_res = MIMO_SIZE, int verbose = 1);
+    AWProcessingUnit(const char *address, const int port, float fov = FOV, int small_res = MIMO_SIZE, int verbose = 1, bool use_audio = false);
 
     /**
      * @brief Constructor for AWProcessingUnit with a pipeline.
      * @param pipeline The processing pipeline.
      * @param verbose For extra logging.
      */
-    AWProcessingUnit(Pipeline *pipeline, int verbose = 1);
+    AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool use_audio = false);
 
     /**
      * @brief Destructor, cleanups of resources.
@@ -142,9 +140,7 @@ protected:
     std::vector<Antenna> antennas;
 
     /// Optional audio wrapper for handling audio playback
-    #if AUDIO
     std::optional<AudioWrapper> audioWrapper;
-    #endif
 };
 
 #endif //BEAMFORMER_AWPU_H

@@ -7,7 +7,7 @@ find_package(OpenCV REQUIRED)
 # Include directories for OpenCV
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-set(SOURCES 
+set(DSP_SOURCES 
     delay.h
     delay.cpp
     particle.h
@@ -20,10 +20,12 @@ set(SOURCES
     gradient_ascend.cpp
 )
 
-add_library(dsp STATIC ${SOURCES})
+set(SOURCES ${SOURCES} ${DSP_SOURCES})
+
+add_library(dsp STATIC ${DSP_SOURCES})
 target_include_directories(dsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(dsp PRIVATE 
-    geometry
+target_link_libraries(dsp PUBLIC
+    #geometry
     fpga
     Eigen3::Eigen
     ${OpenCV_LIBS}
@@ -33,10 +35,10 @@ target_link_libraries(dsp PRIVATE
 
 add_executable(dsp_test
     main.cpp
-    ${SOURCES}
+    ${DSP_SOURCES}
 )
 target_link_libraries(dsp_test PRIVATE
-    geometry
+    #geometry
     fpga
     Eigen3::Eigen
     ${OpenCV_LIBS}
