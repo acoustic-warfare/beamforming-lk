@@ -15,51 +15,97 @@
 #include "../pipeline.h"
 #include "../streams.hpp"
 #include "../worker.h"
+#include "algorithms_common.h"
 
-/**
- * @class GradientParticle
- * @brief TODO:
- */
-class GradientParticle {
-public:
+#define SEEKER_RESET_COUNTER 128
+#define SEEKER_SPREAD TO_RADIANS(15)
+#define TRACKER_STEPS 5
+#define TRACKER_SLOWDOWN 1 / 50.0
+#define TRACKER_CLOSENESS M_PI / 40.0
+#define TRACKER_ERROR_THRESHOLD 1e-1
+#define TRACKER_MAX 5
+#define TRACKER_SPREAD TO_RADIANS(5)
+
+
+#define MONOPULSE_DIRECTIONS 4
+
+struct GradientParticle : public Particle {
+
+    /**
+     * Spread between the Monopulse angles
+     */
+    double spread;
+
+    /**
+     * Monopulse spread of directions with origin at `directionCurrent`
+     * 
+     *             NORTH
+     * WEST  directionCurrent  EAST
+     *             SOUTH
+     */
+    Spherical directionNearby[MONOPULSE_DIRECTIONS];
+
+
+    /**
+     * The absolute error for the angular gradient with zero being perfect
+     */
+    float gradientError = 0.0;
+
+    GradientParticle(Antenna &antenna, Streams *streams, double fov, double spread);
+
+    /**
+     * Find nearby angles for monopulse directions
+     */
+    void findNearby();
+
+    /**
+     * Step in the current direction using the result from the monopulse response as 
+     * guidance
+     */
+    void step(const double rate);
+};
+
+struct GradientSeeker : public GradientParticle {
+    /**
+     * If the seeker has jumped
+     */
     bool jumped = false;
-    bool tracking;
-    Spherical directionCurrent;
-    Spherical directionNearby[4];
-    Spherical directionGradient;
-    Spherical directionBest;
-    float magnitude;
-    float gradient;
-    Antenna &antenna;
-    Streams *streams;
 
-    // Monopulse require comparing 4 items
-    int offset_delays[4][ELEMENTS];
-    float fractional_delays[4][ELEMENTS];
+    GradientSeeker(Antenna &antenna, Streams *streams, double fov, double spread = TO_RADIANS(SEEKER_SPREAD));
 
-    float epsilon;
-    double delta;
+    /**
+     * Jump to another position in the search domain relative to the current position
+     */
+    void jump();
+};
 
+struct GradientTracker : public GradientParticle {
+    /**
+     * Mode of particle
+     */
+    bool tracking = false;
+
+    /**
+     * When particle first started tracking something
+     */
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
 
-    GradientParticle(Antenna &antenna, Streams *streams);
+    GradientTracker(Antenna &antenna, Streams *streams, double fov, double spread = TO_RADIANS(TRACKER_SPREAD));
 
-    void nearby();
-    void jump();
-    void step(double rate);
+    /**
+     * Allow the tracker to follow in a certain direction
+     */
+    void startTracking(Spherical direction);
 
-    void random();
-    void update();
+    /**
+     * Stop tracking process
+     */
+    void stopTracking();
 
-    void track(Spherical direction);
-    bool isClose(const GradientParticle &other, const double angle);
-    bool isClose(const Spherical &direction, const double angle);
-
-    bool operator>(const GradientParticle &other) const {
-        return start > other.start;
-    }
-
-private:
+    /**
+     * Overload greater than
+     */
+    bool operator>(const GradientTracker &other) const;
 };
 
 
@@ -75,20 +121,29 @@ public:
         return worker_t::GRADIENT;
     };
 
+    int seekerResetCounter = SEEKER_RESET_COUNTER;
+    double seekerSpread = SEEKER_SPREAD;
+    int trackerSteps = TRACKER_STEPS;
+    double trackerSlowdown = TRACKER_SLOWDOWN;
+    double trackerCloseness = TRACKER_CLOSENESS;
+    double trackerErrorThreshold = TRACKER_ERROR_THRESHOLD;
+    int trackerMax = TRACKER_MAX;
+    double trackerSpread = TRACKER_SPREAD;
+
 protected:
-    void update()override;
-    void reset()override;
-    void populateHeatmap(cv::Mat *heatmap)override;
+    void update() override;
+    void reset() override;
+    void populateHeatmap(cv::Mat *heatmap) override;
 
 private:
-    float mean = 0.0;
+    double mean = 0.0;
     float fov;
     int resetCount = 0;
     std::size_t n_trackers;
     std::size_t iterations;
     std::size_t swarm_size;
-    std::vector<GradientParticle> particles;
-    std::vector<GradientParticle> currentTrackers;
+    std::vector<GradientSeeker> seekers;
+    std::vector<GradientTracker> trackers;
 
     void initialize_particles();
 };
