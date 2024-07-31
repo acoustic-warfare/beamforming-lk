@@ -25,7 +25,7 @@ if [ -z "$(uname -a | grep PREEMPT_RT)" ]; then
     echo "Please install one: https://ubuntu.com/pro"
     RT_ARGS=""
 else
-    RT_ARGS="--network=host --ulimit rtprio=99 --cpus=$(nproc) --cap-add=SYS_NICE"
+    RT_ARGS="--ulimit rtprio=99 --cpus=$(nproc) --cap-add=SYS_NICE"
 fi
 
 install_docker () {
@@ -65,7 +65,9 @@ AUDIO_ARGS="-e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIM
 # Starting the container
 docker run -it \
     $RT_ARGS \
+    --network=host \
     -v $(pwd):/usr/src/app \
+    --device /dev/video2 \
     -e DISPLAY=$DISPLAY  \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     $AUDIO_ARGS \
