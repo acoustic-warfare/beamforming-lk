@@ -42,26 +42,21 @@ AWProcessingUnit::~AWProcessingUnit() {
         stop_audio();
     }
 
-    for (auto it = workers.begin(); it != workers.end();) {
-        it = workers.erase(it);
-        delete (*it);
-    }
-
     if (verbose) {
         std::cout << "Destructing AWPU" << std::endl;
     }
 
-    pipeline->disconnect();
-    delete pipeline;
+    pipeline->disconnect();    
 
     for (auto &job: workers) {
         delete job;
     }
+
+    delete pipeline;
 }
 
 void AWProcessingUnit::setupAntennas() {
     int n_antennas = this->pipeline->get_n_sensors() / ELEMENTS;
-    std::cout << n_antennas << "  " << this->pipeline->get_n_sensors() << " "<<ELEMENTS<< std::endl;
     antennas.clear();
     for (int n_antenna = 0; n_antenna < n_antennas; n_antenna++) {
         Antenna antenna = create_antenna(Position(0, 0, 0), COLUMNS, ROWS, DISTANCE);
