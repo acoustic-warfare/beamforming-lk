@@ -15,6 +15,5 @@ jobs:
       - name: Run cmake in the Docker image
         run: |
           docker run --rm -v ${{ github.workspace }}:/usr/src/app -w /usr/src/app karlkorv/beamformer:latest /bin/bash -c "
-            mkdir -p /build &&
-            cmake -S . -B /build &&
-            cmake --build /build"
+            sudo cmake -S . -B /build &&
+            sudo cmake --build /build"
