@@ -7,9 +7,16 @@ jobs:
   build-image:
     runs-on: ubuntu-latest
     container:
-      image:  karlkorv/beamformer:latest
+      image: karlkorv/beamformer:latest
     steps:
       - uses: actions/checkout@v4
-         
+
+      - name: Ensure dependencies are installed
+        run: |
+          apt-get update
+          apt-get install -y cmake
+
       - name: Run cmake in the Docker image
-        run: cmake -S . -B /build && cmake --build /build"
+        run: |
+          cmake -S . -B /build
+          cmake --build /build
