@@ -7,7 +7,8 @@
 #include "nlohmann/json.hpp"
 #include <opencv2/core/matx.hpp>
 
-Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2) {
+
+Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2, const double distance_threshold) {
     using Vec3 = Eigen::Vector3d;
 
     const Vec3 r1 = l1.origin();
@@ -22,7 +23,7 @@ Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::
     const Vec3 closestPoint1 = r1 + e1 * t1;
     const Vec3 closestPoint2 = r2 + e2 * t2;
 
-    if((closestPoint1 - closestPoint2).norm() > 1 || (closestPoint1 + closestPoint2).z() < 0) {
+    if((closestPoint1 - closestPoint2).norm() > distance_threshold || (closestPoint1 + closestPoint2).z() < 0) { // z is outwards, we can never triangulate behind us
         return Vec3::Zero();
     }
 

@@ -53,6 +53,16 @@ double smallestAngle(double target, double current);
 typedef Eigen::Vector3f Position;
 
 /**
+ * Rotation around Z-axis
+ */
+Eigen::Matrix3f rotateZ(float angle);
+
+/**
+ * Rotation around Y-axis
+ */
+Eigen::Matrix3f rotateY(float angle);
+
+/**
  * @brief Rotation around Z-axis.
  * @param angle Angle of rotation in radians.
  * @return A 3x3 rotation matrix for rotation around the Z-axis.

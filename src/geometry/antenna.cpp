@@ -13,6 +13,9 @@ bool in_sector(const int *sector, const int i) {
             ((sector[12] <= i) && (i <= sector[15])));
 }
 
+/**
+ * Check if integer is in sector
+ */
 bool in_sector(const int sector_index, const int i) {
     const int *sector;
 

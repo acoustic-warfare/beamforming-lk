@@ -13,7 +13,7 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fo
     setupAntennas();
 
 
-    if (use_audio) {
+    if constexpr (use_audio) {
         audioWrapper.emplace(pipeline);
     }
 
@@ -24,7 +24,7 @@ AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool use_aud
     this->pipeline->connect();
     setupAntennas();
 
-    if (use_audio) {
+    if constexpr (use_audio) {
         audioWrapper.emplace(pipeline);
     }
 
