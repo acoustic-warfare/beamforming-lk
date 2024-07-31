@@ -63,7 +63,7 @@ void AWControlUnit::Start() {
     }
     if (usingWaraPS_) {
         client_.Stop();
-        targetHandler_.Stop();
+        //targetHandler_.Stop();
         data_thread_.join();
     }
 }

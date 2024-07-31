@@ -70,6 +70,13 @@ docker run -it \
     beamformer bash
 
 
+docker run -it \
+    --network=host --ulimit rtprio=99 --cpus=$(nproc) --cap-add=SYS_NICE \
+    -v $(pwd):/usr/src/app \
+    -e DISPLAY=$DISPLAY  \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --user=newuser \
+    stuff bash
 
 
 

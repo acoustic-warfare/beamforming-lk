@@ -199,8 +199,6 @@ set(SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/aw_control_unit.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/algorithms/triangulate.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/WaraPS/target_handler.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rtmp.hpp
 )
 
 
@@ -208,7 +206,6 @@ set(SOURCES
 add_executable(beamformer
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
         ${SOURCES}
-        ${GSTREAMER}
 )
 
 # Linking
@@ -218,7 +215,7 @@ target_link_libraries(beamformer
         portaudio
         gps
         WaraPSClient::WaraPSClient
-        ${GSTREAMER_LIBS}
+        DynRT
 )
 
 target_include_directories(beamformer PUBLIC ${Boost_INCLUDE_DIRS})
