@@ -211,22 +211,6 @@ private:
 
     /// Lock to prevent multiple access from outside and inside
     std::mutex lock;
-
-    /**
-     * Worker main loop
-     */
-    void loop() {
-        while (looping && pipeline->isRunning()) {
-            // Wait for incoming data
-            pipeline->barrier();
-
-            start = pipeline->mostRecent();
-            lock.lock();
-            reset();
-            update();
-            lock.unlock();
-        }
-    }
 };
 
 #endif //BEAMFORMER_WORKER_H
