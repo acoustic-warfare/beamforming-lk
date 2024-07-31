@@ -105,8 +105,9 @@ protected:
 
     // WARA PS Related variables
     std::thread targetThread_;
-    WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS, std::getenv("MQTT_USERNAME"),
-                                              std::getenv("MQTT_PASSWORD"));
+    WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS,
+    std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
+    std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD"));
     gps_data_t *gpsData_;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 

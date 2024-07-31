@@ -7,7 +7,6 @@
 #ifndef BEAMFORMER_AW_CONTROL_UNIT_H
 #define BEAMFORMER_AW_CONTROL_UNIT_H
 
-#include <libgpsmm.h>
 #include <wara_ps_client.h>
 
 #include <condition_variable>
@@ -15,7 +14,6 @@
 
 #include "target_handler.h"
 #include "awpu.h"
-#include "config.h"
 
 /**
  * @class AWControlUnit
@@ -39,7 +37,7 @@ private:
     std::vector<AWProcessingUnit> awpus_;
 
     /// Classifies and draws targets to the WARA PS display
-    //TargetHandler targetHandler_;
+    TargetHandler targetHandler_;
 
     /// Condition variable to manage pausing of the control loop
     std::condition_variable pausedCV_{};
