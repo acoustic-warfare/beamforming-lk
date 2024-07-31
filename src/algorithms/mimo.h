@@ -9,6 +9,7 @@
 #include <Eigen/Dense>
 #include <atomic>
 
+#include "../worker.h"
 #include "../antenna.h"
 #include "../config.h"
 #include "../delay.h"

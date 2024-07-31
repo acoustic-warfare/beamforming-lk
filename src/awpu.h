@@ -11,6 +11,8 @@
 
 #include "algorithms/gradient_ascend.h"
 #include "algorithms/mimo.h"
+#include "algorithms/gradient_ascend.h"
+#include "algorithms/mimo.h"
 #include "algorithms/pso_seeker.h"
 #include "antenna.h"
 #include "audio/audio_wrapper.h"

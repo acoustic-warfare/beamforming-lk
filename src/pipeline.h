@@ -23,6 +23,8 @@
 #include "receiver.h"
 #include "streams.hpp"
 
+#define DEBUG_PIPELINE 1
+
 /**
  * @class Pipeline
  * @brief Establishes and manages a communication pipeline between the PC and FPGA.

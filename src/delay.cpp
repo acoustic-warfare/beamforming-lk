@@ -30,6 +30,7 @@ void delay(float *out, const float *signal, const float fraction) {
 
 #else
 
+#if 1
 void delay(float *out, const float *signal, const float fraction) {
     for (int i = 0; i < N_SAMPLES; i++) {
         out[i] += signal[i + 1] + fraction * (signal[i] - signal[i + 1]);
