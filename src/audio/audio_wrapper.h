@@ -88,6 +88,12 @@ public:
     AudioWrapper operator=(AudioWrapper &&) = delete;
 
     /**
+     * @brief Control if audio(-file) processing is running.
+     * @return True if audio is recording, false otherwise.
+     */
+    bool isRunning() { return this->is_on_; };
+
+    /**
     * @brief Fetches the pipeline.
     */
     Pipeline *getPipeline();

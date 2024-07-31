@@ -39,7 +39,7 @@ AWProcessingUnit::~AWProcessingUnit() {
 
     pause();
 
-    if (AUDIO) {
+    if (AUDIO && audioWrapper->isRunning()) {
         stop_audio();
     }
 
