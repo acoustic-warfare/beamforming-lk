@@ -19,7 +19,7 @@ void AWControlUnit::Start() {
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
-    if (USE_AUDIO) {
+    if constexpr (USE_AUDIO) {
         awpu1.play_audio();
     }
 
@@ -30,7 +30,8 @@ void AWControlUnit::Start() {
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
     targetHandler_.AddAWPU(&awpu1, {2.6, 0, 0})
-            .AddAWPU(&awpu2, {-2.6, 0, 0});
+            .AddAWPU(&awpu2, {-2.6, 0, 0})
+            .Start();
 
     if (usingWaraPS_) {
         data_thread_ = std::thread([this] {
@@ -39,9 +40,9 @@ void AWControlUnit::Start() {
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         });
+        targetHandler_.DisplayToWaraPS(true);
     }
 
-    targetHandler_.Start();
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
         awpu1.draw_heatmap(&frame);

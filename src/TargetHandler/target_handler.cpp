@@ -5,17 +5,15 @@
 
 #include "target_handler.h"
 
-#include <ranges>
-
 #include "triangulate.h"
 
 void TargetHandler::Stop() {
     *running = false;
     workerThread_.join();
-    if(debugLogging_)
+    if constexpr (debugLogging_)
         logFile_.close();
 
-    DisplayTarget(false);
+    DisplayToWaraPS(false);
 }
 
 TargetHandler::~TargetHandler() {
@@ -23,7 +21,7 @@ TargetHandler::~TargetHandler() {
 }
 
 void TargetHandler::Start() {
-    if(debugLogging_)
+    if constexpr (debugLogging_)
         logFile_.open("Targets.txt");
     *running = true;
     workerThread_ = std::thread([&] {
@@ -65,7 +63,8 @@ void TargetHandler::FindIntersects(std::vector<std::vector<Target> > &targets) {
         }
     }
 
-    FindIntersectsRecursively(translatedTargets[0], translatedTargets.begin() + 1, translatedTargets.end(), foundTargets);
+    FindIntersectsRecursively(translatedTargets[0], translatedTargets.begin() + 1, translatedTargets.end(),
+                              foundTargets);
 }
 
 void TargetHandler::UpdateTracks() {
@@ -101,7 +100,7 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
             return;
         }
 
-        if (constexpr double targetMaximumDistance = 1;
+        if (const double targetMaximumDistance = 1 + log(tracks_[i].hits);
             abs(target.position.x() - tracks_[i].position.x()) < targetMaximumDistance &&
             abs(target.position.y() - tracks_[i].position.y()) < targetMaximumDistance &&
             abs(target.position.z() - tracks_[i].position.z()) < targetMaximumDistance) {
@@ -120,9 +119,9 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
 }
 
 void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
-                                           const std::vector<std::vector<CartesianTarget> >::iterator begin,
-                                           const std::vector<std::vector<CartesianTarget> >::iterator end,
-                                           std::vector<TriangulatedTarget> &out) {
+                                              const std::vector<std::vector<CartesianTarget> >::iterator begin,
+                                              const std::vector<std::vector<CartesianTarget> >::iterator end,
+                                              std::vector<TriangulatedTarget> &out) {
     if (begin == end) {
         return;
     }
@@ -137,18 +136,15 @@ void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCo
                 }
 
 
-                logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
-                        transpose() << ";"
-                        << otherTarget.directionLine.origin().transpose() << "," << otherTarget.directionLine.
-                        direction().transpose() << std::endl;
-
                 Eigen::Vector3d intersection = triangulatePoint(target.directionLine, otherTarget.directionLine);
 
-                if (debugLogging_) {
+                if constexpr (debugLogging_) {
                     logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
                             transpose() << ";"
                             << otherTarget.directionLine.origin().transpose() << "," << otherTarget.directionLine.
-                            direction().transpose() << std::endl;
+                            direction().transpose() << ";" << std::chrono::system_clock::now().time_since_epoch().
+                            count() <<
+                            std::endl;
                 }
 
                 if (intersection.norm() == 0 || intersection.norm() > 50) {
@@ -170,7 +166,10 @@ void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCo
 }
 
 
-void TargetHandler::DisplayTarget(const bool toggle) {
+void TargetHandler::DisplayToWaraPS(const bool toggle) {
+    if (gpsData_ == nullptr)
+        return;
+
     if (!toggle && targetThread_.joinable()) {
         targetClient_.Stop();
         targetThread_.join();
@@ -192,6 +191,19 @@ void TargetHandler::DisplayTarget(const bool toggle) {
 
     targetThread_ = std::thread([&] {
         while (targetClient_.running()) {
+            Eigen::Vector3d outPosition{
+                bestTrack_.position.x(), bestTrack_.position.z(), bestTrack_.position.y()
+            };
+
+            int validTracks = 0;
+
+            for (auto track: tracks_) {
+                if (!track.valid)
+                    continue;
+                validTracks++;
+                std::cout << track.position.transpose() << std::endl;
+            }
+
             std::this_thread::sleep_for(waraPSUpdateInterval_);
 
             if (!isfinite(gpsData_->fix.latitude) ||
@@ -201,11 +213,8 @@ void TargetHandler::DisplayTarget(const bool toggle) {
             }
 
 
-            Eigen::Vector3d outPosition{
-                bestTrack_.position.x(), bestTrack_.position.z(), bestTrack_.position.y()
-            };
+            std::cout << "Currently tracking " << validTracks << " tracks" << std::endl;
 
-            std::cout << "Best target: " << outPosition.transpose() << " Hits: " << bestTrack_.hits << std::endl;
 
             const nlohmann::json targetJson = PositionToGPS(outPosition, *gpsData_);
 

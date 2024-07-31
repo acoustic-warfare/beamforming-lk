@@ -27,7 +27,14 @@
  */
 class TargetHandler {
 public:
-    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {}
+    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {
+    }
+
+    TargetHandler(const TargetHandler &) = delete;
+
+    TargetHandler operator=(const TargetHandler &) = delete;
+
+    // Implicitly deleted move constructor and move assignment operator
 
     ~TargetHandler();
 
@@ -55,13 +62,13 @@ public:
      * @param position The physical position of the microphone array in relation to ljudkriget (origin)
      * @return Self reference for cool chaining actions
      */
-     TargetHandler& AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d& position);
+    TargetHandler &AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d &position);
 
     /**
      * @brief Set the target display on the WARA PS display
      * @param toggle bool
      */
-    void DisplayTarget(bool toggle);
+    void DisplayToWaraPS(bool toggle);
 
     /**
      * @brief Get the current best target (i.e the current active track with the most hits)
@@ -92,7 +99,7 @@ protected:
     /**
      * @brief Track struct for intersected target quality tracking
      */
- struct Track {
+    struct Track {
         Eigen::Vector3d position;
         std::chrono::time_point<std::chrono::steady_clock> timeLastHit;
         bool valid;
@@ -102,19 +109,19 @@ protected:
     std::vector<Track> tracks_;
     Track bestTrack_{Eigen::Vector3d::Zero(), std::chrono::steady_clock::now(), false, 0};
 
-
-    // WARA PS Related variables
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS,
     std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
-    std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD"));
-    gps_data_t *gpsData_;
+    std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD") == nullptr
+                                                  ? ""
+                                                  : std::getenv("MQTT_PASSWORD"));
+    gps_data_t *gpsData_ = nullptr;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 
-    static constexpr bool debugLogging_ = false;
+    static constexpr bool debugLogging_ = true;
     std::ofstream logFile_;
 
-    std::vector<AWProcessingUnit*> awpus_;
+    std::vector<AWProcessingUnit *> awpus_;
     std::vector<Eigen::Vector3d> awpu_positions_;
 
     double minGradient_ = 5;
@@ -129,12 +136,12 @@ protected:
     void CheckTracksForTarget(TriangulatedTarget &target);
 
     // Mysig funktionssignatur, precis lagom lång
-     void FindIntersectsRecursively(
-         std::vector<CartesianTarget> &toCompare,
-         std::vector<std::vector<CartesianTarget>>::iterator begin,
-         std::vector<std::vector<CartesianTarget>>::iterator end,
-         std::vector<TriangulatedTarget> &out
-     );
+    void FindIntersectsRecursively(
+        std::vector<CartesianTarget> &toCompare,
+        std::vector<std::vector<CartesianTarget> >::iterator begin,
+        std::vector<std::vector<CartesianTarget> >::iterator end,
+        std::vector<TriangulatedTarget> &out
+    );
 };
 
 

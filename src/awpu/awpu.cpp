@@ -4,6 +4,9 @@
 
 #include "awpu.h"
 
+#include "gradient_ascend.h"
+#include "mimo.h"
+
 AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fov, int small_res, int verbose, bool use_audio) : fov(fov), small_res(small_res), verbose(verbose), audioWrapper(std::nullopt) {
 
     // Allocate memory for pipeline
@@ -13,7 +16,7 @@ AWProcessingUnit::AWProcessingUnit(const char *address, const int port, float fo
     setupAntennas();
 
 
-    if (use_audio) {
+    if  (use_audio) {
         audioWrapper.emplace(pipeline);
     }
 
@@ -24,7 +27,7 @@ AWProcessingUnit::AWProcessingUnit(Pipeline *pipeline, int verbose, bool use_aud
     this->pipeline->connect();
     setupAntennas();
 
-    if (use_audio) {
+    if  (use_audio) {
         audioWrapper.emplace(pipeline);
     }
 

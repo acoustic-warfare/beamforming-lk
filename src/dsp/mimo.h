@@ -9,10 +9,9 @@
 #include <Eigen/Dense>
 #include <atomic>
 
-#include "antenna.h"
-#include "delay.h"
-#include "pipeline.h"
 #include "worker.h"
+#include "antenna.h"
+#include "pipeline.h"
 
 #if 1
 /** 

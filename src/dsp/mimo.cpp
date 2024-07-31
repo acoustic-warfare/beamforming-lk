@@ -4,6 +4,8 @@
 
 #include "mimo.h"
 
+#include "delay.h"
+
 #define USE_REFERENCE 0
 #define USE_DB 0
 
