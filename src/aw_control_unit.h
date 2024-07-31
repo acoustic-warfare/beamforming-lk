@@ -1,49 +1,69 @@
-//
-// Created by janne on 2024-07-04.
-//
+/** @file aw_control_unit.h
+ * @author Janne
+ * @brief Manages AW Processing Units (AWPU) and handles data publishing, GPS data, and WaraPS client communication.
+ * @date 2024-07-04
+ */
 
 #ifndef BEAMFORMER_AW_CONTROL_UNIT_H
 #define BEAMFORMER_AW_CONTROL_UNIT_H
 
-
-#include <vector>
 #include <libgpsmm.h>
-#include <condition_variable>
 #include <wara_ps_client.h>
-#include "awpu.h"
-#include "WaraPS/TargetHandler.h"
 
+#include <condition_variable>
+#include <vector>
+
+#include "WaraPS/target_handler.h"
+#include "awpu.h"
+
+/**
+ * @class AWControlUnit
+ * @brief Manages AW Processing Units (AWPU) and handles data publishing, GPS data, and WaraPS client communication.
+ */
 class AWControlUnit {
 private:
-    std::vector<AWProcessingUnit> processingUnits;
+    /// WaraPS client instance
     WaraPSClient client_;
-    gps_data_t gpsData_{};
+    /// Thread for running the WaraPS client
     std::thread data_thread_;
-
-    std::vector<AWProcessingUnit> awpus_;
-
-    TargetHandler targetHandler_;
-
-    bool usingGps_ = false;
+    /// Flag to indicate if WaraPS should be used
     bool usingWaraPS_ = false;
 
-    std::condition_variable pausedCV_{};
-    std::mutex pauseMutex_;
+    /// GPS data structure
+    gps_data_t gpsData_{};
+    /// Flag to indicate if GPS should be used
+    bool usingGps_ = false;
 
+    /// Vector of AW Processing Units, to differentiate between APWUs (FPGAs)
+    std::vector<AWProcessingUnit> awpus_;
+
+    /// Classifies and draws targets to the WARA PS display
+    TargetHandler targetHandler_;
+
+    /// Condition variable to manage pausing of the control loop
+    std::condition_variable pausedCV_{};
+    /// Mutex to protect the pause condition variable
+    std::mutex pauseMutex_;
+    /// Flag to indicate if the unit is paused
     bool paused_ = false;
 
+    /**
+     * @brief Publishes data from the control unit.
+     */
     void publishData();
+
 public:
+    /**
+     * @brief Default constructor for AWControlUnit.
+     */
     AWControlUnit();
-    AWControlUnit(const AWControlUnit&) = delete;
-    AWControlUnit operator=(const AWControlUnit&) = delete;
+    AWControlUnit(const AWControlUnit &) = delete;
+    AWControlUnit operator=(const AWControlUnit &) = delete;
 
     /**
-     * Spools up the AW Control unit and blocks the current thread until it finished.
+     * @brief Spools up the AW Control unit and blocks the current thread until it finished.
      */
     void Start();
-
 };
-
 
 #endif //BEAMFORMER_AW_CONTROL_UNIT_H

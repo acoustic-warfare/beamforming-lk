@@ -1,32 +1,26 @@
-//
-// Created by janne on 2024-07-04.
-//
+/** @file aw_control_unit.cpp
+ * @author Janne, Irreq, Tuva
+ * @date 2024-07-04
+*/
 
-#include <stdexcept>
+#include "aw_control_unit.h"
+
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include "aw_control_unit.h"
+#include <stdexcept>
 
-#include "WaraPS/TargetHandler.h"
+#include "WaraPS/target_handler.h"
 
 void AWControlUnit::Start() {
-    try {
-        client_.Start();
-        usingWaraPS_ = true;
-    } catch (std::runtime_error &e) {
-        std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
-        std::cout << "Continuing without WARA PS Connection" << std::endl;
-        usingWaraPS_ = false;
-    }
-
-    auto awpu1 = AWProcessingUnit("10.0.0.1", 21875);
-    auto awpu2 = AWProcessingUnit("10.0.0.1", 21878);
+    auto awpu2 = AWProcessingUnit("10.0.0.1", 21875);
+    auto awpu1 = AWProcessingUnit("10.0.0.1", 21876);
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
-    targetHandler_ << &awpu1 << &awpu2;
-    targetHandler_.Start();
+    if (USE_AUDIO) {
+        awpu1.play_audio();
+    }
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
     cv::resizeWindow(APPLICATION_NAME, APPLICATION_WIDTH, APPLICATION_HEIGHT);
@@ -34,7 +28,10 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
-    if (usingWaraPS_)
+    targetHandler_.AddAWPU(&awpu1, {2.6, 0, 0})
+            .AddAWPU(&awpu2, {-2.6, 0, 0});
+
+    if (usingWaraPS_) {
         data_thread_ = std::thread([this] {
             while (client_.running()) {
                 publishData();
@@ -42,6 +39,9 @@ void AWControlUnit::Start() {
             }
         });
 
+        targetHandler_.DisplayToWaraPS(true);
+        targetHandler_.Start();
+    }
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
         awpu1.draw_heatmap(&frame);
@@ -68,6 +68,9 @@ void AWControlUnit::Start() {
         targetHandler_.Stop();
         data_thread_.join();
     }
+    if (USE_AUDIO) {
+        awpu1.stop_audio();
+    }
 }
 
 // Publishes data every second
@@ -81,9 +84,9 @@ void AWControlUnit::publishData() {
             // Sending NaN breaks WARA PS Arena
 
             const nlohmann::json gpsJson = {
-                {"longitude", std::to_string(gpsData_.fix.longitude)},
-                {"latitude", std::to_string(gpsData_.fix.latitude)},
-                {"altitude", std::to_string(gpsData_.fix.altitude)},
+                {"longitude", gpsData_.fix.longitude},
+                {"latitude", gpsData_.fix.latitude},
+                {"altitude", gpsData_.fix.altitude},
                 {"type", "GeoPoint"}
             };
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
@@ -98,7 +101,8 @@ void AWControlUnit::publishData() {
 
 AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,
                                          std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
-                                         std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")) {
+                                         std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")),
+                                 targetHandler_(&gpsData_) {
     int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
     gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
 
@@ -108,5 +112,14 @@ AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,
         usingGps_ = false;
     } else {
         usingGps_ = true;
+    }
+
+    try {
+        client_.Start();
+        usingWaraPS_ = true;
+    } catch (std::runtime_error &e) {
+        std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
+        std::cout << "Continuing without WARA PS Connection" << std::endl;
+        usingWaraPS_ = false;
     }
 }

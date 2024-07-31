@@ -1,18 +1,11 @@
-/*
- * A functional approach to Antenna computation for Digital Antenna Arrays (DAA)
- *
- * This file contains functions for creating, moving, rotating, combining DAA's
- *
- * We use the physics convention where theta \in [0, pi/2] and \phi \in [0, 2*pi)
+/** @file antenna.cpp
+ * @author Irreq
  */
 
 #include "antenna.h"
 
 #include <iostream>
 
-/**
- * Check if integer is in sector
- */
 bool in_sector(const int *sector, const int i) {
     return (((sector[0] <= i) && (i <= sector[3])) ||
             ((sector[4] <= i) && (i <= sector[7])) ||
@@ -50,36 +43,20 @@ bool in_sector(const int sector_index, const int i) {
 inline double spherical_distance(const double target_theta,
                                  const double target_phi,
                                  const double current_theta,
-                                 const double current_phi) 
-{
+                                 const double current_phi) {
     double north_target_theta = PI_HALF - target_theta;
     double north_current_theta = PI_HALF - current_theta;
     return acos(sin(north_target_theta) * sin(north_current_theta) + cos(north_target_theta) * cos(north_current_theta) * cos(fabs(target_phi - current_phi)));
 }
 
-
-
-/**
- * @brief Helper function to return the middle point of the antenna
- *
- * @param antenna Antenna object
- * @return the point in 3D space of its center
- */
 inline Position find_middle(const Antenna &antenna) {
     return antenna.points.colwise().mean();
 }
 
-/**
- * Place the antenna by positioning the center @ new position
- */
 void place_antenna(Antenna &antenna, const Position position) {
     antenna.points.rowwise() += position.transpose() - find_middle(antenna).transpose();
 }
 
-/**
- * Generate a new antenna by specific options and place it ad the desired
- * position.
- */
 Antenna create_antenna(const Position &position, const int columns,
                        const int rows, const float distance) {
     float half = distance / 2;
@@ -109,12 +86,6 @@ Antenna create_antenna(const Position &position, const int columns,
     return antenna;
 }
 
-/**
- * Compute the delay in regard to the Z value. Since the antenna is being
- * thought as a point cloud laying on the XY plane, the Z value will be the
- * distance to the target and is used to calculate the necessary delays to
- * accomodate for a planar wave
- */
 Eigen::VectorXf compute_delays(const Antenna &antenna) {
     Eigen::VectorXf delays =
             antenna.points.row(Z_INDEX).array() * (SAMPLE_RATE / PROPAGATION_SPEED);
@@ -125,15 +96,6 @@ Eigen::VectorXf compute_delays(const Antenna &antenna) {
     return delays;
 }
 
-/**
- * Perform a rotation of the antenna in 3D space. This rotation consist of 3
- * rotations where the antenna must be projected onto the XY plane (Z values are
- * 0) (ZXZ extrinsic rotations). It is then rotated around the Z axis and
- * rotated around the X axis followed by the a negative rotation around the Z
- * axis to undo the first rotation. This "tilts" the rotation in 3D space while
- * still keeping each element in the viscinity of its initial position. No
- * elements have crossed paths.
- */
 inline Antenna steer(const Antenna &antenna, const double theta, const double phi) {
 
     // Perform the rotation. Order of operations are important
@@ -144,10 +106,6 @@ inline Antenna steer(const Antenna &antenna, const double theta, const double ph
     return rotated;
 }
 
-/**
- * Steer the antenna using horizontal angles. bore-sight is the x-axis and azimuth is the left-to right angles and elevation 
- * is up and down.
- */
 Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double azimuth, const double elevation) {
     double x = sin(azimuth);
     double y = sin(elevation);
@@ -158,11 +116,6 @@ Eigen::VectorXf steering_vector_horizontal(const Antenna &antenna, const double 
     return compute_delays(steered);
 }
 
-/**
- * Calculate the delays when antenna is steered towards a specific point located
- * on the unitsphere on the positive Z axis. A point may also not be located on
- * the unitsphere, however it must have a Z value >= 0
- */
 Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position &point) {
     double azimuth = atan2((double) point(Y_INDEX), (double) point(X_INDEX));
     double elevation = M_PI / 2.0f - asin((double) point(Z_INDEX));
@@ -170,22 +123,15 @@ Eigen::VectorXf steering_vector_cartesian(const Antenna &antenna, const Position
     return steering_vector_horizontal(antenna, azimuth, elevation);
 }
 
-/**
- * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
- */
 Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const double theta, const double phi) {
     Antenna steered = steer(antenna, theta, phi);
     return compute_delays(steered);
 }
 
-/**
- * Steer the antenna usin spherical coordinates where phi begins at Z+ axis
- */
 Eigen::VectorXf steering_vector_spherical(const Antenna &antenna, const Spherical &spherical) {
     Antenna steered = steer(antenna, spherical.theta, spherical.phi);
     return compute_delays(steered);
 }
-
 
 Eigen::MatrixXf generate_unit_dome(const int n) {
     Eigen::MatrixXf points(n, 3);// (id, X|Y|Z)
@@ -219,9 +165,9 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
                 float z = std::cos(phi_radians);
 
                 auto dist = static_cast<float>(sqrt(
-                    pow(x - dome(i, X_INDEX), 2) +
-                    pow(y - dome(i, Y_INDEX), 2) +
-                    pow(z - dome(i, Z_INDEX), 2)));
+                        pow(x - dome(i, X_INDEX), 2) +
+                        pow(y - dome(i, Y_INDEX), 2) +
+                        pow(z - dome(i, Z_INDEX), 2)));
 
                 best_match = dist < min_dist ? i : best_match;
                 min_dist = dist < min_dist ? dist : min_dist;
@@ -249,9 +195,9 @@ void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &looku
         float z = cos(phi_radians);
 
         auto dist = static_cast<float>(sqrt(
-            pow(x - point(X_INDEX), 2) +
-            pow(y - point(Y_INDEX), 2) +
-            pow(z - point(Z_INDEX), 2)));
+                pow(x - point(X_INDEX), 2) +
+                pow(y - point(Y_INDEX), 2) +
+                pow(z - point(Z_INDEX), 2)));
 
         if (dist > MAX_ALLOWED_DISTANCE) {
             failed_tests++;

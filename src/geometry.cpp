@@ -1,3 +1,7 @@
+/** @file geometry.cpp
+ * @author Irreq
+*/
+
 #include "geometry.h"
 
 double clip(const double n, const double lower, const double upper) {

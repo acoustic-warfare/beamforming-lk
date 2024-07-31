@@ -1,3 +1,7 @@
+/** @file pipeline.cpp
+ * @author Irreq, Tuva
+*/
+
 #include "pipeline.h"
 
 Pipeline::Pipeline(const char *address, const int port, bool verbose) : address(address), port(port), verbose(verbose), synthetic(false) {
@@ -67,7 +71,6 @@ int Pipeline::connect_real() {
         if (verbose) {
             std::cout << "[Pipeline] Adding stream: " << sensor_index << std::endl;
         }
-        
     }
 
     receiver_thread = std::thread(&Pipeline::producer, this);
@@ -88,7 +91,7 @@ int Pipeline::connect_synthetic() {
         if (verbose) {
             std::cout << "[Pipeline] Adding Synthetic stream: " << sensor_index << std::endl;
         }
-        }
+    }
 
     connected = 1;
 
@@ -178,7 +181,7 @@ int Pipeline::disconnect() {
     if (port != -1) {
         close(socket_desc);
     }
-    
+
 
     std::cout << "Destroyed pipeline" << std::endl;
 
@@ -247,13 +250,14 @@ void Pipeline::producer() {
  */
 void Pipeline::receive_exposure() {
     for (int i = 0; i < N_SAMPLES; i++) {
+        double t = i / SAMPLE_RATE;
         for (int s = 0; s < 1; s++) {
             if (receive_message(socket_desc, &msg) < 0) {
                 std::cerr << "Error exposure" << std::endl;
                 break;
             }
         }
-        
+
 
         // Flip columns
         int inverted = 0;
@@ -274,7 +278,24 @@ void Pipeline::receive_exposure() {
             }
 
             // Normalize mic data between -1.0 and 1.0
-            exposure_buffer[sensor_index][i] = static_cast<float>(msg.stream[index]) / static_cast<float>(MAX_VALUE_FLOAT);
+            float value = static_cast<float>(msg.stream[index]) / static_cast<float>(MAX_VALUE_FLOAT);
+            //I[n] = signal[n] * std::cos(2 * M_PI * f * t);
+#if 0
+            double signal = static_cast<double>(value);
+
+            constexpr double f = 2000.0;
+
+            double I = signal * cos(2 * M_PI * f * t);
+            double Q = signal * sin(2 * M_PI * f * t);
+            double phase = atan2(Q, I);
+            //double magnitude = sqrt(I*I + Q*Q);
+            double magnitude = 1.0;
+            double reconstructed = magnitude * cos(2 * M_PI * f * t + phase);
+
+            exposure_buffer[sensor_index][i] = static_cast<float>(reconstructed);
+#else
+            exposure_buffer[sensor_index][i] = value;
+#endif
         }
     }
 

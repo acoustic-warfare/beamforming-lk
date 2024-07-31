@@ -1,41 +1,44 @@
-//
-// Created by janne on 2024-07-17.
-//
+/** @file triangulate.cpp
+ * @author Janne
+ * @date 2024-07-17
+*/
 
 #include "triangulate.h"
-
+#include "nlohmann/json.hpp"
 #include <opencv2/core/matx.hpp>
 
-Eigen::Vector3d calculateRelativePoint(const Eigen::Vector3d &a, const Eigen::Vector3d &b, const double distance) {
+Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2) {
     using Vec3 = Eigen::Vector3d;
 
-    const Vec3 a_start(-distance / 2, 0, 0);
-    const Vec3 b_start(distance / 2, 0, 0);
+    const Vec3 r1 = l1.origin();
+    const Vec3 e1 = l1.direction();
+    const Vec3 r2 = l2.origin();
+    const Vec3 e2 = l2.direction();
 
-    const Vec3 u = a.normalized();
-    const Vec3 v = b.normalized();
-    const Vec3 w0 = a_start - b_start;
+    const Vec3 n = e1.cross(e2);
+    const double t1 = e2.cross(n).dot(r2-r1)/n.dot(n);
+    const double t2 = e1.cross(n).dot(r2-r1)/n.dot(n);
 
-    const double a_dot_a = u.dot(u);
-    const double b_dot_b = v.dot(v);
-    const double a_dot_b = u.dot(v);
-    const double a_dot_w0 = u.dot(w0);
-    const double b_dot_w0 = v.dot(w0);
+    const Vec3 closestPoint1 = r1 + e1 * t1;
+    const Vec3 closestPoint2 = r2 + e2 * t2;
 
-    const double denominator = a_dot_a * b_dot_b - a_dot_b * a_dot_b;
-
-    if (std::abs(denominator) < 1e-6) {
+    if((closestPoint1 - closestPoint2).norm() > 1 || (closestPoint1 + closestPoint2).z() < 0) {
         return Vec3::Zero();
     }
 
-    const double ta = (a_dot_b * b_dot_w0 - b_dot_b * a_dot_w0) / denominator;
-    const double tb = (a_dot_a * b_dot_w0 - a_dot_b * a_dot_w0) / denominator;
+    return (closestPoint1 + closestPoint2) / 2.0;
+}
 
-    const Vec3 closest_point_a = a_start + ta * u;
-    const Vec3 closest_point_b = b_start + tb * v;
+nlohmann::json PositionToGPS(const Eigen::Vector3d &position, const gps_data_t &lk_position) {
+    const double lat = lk_position.fix.latitude + position.x() / 111111.0;
+    const double lon = lk_position.fix.longitude + position.y() / (111111.0 * std::cos(
+                                                                       lk_position.fix.latitude * M_PI / 180.0));
+    const double alt = lk_position.fix.altitude + position.z();
 
-    // Midpoint of the closest approach
-    Vec3 midpoint = (closest_point_a + closest_point_b) / 2.0;
-
-    return midpoint;
+    return {
+        {"longitude", lon},
+        {"latitude", lat},
+        {"altitude", alt},
+        {"type", "GeoPoint"}
+    };
 }
