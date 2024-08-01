@@ -25,6 +25,8 @@
 #include <iostream>
 #include <unordered_map>
 
+#define N_SAMPLES 256 // Number of samples to hold in each buffer
+
 #define PAGE_SIZE getpagesize()
 
 #define N_ITEMS_BUFFER PAGE_SIZE / sizeof(float)
