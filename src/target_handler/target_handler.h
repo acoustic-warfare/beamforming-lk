@@ -10,7 +10,7 @@
 #include <ranges>
 #include <wara_ps_client.h>
 
-#include "awpu.h"
+#include "aw_processing_unit.h"
 #include "kf.h"
 
 #define WARAPS_NAME "ljudkriget"

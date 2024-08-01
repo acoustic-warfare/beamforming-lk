@@ -10,7 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
-#include "../TargetHandler/target_handler.h"
+#include "../target_handler/target_handler.h"
 
 #define USE_AUDIO true
 

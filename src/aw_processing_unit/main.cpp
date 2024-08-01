@@ -7,14 +7,17 @@
 #include <sstream>
 
 #include "argparse/argparse.hpp"
-#include "awpu.h"
+#include "aw_processing_unit.h"
 
-#define HOST_ADDRESS "10.0.0.1"
+#define UDP_ADDRESS "10.0.0.1"
+
 #define APPLICATION_NAME "Beamforming"
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
+#define RESOLUTION_MULTIPLIER 16
 #define X_RES 1024
 #define Y_RES 1024
+
 #define BLUR_KERNEL_SIZE 5
 
 /**
@@ -68,7 +71,7 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .help("Camera option, default is false");
 
     program.add_argument("--ip-address")
-            .default_value(std::string(HOST_ADDRESS))
+            .default_value(std::string(UDP_ADDRESS))
             .help("IP address");
 
     program.add_argument("--audio")
@@ -174,7 +177,7 @@ int main(int argc, char* argv[]) {
         // Get the frames per second of the video
         fps = cap.get(cv::CAP_PROP_FPS);
 
-        // Calculate the delay in ms between frames
+        // Calculate the delay between frames
         delay = 1000 / fps;
 
         // Get the width and height of frames from the webcam

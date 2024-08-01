@@ -1,10 +1,10 @@
-/** @file awpu.h
+/** @file aw_processing_unit.h
  * @author Irreq, Tuva
  * @brief Audio Warefare Processing Unit (AWPU) interface for managing audio processing tasks.
  */
 
-#ifndef BEAMFORMER_AWPU_H
-#define BEAMFORMER_AWPU_H
+#ifndef BEAMFORMER_AW_PROCESSING_UNIT_H
+#define BEAMFORMER_AW_PROCESSING_UNIT_H
 
 #include <algorithm>
 #include <optional>
@@ -143,4 +143,4 @@ protected:
     std::optional<AudioWrapper> audioWrapper;
 };
 
-#endif //BEAMFORMER_AWPU_H
+#endif //BEAMFORMER_AW_PROCESSING_UNIT_H

@@ -31,7 +31,6 @@
 
 #define N_ITEMS_BUFFER PAGE_SIZE / sizeof(float)
 
-#define N_SAMPLES 256
 #define BUFFER_BYTES N_SAMPLES * sizeof(float)
 
 /**
