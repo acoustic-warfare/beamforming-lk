@@ -93,7 +93,14 @@ RUN apt-get install -y libgstreamer1.0-dev \
     gstreamer1.0-gl \
     gstreamer1.0-gtk3 \
     gstreamer1.0-qt5 \
-    gstreamer1.0-pulseaudio
+    gstreamer1.0-pulseaudio \
+    sudo \ 
+    vim  \ 
+    pkgconf \ 
+    gdb \ 
+    python3-dev \ 
+    python3-pip \
+    libfmt-dev
 
 WORKDIR /
 RUN git clone https://github.com/ninja-build/ninja.git
@@ -102,10 +109,9 @@ RUN mkdir build && \
     cmake -B build -S . && \
     cmake --build build/ --target install
 
+RUN pip install meson==1.5.1 cython numpy
 
-RUN apt-get install -y gdb
-RUN apt-get install -y meson pkgconf
-
+FROM build AS special
 WORKDIR /
 RUN git clone https://github.com/acoustic-warfare/DynRT-streamer.git DynRT-streamer
 WORKDIR /DynRT-streamer
@@ -113,16 +119,14 @@ RUN  meson setup build/ && \
     ninja -C build/ && \
     ninja -C build install
 
-RUN apt-get install -y vim sudo 
 RUN ldconfig
 
 # Create app directory
 RUN mkdir -p /usr/src/app
 
-RUN groupadd -f admin
-
-RUN useradd -rm -d /home/newuser -s /bin/bash -g admin -G sudo -G audio -u 1000 newuser
-RUN echo "newuser:pass" | chpasswd
+RUN groupadd -f admin && \
+    useradd -rm -d /home/newuser -s /bin/bash -g admin -G sudo -G audio -u 1000 newuser && \
+    echo "newuser:pass" | chpasswd
 USER newuser
 
 # Set working directory
