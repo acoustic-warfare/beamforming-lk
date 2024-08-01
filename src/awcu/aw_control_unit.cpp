@@ -4,7 +4,6 @@
 */
 
 #include "aw_control_unit.h"
-#include "../config.h"
 
 #include <iostream>
 #include <mutex>

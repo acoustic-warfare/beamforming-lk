@@ -15,6 +15,15 @@
 #include "../TargetHandler/target_handler.h"
 #include "awpu.h"
 
+#define USE_AUDIO false
+#define APPLICATION_NAME "Beamforming"
+#define APPLICATION_WIDTH 1024
+#define APPLICATION_HEIGHT 1024
+#define X_RES 1024
+#define Y_RES 1024
+#define BLUR_KERNEL_SIZE 5
+
+
 /**
  * @class AWControlUnit
  * @brief Manages AW Processing Units (AWPU) and handles data publishing, GPS data, and WaraPS client communication.
