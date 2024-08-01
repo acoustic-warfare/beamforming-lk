@@ -10,7 +10,7 @@
 #include <vector>
 
 void AudioWrapper::initAudioFiles() {
-    if (MP3) {
+    if constexpr (MP3) {
         lame_ = lame_init();
         lame_set_in_samplerate(lame_, SAMPLE_RATE);
         lame_set_num_channels(lame_, 1);
@@ -28,7 +28,7 @@ void AudioWrapper::initAudioFiles() {
         }
     }
 
-    if (WAV) {
+    if constexpr (WAV) {
         sfinfo_.format = SF_FORMAT_WAV | SF_FORMAT_PCM_32;
         sfinfo_.channels = 1;
         sfinfo_.samplerate = SAMPLE_RATE;
@@ -150,7 +150,7 @@ AudioWrapper::AudioWrapper(Pipeline *pipeline) : pipeline(pipeline) {
     err = Pa_Initialize();
     checkErr(err);
 
-    if (DEBUG) {
+    if constexpr (DEBUG_AUDIO) {
         printDevices();
     }
 
@@ -174,7 +174,7 @@ AudioWrapper::AudioWrapper(Pipeline *pipeline) : pipeline(pipeline) {
     checkErr(err);
 
     // Initializes audio files
-    if (AUDIO_FILE) {
+    if constexpr (AUDIO_FILE) {
         initAudioFiles();
     }
 }
@@ -195,13 +195,13 @@ void AudioWrapper::start_audio_playback() {
 void AudioWrapper::stop_audio_playback() {
     is_on_ = false;
 
-    if (AUDIO_FILE) {
-        if (MP3) {
+    if constexpr (AUDIO_FILE) {
+        if constexpr (MP3) {
             saveToMP3("output.mp3");
             std::cout << "Mp3 Saved" << std::endl;
         }
 
-        if (WAV) {
+        if constexpr (WAV) {
             saveToWav("output.wav");
             std::cout << "WAV file saved" << std::endl;
         }
@@ -210,11 +210,11 @@ void AudioWrapper::stop_audio_playback() {
 
 void AudioWrapper::processAudioData() {
     if (AUDIO_FILE && audioData.size() >= BUFFER_THRESHOLD) {
-        if (MP3) {
+        if constexpr (MP3) {
             flushBufferMP3();
         }
 
-        if (WAV) {
+        if constexpr (WAV) {
             flushBufferWav();
         }
 

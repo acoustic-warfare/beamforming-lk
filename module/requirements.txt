@@ -1,6 +1,0 @@
-pyyaml
-cython
-numpy 
-matplotlib
-setuptools
-pyqt6
