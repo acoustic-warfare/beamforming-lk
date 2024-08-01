@@ -278,24 +278,7 @@ void Pipeline::receive_exposure() {
             }
 
             // Normalize mic data between -1.0 and 1.0
-            float value = static_cast<float>(msg.stream[index]) / static_cast<float>(MAX_VALUE_FLOAT);
-            //I[n] = signal[n] * std::cos(2 * M_PI * f * t);
-#if 0
-            double signal = static_cast<double>(value);
-
-            constexpr double f = 2000.0;
-
-            double I = signal * cos(2 * M_PI * f * t);
-            double Q = signal * sin(2 * M_PI * f * t);
-            double phase = atan2(Q, I);
-            //double magnitude = sqrt(I*I + Q*Q);
-            double magnitude = 1.0;
-            double reconstructed = magnitude * cos(2 * M_PI * f * t + phase);
-
-            exposure_buffer[sensor_index][i] = static_cast<float>(reconstructed);
-#else
-            exposure_buffer[sensor_index][i] = value;
-#endif
+            exposure_buffer[sensor_index][i] = static_cast<float>(msg.stream[index]) / static_cast<float>(MAX_VALUE_FLOAT);
         }
     }
 
