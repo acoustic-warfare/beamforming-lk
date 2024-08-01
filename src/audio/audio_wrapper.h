@@ -16,8 +16,13 @@
 #include <string>
 #include <vector>
 
-#include "../config.h"
-#include "../pipeline.h"
+#include "pipeline.h"
+
+#define MP3 true
+#define WAV true
+#define AUDIO_FILE true
+#define BUFFER_THRESHOLD 146484.0 //SAMPLE_RATE * 3, Flushing buffer every 3 seconds
+#define DEBUG_AUDIO 0
 
 /**
  * @class AudioWrapper

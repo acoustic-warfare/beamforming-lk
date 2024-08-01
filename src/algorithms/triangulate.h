@@ -10,7 +10,7 @@
 #include <gps.h>
 #include <nlohmann/json_fwd.hpp>
 
-#include "../geometry.h"
+#include "geometry.h"
 
 /**
 * @brief Finds an intersection between two lines in 3D space.
