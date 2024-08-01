@@ -15,7 +15,6 @@
 #include <iostream>
 
 #define MAX_N_SENSORS 256
-#define N_SAMPLES 256
 
 #define RECEIVER_DEBUG 0
 
