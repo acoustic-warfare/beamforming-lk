@@ -6,9 +6,11 @@
 
 #ifndef TARGETHANDLER_H
 #define TARGETHANDLER_H
+
 #include <gps.h>
-#include <ranges>
 #include <wara_ps_client.h>
+
+#include <ranges>
 
 #include "aw_processing_unit.h"
 #include "kf.h"
@@ -111,10 +113,12 @@ protected:
 
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS,
-    std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
-    std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD") == nullptr
-                                                  ? ""
-                                                  : std::getenv("MQTT_PASSWORD"));
+                                              std::getenv("MQTT_USERNAME") == nullptr
+                                                      ? ""
+                                                      : std::getenv("MQTT_USERNAME"),
+                                              std::getenv("MQTT_PASSWORD") == nullptr
+                                                      ? ""
+                                                      : std::getenv("MQTT_PASSWORD"));
     gps_data_t *gpsData_ = nullptr;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 
@@ -137,12 +141,11 @@ protected:
 
     // Mysig funktionssignatur, precis lagom lång
     void FindIntersectsRecursively(
-        std::vector<CartesianTarget> &toCompare,
-        std::vector<std::vector<CartesianTarget> >::iterator begin,
-        std::vector<std::vector<CartesianTarget> >::iterator end,
-        std::vector<TriangulatedTarget> &out
-    );
+            std::vector<CartesianTarget> &toCompare,
+            std::vector<std::vector<CartesianTarget> >::iterator begin,
+            std::vector<std::vector<CartesianTarget> >::iterator end,
+            std::vector<TriangulatedTarget> &out);
 };
 
 
-#endif //TARGETHANDLER_H
+#endif//TARGETHANDLER_H
