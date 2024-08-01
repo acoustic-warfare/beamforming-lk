@@ -4,11 +4,6 @@
 
 #include "mimo.h"
 
-#include "delay.h"
-
-#define USE_REFERENCE 0
-#define USE_DB 0
-
 MIMOWorker::MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov) : Worker(pipeline, antenna, running), rows(rows), columns(columns), fov(fov) {
     this->maxIndex = rows * columns;
     index = 0;
