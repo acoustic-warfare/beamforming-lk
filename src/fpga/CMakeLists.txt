@@ -20,11 +20,3 @@ target_link_libraries(fpga PUBLIC
     Eigen3::Eigen
     geometry
 )
-
-#add_executable(fpga_test
-#    main.cpp
-#    ${FPGA_SOURCES}
-#)
-#target_link_libraries(fpga_test
-#    Eigen3::Eigen
-#)

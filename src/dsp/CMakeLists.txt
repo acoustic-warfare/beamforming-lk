@@ -25,20 +25,6 @@ set(SOURCES ${SOURCES} ${DSP_SOURCES})
 add_library(dsp STATIC ${DSP_SOURCES})
 target_include_directories(dsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(dsp PUBLIC
-    #geometry
-    fpga
-    Eigen3::Eigen
-    ${OpenCV_LIBS}
-)
-
-#target_link_libraries(dsp geometry)
-
-add_executable(dsp_test
-    main.cpp
-    ${DSP_SOURCES}
-)
-target_link_libraries(dsp_test PRIVATE
-    #geometry
     fpga
     Eigen3::Eigen
     ${OpenCV_LIBS}

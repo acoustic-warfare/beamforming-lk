@@ -17,12 +17,5 @@ add_library(geometry STATIC ${GEOMETRY_SOURCES})
 target_link_libraries(geometry
     Eigen3::Eigen
 )
-target_include_directories(geometry PUBLIC "${CURRENT_SOURCE_DIR}")
 
-add_executable(geometry_test
-    main.cpp
-    ${GEOMETRY_SOURCES}
-)
-target_link_libraries(geometry_test
-    Eigen3::Eigen
-)
+target_include_directories(geometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

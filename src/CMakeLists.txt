@@ -1,8 +1,0 @@
-add_subdirectory(geometry)
-add_subdirectory(fpga)
-add_subdirectory(dsp)
-add_subdirectory(audio)
-add_subdirectory(awpu)
-add_subdirectory(algorithms)
-add_subdirectory(TargetHandler)
-add_subdirectory(awcu)

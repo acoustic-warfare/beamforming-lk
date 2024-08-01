@@ -8,4 +8,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -Ofast -save-temps 
 
 set(SOURCES)
 
-add_subdirectory(src)
+add_subdirectory(src/geometry)
+add_subdirectory(src/fpga)
+add_subdirectory(src/dsp)
+add_subdirectory(src/audio)
+add_subdirectory(src/awpu)
+add_subdirectory(src/algorithms)
+add_subdirectory(src/TargetHandler)
+add_subdirectory(src/awcu)
