@@ -67,5 +67,5 @@ double Particle::beam() {
 
     power_accumulator /= static_cast<float>(N_SAMPLES);
 
-    return pow(static_cast<double>(power_accumulator), 3);
+    return static_cast<double>(power_accumulator);
 }
