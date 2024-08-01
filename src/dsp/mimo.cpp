@@ -126,8 +126,10 @@ void MIMOWorker::update() {
             count++;
         }
         float power = 0.0;
-        for (int i = 0; i < N_SAMPLES; i++) {
-            power += powf(out[i], 2);
+        
+        for (int i = 1; i < N_SAMPLES-1 ; i++){
+            float MA = out[i] * 0.5f - 0.25f*(out[i +1] + out[i -1]);
+            power += powf(MA, 2);
         }
 
         power /= static_cast<float>(N_SAMPLES * count);
