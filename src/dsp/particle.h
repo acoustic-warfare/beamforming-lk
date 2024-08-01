@@ -1,4 +1,4 @@
-/** @file gradient_ascend.h
+/** @file particle.h
  * @author Irreq
  * @brief TODO:
 */
@@ -18,6 +18,9 @@ inline void normalizeSpherical(Spherical &direction, double theta_limit) {
     direction.theta = clip(direction.theta, 0.0, theta_limit);
 }
 
+/** 
+ * @brief TODO:
+ */
 struct Particle {
     /**
      * Current direction the particle is facing

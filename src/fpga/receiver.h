@@ -14,7 +14,7 @@
 #include <cstring>
 #include <iostream>
 
-#define MAX_N_SENSORS 256
+#define MAX_N_SENSORS 256 //4 arrays as max
 
 #define RECEIVER_DEBUG 0
 

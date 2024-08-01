@@ -32,6 +32,9 @@
 #define MONOPULSE_DIRECTIONS 4// Quadrants
 #define USE_HORIZONTAL 0      // Horizontal or quadrant monopulse
 
+/** 
+ * @brief TODO:
+ */
 struct GradientParticle : public Particle {
 
     /**
@@ -68,6 +71,9 @@ struct GradientParticle : public Particle {
     void step(const double rate);
 };
 
+/** 
+ * @brief TODO:
+ */
 struct GradientSeeker : public GradientParticle {
     /**
      * If the seeker has jumped
@@ -82,6 +88,9 @@ struct GradientSeeker : public GradientParticle {
     void jump();
 };
 
+/** 
+ * @brief TODO:
+ */
 struct GradientTracker : public GradientParticle {
     /**
      * Mode of particle

@@ -8,6 +8,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -mavx2 -Ofast -save-temps 
 
 set(SOURCES)
 
+add_subdirectory(src)
+
+# Documentation
+add_custom_target(doc
+        COMMAND doxygen ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+)
+
 add_subdirectory(src/geometry)
 add_subdirectory(src/fpga)
 add_subdirectory(src/dsp)

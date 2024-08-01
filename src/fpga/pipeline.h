@@ -22,7 +22,7 @@
 #include "receiver.h"
 #include "streams.hpp"
 
-#define MAX_VALUE_FLOAT 8388608.0 // Float representation of 2^23
+#define MAX_VALUE_FLOAT 8388608.0 //24 bits of incoming data, 2^23=8388607
 
 /**
  * @class Pipeline

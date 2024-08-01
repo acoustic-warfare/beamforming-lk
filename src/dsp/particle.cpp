@@ -1,3 +1,7 @@
+/** @file particle.cpp
+ * @author Irreq
+ */
+
 #include "particle.h"
 
 Particle::Particle(Antenna &antenna, Streams *streams, double fov) : antenna(antenna), streams(streams), thetaLimit(fov) {

@@ -12,6 +12,17 @@
 
 #include "../TargetHandler/target_handler.h"
 
+#define USE_AUDIO true
+
+#define APPLICATION_NAME "Beamforming"
+#define APPLICATION_WIDTH 1024
+#define APPLICATION_HEIGHT 1024
+
+#define X_RES 1024
+#define Y_RES 1024
+
+#define BLUR_KERNEL_SIZE 5 //Kernel size of blur on heatmap
+
 void AWControlUnit::Start() {
     auto awpu2 = AWProcessingUnit("10.0.0.1", 21875);
     auto awpu1 = AWProcessingUnit("10.0.0.1", 21876);
