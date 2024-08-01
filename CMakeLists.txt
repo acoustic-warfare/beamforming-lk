@@ -14,8 +14,8 @@ add_custom_target(doc
 )
 
 add_subdirectory(src/geometry)
-add_subdirectory(src/fpga_data_gathering)
-add_subdirectory(src/digital_signal_processing)
+add_subdirectory(src/fpga)
+add_subdirectory(src/dsp)
 add_subdirectory(src/audio)
 add_subdirectory(src/aw_processing_unit)
 add_subdirectory(src/algorithms)
