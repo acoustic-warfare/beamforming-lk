@@ -114,21 +114,26 @@ protected:
     std::thread targetThread_;
     WaraPSClient targetClient_ = WaraPSClient("lk_target", WARAPS_ADDRESS,
                                               std::getenv("MQTT_USERNAME") == nullptr
-                                                      ? ""
-                                                      : std::getenv("MQTT_USERNAME"),
+                                                  ? ""
+                                                  : std::getenv("MQTT_USERNAME"),
                                               std::getenv("MQTT_PASSWORD") == nullptr
-                                                      ? ""
-                                                      : std::getenv("MQTT_PASSWORD"));
+                                                  ? ""
+                                                  : std::getenv("MQTT_PASSWORD"));
     gps_data_t *gpsData_ = nullptr;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 
-    static constexpr bool debugLogging_ = true;
+    static constexpr bool debugLogging_ = false;
     std::ofstream logFile_;
 
     std::vector<AWProcessingUnit *> awpus_;
     std::vector<Eigen::Vector3d> awpu_positions_;
 
-    double minGradient_ = 5;
+    // Tracker hit and timeout sensitivities
+    constexpr double kMinGradient_ = 1000,
+            kMinTrackTimeoutTime = 0.5,
+            kMaxTrackTimeoutTime = 2,
+            kMinTrackHitDistance = 0.2,
+            kMaxTrackHitDistance = 1;
 
     std::thread workerThread_;
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
@@ -139,12 +144,16 @@ protected:
 
     void CheckTracksForTarget(TriangulatedTarget &target);
 
+    inline double CalculateDistanceThreshold(Track &track);
+
+    inline long CalculateDurationThreshold(Track &track);
+
     // Mysig funktionssignatur, precis lagom lång
     void FindIntersectsRecursively(
-            std::vector<CartesianTarget> &toCompare,
-            std::vector<std::vector<CartesianTarget> >::iterator begin,
-            std::vector<std::vector<CartesianTarget> >::iterator end,
-            std::vector<TriangulatedTarget> &out);
+        std::vector<CartesianTarget> &toCompare,
+        std::vector<std::vector<CartesianTarget> >::iterator begin,
+        std::vector<std::vector<CartesianTarget> >::iterator end,
+        std::vector<TriangulatedTarget> &out);
 };
 
 
