@@ -1,8 +1,8 @@
-/** @file awpu.cpp
+/** @file aw_processing_unit.cpp
  * @author Irreq, Tuva
 */
 
-#include "awpu.h"
+#include "aw_processing_unit.h"
 
 #include "gradient_ascend.h"
 #include "mimo.h"

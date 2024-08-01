@@ -4,25 +4,16 @@
  * @date 2024-07-04
  */
 
-#ifndef BEAMFORMER_AW_CONTROL_UNIT_H
-#define BEAMFORMER_AW_CONTROL_UNIT_H
+#ifndef AW_CONTROL_UNIT_H
+#define AW_CONTROL_UNIT_H
 
 #include <wara_ps_client.h>
 
 #include <condition_variable>
 #include <vector>
 
-#include "../TargetHandler/target_handler.h"
-#include "awpu.h"
-
-#define USE_AUDIO false
-#define APPLICATION_NAME "Beamforming"
-#define APPLICATION_WIDTH 1024
-#define APPLICATION_HEIGHT 1024
-#define X_RES 1024
-#define Y_RES 1024
-#define BLUR_KERNEL_SIZE 5
-
+#include "../target_handler/target_handler.h"
+#include "aw_processing_unit.h"
 
 /**
  * @class AWControlUnit
@@ -74,4 +65,4 @@ public:
     void Start();
 };
 
-#endif //BEAMFORMER_AW_CONTROL_UNIT_H
+#endif //AW_CONTROL_UNIT_H

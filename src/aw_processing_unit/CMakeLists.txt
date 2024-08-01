@@ -8,8 +8,8 @@ find_package(OpenCV REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 set(AWPU_SOURCES 
-    awpu.h
-    awpu.cpp
+    aw_processing_unit.h
+    aw_processing_unit.cpp
 )
 
 set(SOURCES ${SOURCES} ${AWPU_SOURCES})
