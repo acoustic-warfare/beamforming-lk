@@ -25,7 +25,7 @@
 
 void AWControlUnit::Start() {
     auto awpu2 = AWProcessingUnit("10.0.0.1", 21875);
-    auto awpu1 = AWProcessingUnit("10.0.0.1", 21876);
+    auto awpu1 = AWProcessingUnit("10.0.0.1", 21878);
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
