@@ -13,13 +13,12 @@
 
 #include "geometry.h"
 
-#define PROPAGATION_SPEED 340.0
-#define SAMPLE_RATE 48828.0
-
+#define PROPAGATION_SPEED 340.0 // Speed of sound in air [m * s^-1]
+#define SAMPLE_RATE 48828.0 // Hz [s^-1]
 #define COLUMNS 8
 #define ROWS 8
 #define ELEMENTS (COLUMNS * ROWS)
-#define DISTANCE 0.02
+#define DISTANCE 0.02 // [m]
 
 const int second[16] = {
         0, 2, 4, 6,    // first column

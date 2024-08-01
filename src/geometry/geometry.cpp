@@ -164,7 +164,44 @@ std::vector<Spherical> Spherical::nearby(const double spread) {
 
     for (int i = 0; i < 4; i++) {
         Eigen::Vector3d k = search.row(i);
-        /*k = k / k.norm();*/
+        double newTheta = acos(k.z());
+        double newPhi = atan2(k.y(), k.x()) - M_PI;
+        near.emplace_back(newTheta, newPhi);
+    }
+
+    return near;
+}
+
+std::vector<Spherical> Spherical::quadrant(const double spread) {
+    Eigen::MatrixXd search(4, 3);
+
+    Eigen::Vector3d q1 = Spherical(spread, TO_RADIANS(45.0)).toCartesian();
+    Eigen::Vector3d q2 = Spherical(spread, TO_RADIANS(315.0)).toCartesian();
+    Eigen::Vector3d q3 = Spherical(spread, TO_RADIANS(225.0)).toCartesian();
+    Eigen::Vector3d q4 = Spherical(spread, TO_RADIANS(135.0)).toCartesian();
+    
+
+    for (int i = 0; i < 3; i++) {
+        search(0, i) = q1(i);
+        search(1, i) = q2(i);
+        search(2, i) = q3(i);
+        search(3, i) = q4(i);
+    }
+
+    double rotateTheta = theta;
+
+    if (rotateTheta + spread > M_PI / 2.0) {
+        rotateTheta -= spread;
+        theta -= spread / 2.0;
+    }
+
+
+    search = rotateTo(search, rotateTheta, phi);
+
+    std::vector<Spherical> near;
+
+    for (int i = 0; i < 4; i++) {
+        Eigen::Vector3d k = search.row(i);
         double newTheta = acos(k.z());
         double newPhi = atan2(k.y(), k.x()) - M_PI;
         near.emplace_back(newTheta, newPhi);

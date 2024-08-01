@@ -123,6 +123,13 @@ struct Spherical {
     std::vector<Spherical> nearby(double spread);
 
     /**
+     * @brief Finds nearby quadrant spherical coordinates within a given angular spread.
+     * @param spread Angular spread in radians.
+     * @return A vector of nearby spherical coordinates.
+     */
+    std::vector<Spherical> quadrant(double spread);
+
+    /**
      * @brief Computes the angular difference between this spherical coordinate and another.
      * @param spherical The other spherical coordinate.
      * @return The angular difference in radians.
