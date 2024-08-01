@@ -11,7 +11,11 @@
 GradientParticle::GradientParticle(Antenna &antenna, Streams *streams, double fov, double spread) : Particle(antenna, streams, fov), spread(spread) {}
 
 void GradientParticle::findNearby() {
+#if USE_HORIZONTAL
     std::vector<Spherical> near = directionCurrent.nearby(spread);
+#else
+    std::vector<Spherical> near = directionCurrent.quadrant(spread);
+#endif
     for (int i = 0; i < MONOPULSE_DIRECTIONS; i++) {
         directionNearby[i] = near[i];
         normalizeSpherical(directionNearby[i], thetaLimit);
@@ -20,7 +24,7 @@ void GradientParticle::findNearby() {
 
 void GradientParticle::step(const double rate) {
     findNearby();
-#if 1
+#if USE_HORIZONTAL
     float power[MONOPULSE_DIRECTIONS] = {0.0};
     const float norm = 1 / static_cast<float>(antenna.usable);
 
@@ -38,24 +42,28 @@ void GradientParticle::step(const double rate) {
 
     gradientError = fabs(directionGradient.theta) + fabs(directionGradient.phi);
 #else
+    steer(directionNearby[0]);
+    double q1 = beam();
 
-    float power[MONOPULSE_DIRECTIONS] = {0.0};
-    const float norm = 1 / static_cast<float>(antenna.usable);
+    steer(directionNearby[1]);
+    double q2 = beam();
 
-    for (int n = 0; n < MONOPULSE_DIRECTIONS; n++) {
-        steer(directionNearby[n]);
-        power[n] = pow(beam(), 3);
-    }
+    steer(directionNearby[2]);
+    double q3 = beam();
 
-    float thetaPower = fmax(fabs(power[NORTH]), fabs(power[SOUTH]));
-    float phiPower = fmax(fabs(power[EAST]), fabs(power[WEST]));
+    steer(directionNearby[3]);
+    double q4 = beam();
 
-    directionGradient.theta = static_cast<double>((power[SOUTH] - power[NORTH]) / thetaPower);
-    directionGradient.phi = static_cast<double>((power[EAST] - power[WEST]) / phiPower);
-    directionGradient.radius = static_cast<double>((power[NORTH] + power[EAST] + power[SOUTH] + power[WEST]) / static_cast<float>(MONOPULSE_DIRECTIONS));
+    double sum = q1 + q2 + q3 + q4;
 
-    gradientError = fabs(directionGradient.theta) + fabs(directionGradient.phi);
+    double phi = (q1 + q4) - (q2 + q3);
+    double theta = (q3 + q4) - (q1 + q2);
 
+    directionGradient.theta = theta / sum;
+    directionGradient.phi = phi / sum;
+
+    directionGradient.radius = sum;
+    gradientError = abs(directionGradient.theta) + abs(directionGradient.phi);
 #endif
 
     Particle::step(rate);
@@ -109,7 +117,7 @@ void SphericalGradient::initialize_particles() {
 
     seekers.clear();
     for (int i = 0; i < swarm_size; i++) {
-        seekers.push_back(GradientSeeker(this->antenna, this->streams, this->fov, seekerSpread));
+        seekers.push_back(GradientSeeker(this->antenna, this->streams, this->fov, seekerSpread + drandom() * TO_RADIANS(20)));
     }
 }
 
@@ -184,19 +192,21 @@ void SphericalGradient::reset() {
 }
 
 void SphericalGradient::update() {
+   // double reference = 
     while (canContinue()) {
 
         // Run trackers
         int n_tracking = 0;
-        for (auto &particle: trackers) {
-            if (particle.tracking) {
+        for (auto &tracker: trackers) {
+            if (tracker.tracking) {
                 for (int i = 0; i < trackerSteps; i++)
-                    particle.step(PARTICLE_RATE * trackerSlowdown);
-                if (particle.gradientError > 1) {
-                    particle.tracking = false;
-                } else {
-                    n_tracking++;
-                }
+                    tracker.step(PARTICLE_RATE * trackerSlowdown);
+                //if (tracker.gradientError > TRACKER_ERROR_THRESHOLD) {
+                //    tracker.tracking = false;
+                //} else {
+                //    n_tracking++;
+                //}
+                n_tracking++;
             }
         }
 
@@ -263,7 +273,7 @@ void SphericalGradient::update() {
     // Fill the tracking vector to the DSP chain
     tracking.clear();
     for (GradientTracker &tracker: trackers) {
-        if (tracker.directionGradient.radius < mean * 0.001) {
+        if (tracker.directionGradient.radius < mean * 0.5) {
             tracker.stopTracking();
             continue;
         }

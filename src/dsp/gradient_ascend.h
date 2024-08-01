@@ -15,19 +15,22 @@
 #include "worker.h"
 #include "particle.h"
 
-#define SEEKER_RESET_COUNTER 128
-#define SEEKER_SPREAD TO_RADIANS(15)
-#define TRACKER_STEPS 5
-#define TRACKER_SLOWDOWN 1 / 20.0
-#define TRACKER_CLOSENESS (M_PI * TRACKER_SLOWDOWN)
-#define TRACKER_ERROR_THRESHOLD 1e-2
-#define TRACKER_MAX 5
-#define TRACKER_SPREAD TO_RADIANS(7)
-#define PARTICLE_RATE 0.1
+/**
+ * @brief Hyperparams for gradient ascent
+ */
+#define SEEKER_RESET_COUNTER 128       // Number of iterations before jump
+#define SEEKER_SPREAD TO_RADIANS(7)   // Angle fov for seeker
+#define TRACKER_STEPS 5                // Number of individual steps for tracker
+#define TRACKER_SLOWDOWN 0.1             // How much slower tracker steps
+#define TRACKER_CLOSENESS TO_RADIANS(4)// Angle between trackers before they are absorbed
+#define TRACKER_ERROR_THRESHOLD 5e-2   // Error before tracker dies
+#define TRACKER_MAX 5                  // Number of trackers
+#define TRACKER_SPREAD TO_RADIANS(2)   // Angle fov for tracker
+#define PARTICLE_RATE 5e-1              // Stepsize for particles
 
-#define DEBUG_GRADIENT 0
-
-#define MONOPULSE_DIRECTIONS 4
+#define DEBUG_GRADIENT 1
+#define MONOPULSE_DIRECTIONS 4// Quadrants
+#define USE_HORIZONTAL 0      // Horizontal or quadrant monopulse
 
 struct GradientParticle : public Particle {
 
