@@ -5,14 +5,11 @@
 #include "delay.h"
 #include <string.h>
 
-#define USE_AVX 1
+#if __AVX2__
 
+// Kernel for delay, waiting for implementation
 #define K 8
 float h[K] = {0.0267, 0.1238, 0.3025, 0.3025, 0.1238, 0.0267, -0.0200, 0.0};
-
-#if USE_AVX
-
-#include <immintrin.h>
 
 #define AVX_VECTOR 8
 
