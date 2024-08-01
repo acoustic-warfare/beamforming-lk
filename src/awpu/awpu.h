@@ -31,6 +31,7 @@ public:
      * @param fov Field of view for the processing unit.
      * @param small_res Resolution for MIMO processing.
      * @param verbose For extra logging.
+     * @param use_audio For realtime audio player/recorder.
      */
     AWProcessingUnit(const char *address, const int port, float fov = FOV, int small_res = MIMO_SIZE, int verbose = 1, bool use_audio = false);
 
@@ -38,6 +39,7 @@ public:
      * @brief Constructor for AWProcessingUnit with a pipeline.
      * @param pipeline The processing pipeline.
      * @param verbose For extra logging.
+     * @param use_audio For realtime audio player/recorder.
      */
     AWProcessingUnit(Pipeline *pipeline, int verbose = 1, bool use_audio = false);
 
