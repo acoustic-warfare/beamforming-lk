@@ -18,6 +18,8 @@
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
 
+#define LK_HEADING 180 // LK heading in degrees
+
 #define X_RES 1024
 #define Y_RES 1024
 
@@ -103,7 +105,7 @@ void AWControlUnit::publishData() {
         }
     }
 
-    client_.PublishMessage("sensor/heading", std::to_string(90.0)); // Currently not a real value
+    client_.PublishMessage("sensor/heading", std::to_string(LK_HEADING));
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
@@ -112,7 +114,7 @@ void AWControlUnit::publishData() {
 AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,
                                          std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
                                          std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")),
-                                 targetHandler_(&gpsData_) {
+                                 targetHandler_(&gpsData_, LK_HEADING) {
     int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
     gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
 

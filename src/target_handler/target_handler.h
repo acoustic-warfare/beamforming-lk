@@ -29,7 +29,7 @@
  */
 class TargetHandler {
 public:
-    explicit TargetHandler(gps_data_t *gpsData) : gpsData_(gpsData) {
+    explicit TargetHandler(gps_data_t *gpsData, const double lk_heading = 0) : lk_heading_(lk_heading * std::numbers::pi/180), gpsData_(gpsData) {
     }
 
     TargetHandler(const TargetHandler &) = delete;
@@ -119,6 +119,7 @@ protected:
                                               std::getenv("MQTT_PASSWORD") == nullptr
                                                   ? ""
                                                   : std::getenv("MQTT_PASSWORD"));
+    const double lk_heading_;
     gps_data_t *gpsData_ = nullptr;
     std::chrono::duration<double> waraPSUpdateInterval_ = std::chrono::milliseconds(500);
 
@@ -130,10 +131,12 @@ protected:
 
     // Tracker hit and timeout sensitivities
     static constexpr double kMinGradient_ = 1000,
-            kMinTrackTimeoutTime = 0.5,
-            kMaxTrackTimeoutTime = 2,
             kMinTrackHitDistance = 0.2,
             kMaxTrackHitDistance = 1;
+
+    static constexpr long kMinTrackTimeoutTime = static_cast<long>(0.5),
+            kMaxTrackTimeoutTime = 2;
+
 
     std::thread workerThread_;
     std::shared_ptr<bool> running = std::make_shared<bool>(false);
