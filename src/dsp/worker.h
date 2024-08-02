@@ -1,10 +1,11 @@
 /** @file worker.h
  * @author Irreq
- * @brief TODO:
-*/
+ * @brief Defines the Worker class and associated components for beamforming tasks.
+ * Workers are what algorithm/audio processing method are running on the collected audio data.
+ */
 
-#ifndef BEAMFORMER_WORKER_H
-#define BEAMFORMER_WORKER_H
+#ifndef WORKER_H
+#define WORKER_H
 
 #include <chrono>
 #include <mutex>
@@ -15,14 +16,18 @@
 #include "pipeline.h"
 
 /**
- * @brief Random double between 0.0 and 1.0
+ * @brief Random double between 0.0 and 1.0.
+ * @return A random double value.
  */
 inline double drandom() {
     return static_cast<double>(rand()) / RAND_MAX;
 }
 
 /**
- * @brief Target from the AWPU 
+ * @brief Detected targets from the AWPU.
+ * Used for triagulation and track management. Updates tracks based on 
+ * the targets’ positions, checking if they match with existing tracks 
+ * or need to be added as new ones.
  */
 struct Target {
     /// Direction of target in spherical coordinate system
@@ -38,35 +43,41 @@ struct Target {
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
 
     /**
-     * @brief 
-     * @param other 
-     * @return 
+     * @brief Compares two Target objects for equality based on their direction.
+     * @param other The target to compare with.
+     * @return True if the targets have the same direction, false otherwise.
      */
     bool operator==(const Target &other) const {
         return fabs(direction.phi - other.direction.phi) < 1e-2 && fabs(direction.theta - other.direction.theta) < 1e-2;
     }
 
-    Target(Spherical direction, float power, float probability, std::chrono::time_point<std::chrono::high_resolution_clock> start) :
-    direction(direction), power(power), probability(probability), start(start) {
-        // Record the time of object creation
-        //start = std::chrono::high_resolution_clock::now();
-    };
+    /**
+     * @brief Compares two Target objects for equality based on their direction.
+     * @param other The target to compare with.
+     * @return True if the targets have the same direction, false otherwise.
+     */
+    Target(Spherical direction, float power, float probability, std::chrono::time_point<std::chrono::high_resolution_clock> start) : direction(direction),
+                                                                                                                                     power(power),
+                                                                                                                                     probability(probability),
+                                                                                                                                     start(start){};
 };
 
 /**
  * Worker types for beamforming algorithms
  */
 enum worker_t {
-    GENERIC,
-    PSO,
-    MIMO,
-    SOUND,
-    GRADIENT
+    GENERIC,///< Generic worker type.
+    PSO,    ///< Particle Swarm Optimization worker type.
+    MIMO,   ///< Multiple Input Multiple Output worker type.
+    SOUND,  ///< Sound-based worker type.
+    GRADIENT///< Gradient-based worker type.
 };
 
 /**
  * @class Worker
- * @brief TODO:
+ * @brief Base class for beamforming workers.
+ * Handles various beamforming algorithms, managing their execution in 
+ * separate threads and processing targets.
  */
 class Worker {
 public:
@@ -83,12 +94,15 @@ public:
     Pipeline *pipeline;
 
     /**
-     * @brief Construct a new Worker object
-     * @param pipeline 
-     * @param antenna 
-     * @param running 
+     * @brief Constructs a Worker object.
+     * @param pipeline Pointer to the pipeline object.
+     * @param antenna Reference to the antenna object.
+     * @param running Pointer to the running flag.
      */
-    Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true), pipeline(pipeline), antenna(antenna), running(running) {
+    Worker(Pipeline *pipeline, Antenna &antenna, bool *running) : looping(true),
+                                                                  pipeline(pipeline),
+                                                                  antenna(antenna),
+                                                                  running(running) {
         this->streams = pipeline->getStreams();
     };
 
@@ -97,32 +111,28 @@ public:
      */
     ~Worker() {
         looping = false;
-        //std::cout << "Waiting for thread to return" << std::endl;
         thread_loop.join();
-        //std::cout << "thread returned" << std::endl;
-
-        //std::cout << "Destroyed worker" << std::endl;
     };
 
     /**
-     * @brief Get the worker type
-     * @return  
+     * @brief Get the worker type.
+     * @return The worker type.
      */
     virtual worker_t get_type() {
         return worker_t::GENERIC;
     };
 
     /**
-     * @brief Getter for worker direction
-     * @return
+     * @brief Gets the direction of the worker.
+     * @return The current direction in spherical coordinates.
      */
     Spherical getDirection() const {
         return direction;
     };
 
     /**
-     * @brief Getter for current targets
-     * @return
+     * @brief Gets the current targets being tracked by the worker.
+     * @return A vector of current targets.
      */
     [[nodiscard]] std::vector<Target> getTargets() const {
         std::vector<Target> r_targets;
@@ -133,11 +143,11 @@ public:
     };
 
     /**
-     * @brief Draw values onto a heatmap
+     * @brief Draws the current state onto a heatmap.
+     * @param heatmap Pointer to the heatmap matrix.
      */
     void draw(cv::Mat *heatmap) {
         lock.lock();
-        //std::cout << "Wrong drawer" << std::endl;
         populateHeatmap(heatmap);
         lock.unlock();
     };
@@ -153,37 +163,37 @@ protected:
     std::vector<Target> tracking;
 
     /**
-     * @brief 
-     * @return 
+     * @brief Checks if the worker can continue processing audio data.
+     * @return True if the worker can continue, false otherwise.
      */
     bool canContinue() {
-        //std::cout << start <<" "<< pipeline->mostRecent() << std::endl;
         return (start == pipeline->mostRecent());
     }
 
     /**
-     * @brief 
+     * @brief TODO: Updates the worker's state.
      */
     virtual void update() {
         std::cout << "Wrong update" << std::endl;
     };
 
     /**
-     * @brief 
+     * @brief TODO: Resets the workers state
      */
     virtual void reset() {
         std::cout << "Wrong reset" << std::endl;
     };
 
     /**
-     * @brief 
+     * @brief TODO: Populates the heatmap with current data.
+     * @param heatmap Pointer to the heatmap matrix.
      */
     virtual void populateHeatmap(cv::Mat *heatmap) {
         std::cout << "Wrong heatmap" << std::endl;
     };
 
     /**
-     * @brief 
+     * @brief TODO: Sets up the worker before starting.
      */
     virtual void setup() {
         std::cout << "Wrong setup" << std::endl;
@@ -207,11 +217,11 @@ protected:
     }
 
 private:
-    ///
+    /// Start index for processing
     int start;
 
     /// Lock to prevent multiple access from outside and inside
     std::mutex lock;
 };
 
-#endif //BEAMFORMER_WORKER_H
+#endif//WORKER_H
