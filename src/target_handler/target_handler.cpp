@@ -4,7 +4,6 @@
 */
 
 #include "target_handler.h"
-
 #include "triangulate.h"
 
 void TargetHandler::Stop() {
@@ -17,7 +16,7 @@ void TargetHandler::Stop() {
 }
 
 TargetHandler::~TargetHandler() {
-    if(*running)
+    if (*running)
         Stop();
 }
 
@@ -114,15 +113,18 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
     tracks_.emplace_back(target.position, std::chrono::steady_clock::now(), true, 1);
 }
 
-double TargetHandler::CalculateDistanceThreshold(const Track &track) {
+inline double TargetHandler::CalculateDistanceThreshold(const Track &track) {
     double value = kMinTrackHitDistance + 0.325 * log(track.hits);
     if (value > kMaxTrackHitDistance)
         value = kMaxTrackHitDistance;
     return value;
 }
 
-long TargetHandler::CalculateDurationThreshold(const Track &track) {
-    return 0l;
+inline long TargetHandler::CalculateDurationThreshold(const Track &track) {
+    long value = static_cast<long>(kMinTrackTimeoutTime + 0.325 * log(track.hits));
+    if (value > kMaxTrackTimeoutTime)
+        value = kMaxTrackTimeoutTime;
+    return value;
 }
 
 void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
@@ -182,23 +184,20 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
     }
 
     targetClient_.Start();
-    targetClient_.PublishMessage("sensor/position", nlohmann::json{
-                                     {"longitude", 0},
-                                     {"latitude", 0},
-                                     {"altitude", 0},
-                                     {"type", "GeoPoint"}
-                                 }.dump());
 
 
-    targetThread_ = std::thread([&] {
+    targetThread_ = std::thread([this] {
+        Eigen::Matrix3d rotationMatrix;
+        // Swap z and y, rotate to lk_heading
+        rotationMatrix << cos(lk_heading_), 0, sin(lk_heading_),
+                -sin(lk_heading_), 0, cos(lk_heading_),
+                0, 1, 0;
         while (targetClient_.running()) {
-            Eigen::Vector3d outPosition{
-                bestTrack_.position.x(), bestTrack_.position.z(), bestTrack_.position.y()
-            };
+            Eigen::Vector3d outPosition = rotationMatrix * bestTrack_.position;
 
             int validTracks = 0;
 
-            for (const auto& track: tracks_) {
+            for (const auto &track: tracks_) {
                 if (!track.valid)
                     continue;
                 validTracks++;
@@ -210,9 +209,6 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
                 !isfinite(gpsData_->fix.altitude)) {
                 continue;
             }
-
-
-            std::cout << "Currently tracking " << validTracks << " tracks" << std::endl;
 
             std::cout << "Best position at:" << bestTrack_.position.transpose() << " With " << bestTrack_.hits <<
                     " hits" << std::endl;
