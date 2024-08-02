@@ -9,7 +9,6 @@
 
 #include <wara_ps_client.h>
 
-#include <condition_variable>
 #include <vector>
 
 #include "../target_handler/target_handler.h"

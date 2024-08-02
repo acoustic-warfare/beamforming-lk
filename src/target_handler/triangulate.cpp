@@ -5,7 +5,6 @@
 
 #include "triangulate.h"
 #include "nlohmann/json.hpp"
-#include <opencv2/core/matx.hpp>
 
 
 Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2, const double distance_threshold) {

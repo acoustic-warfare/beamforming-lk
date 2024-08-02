@@ -4,18 +4,17 @@ find_package(WaraPSClient REQUIRED)
 # Generating UUID:s
 find_package(Boost REQUIRED)
 
-set(WARAPS_SOURCES 
-    target_handler.h
-    target_handler.cpp
+set(TARGET_HANDLER_SOURCES
+        target_handler.cpp
+        triangulate.cpp
 )
 
-set(SOURCES ${SOURCES} ${WARAPS_SOURCES})
+set(SOURCES ${SOURCES} ${TARGET_HANDLER_SOURCES})
 
-add_library(waraps STATIC ${WARAPS_SOURCES})
-target_include_directories(waraps PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(waraps PUBLIC
-    awpu
-    triangulate
-    WaraPSClient::WaraPSClient
+add_library(targetHandler STATIC ${TARGET_HANDLER_SOURCES})
+target_include_directories(targetHandler PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(targetHandler PUBLIC
+        awpu
+        WaraPSClient::WaraPSClient
 )
 
