@@ -22,8 +22,13 @@ Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::
     const Vec3 closestPoint1 = r1 + e1 * t1;
     const Vec3 closestPoint2 = r2 + e2 * t2;
 
+<<<<<<< Updated upstream
     if(constexpr double min_dist = 0, max_dist = 1;
     (closestPoint1 - closestPoint2).norm() > distance_threshold
+=======
+    if (constexpr double min_dist = 0, max_dist = 1;
+        (closestPoint1 - closestPoint2).norm() > distance_threshold
+>>>>>>> Stashed changes
         || (closestPoint1 + closestPoint2).z() < min_dist // Targets behind us are not valid
         || ((closestPoint1 + closestPoint2) / 2).z() < max_dist) { // Targets too close are usually from static noise
         return Vec3::Zero();

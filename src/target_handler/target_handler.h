@@ -50,12 +50,6 @@ public:
      */
     void Stop();
 
-    /**
-     * @brief Sets the minimum required target gradient
-     * @param sensitivity minimum target gradient to be valid for interferemetry
-     */
-    void SetSensitivity(double sensitivity);
-
     std::vector<Eigen::Vector3d> getTargets();
 
     /**
