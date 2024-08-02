@@ -25,6 +25,21 @@ void delay(float *out, const float *signal, const float fraction) {
     }
 }
 
+#elif USE_FILTER
+
+#define COEFF_SIZE 8    // Filter coefficient size (assuming it is 8)
+
+void delay(float *out, const float *signal, const float fraction) {
+    float get_filter = (1 - fraction) * 100.0f + 0.5f;
+    int delay_int = (int) get_filter;
+
+    for (int n = 0; n < N_SAMPLES; ++n) {
+        for (int i = 0; i < COEFF_SIZE; ++i) {
+            out[n] += filter_coeffs[delay_int][i] * signal[n + i];
+        }
+    }
+}
+
 #else
 
 void delay(float *out, const float *signal, const float fraction) {

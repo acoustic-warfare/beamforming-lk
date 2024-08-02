@@ -47,10 +47,7 @@ struct Target {
     }
 
     Target(Spherical direction, float power, float probability, std::chrono::time_point<std::chrono::high_resolution_clock> start) :
-    direction(direction), power(power), probability(probability), start(start) {
-        // Record the time of object creation
-        //start = std::chrono::high_resolution_clock::now();
-    };
+    direction(direction), power(power), probability(probability), start(start) {};
 };
 
 /**
@@ -97,11 +94,7 @@ public:
      */
     ~Worker() {
         looping = false;
-        //std::cout << "Waiting for thread to return" << std::endl;
         thread_loop.join();
-        //std::cout << "thread returned" << std::endl;
-
-        //std::cout << "Destroyed worker" << std::endl;
     };
 
     /**
@@ -137,7 +130,6 @@ public:
      */
     void draw(cv::Mat *heatmap) {
         lock.lock();
-        //std::cout << "Wrong drawer" << std::endl;
         populateHeatmap(heatmap);
         lock.unlock();
     };
@@ -157,7 +149,6 @@ protected:
      * @return 
      */
     bool canContinue() {
-        //std::cout << start <<" "<< pipeline->mostRecent() << std::endl;
         return (start == pipeline->mostRecent());
     }
 

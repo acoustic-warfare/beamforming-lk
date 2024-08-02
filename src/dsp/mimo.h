@@ -16,6 +16,7 @@
 
 #define USE_REFERENCE 0// If mimo should reference a single mic
 #define USE_DB 0       // Decibel scale
+#define DEBUG_MIMO 0
 
 /** 
  * @class MIMOWorker
