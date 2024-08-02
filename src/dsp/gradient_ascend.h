@@ -22,15 +22,17 @@
 #define SEEKER_SPREAD TO_RADIANS(7)   // Angle fov for seeker
 #define TRACKER_STEPS 5                // Number of individual steps for tracker
 #define TRACKER_SLOWDOWN 0.1             // How much slower tracker steps
-#define TRACKER_CLOSENESS TO_RADIANS(4)// Angle between trackers before they are absorbed
-#define TRACKER_ERROR_THRESHOLD 5e-2   // Error before tracker dies
-#define TRACKER_MAX 5                  // Number of trackers
+#define TRACKER_CLOSENESS TO_RADIANS(5) // Angle between trackers before they are absorbed
+#define TRACKER_ERROR_THRESHOLD 1   // Error before tracker dies
+#define TRACKER_MAX 10                  // Number of trackers
 #define TRACKER_SPREAD TO_RADIANS(2)   // Angle fov for tracker
-#define PARTICLE_RATE 5e-1              // Stepsize for particles
+#define PARTICLE_RATE 5e-4             // Stepsize for particles
 
-#define DEBUG_GRADIENT 1
+#define DEBUG_GRADIENT 0
 #define MONOPULSE_DIRECTIONS 4// Quadrants
 #define USE_HORIZONTAL 0      // Horizontal or quadrant monopulse
+
+#define RELATIVE 1
 
 /** 
  * @brief TODO:
@@ -68,7 +70,7 @@ struct GradientParticle : public Particle {
      * Step in the current direction using the result from the monopulse response as 
      * guidance
      */
-    void step(const double rate);
+    void step(const double rate, const double reference);
 };
 
 /** 
