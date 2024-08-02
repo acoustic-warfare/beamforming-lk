@@ -17,7 +17,8 @@ void TargetHandler::Stop() {
 }
 
 TargetHandler::~TargetHandler() {
-    Stop();
+    if(*running)
+        Stop();
 }
 
 void TargetHandler::Start() {
@@ -35,11 +36,6 @@ void TargetHandler::Start() {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     });
-}
-
-
-void TargetHandler::SetSensitivity(const double sensitivity) {
-    minGradient_ = sensitivity;
 }
 
 TargetHandler &TargetHandler::AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d &position) {
@@ -71,7 +67,7 @@ void TargetHandler::UpdateTracks() {
     int bestTrackHits = -1;
     for (auto &track: tracks_) {
         if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - track.timeLastHit).
-            count() > 1) {
+            count() > 0.5l) {
             track.valid = false;
             continue;
         }
@@ -100,7 +96,7 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
             return;
         }
 
-        if (const double targetMaximumDistance = 1 + log(tracks_[i].hits);
+        if (constexpr double targetMaximumDistance = 1;
             abs(target.position.x() - tracks_[i].position.x()) < targetMaximumDistance &&
             abs(target.position.y() - tracks_[i].position.y()) < targetMaximumDistance &&
             abs(target.position.z() - tracks_[i].position.z()) < targetMaximumDistance) {
@@ -118,6 +114,17 @@ void TargetHandler::CheckTracksForTarget(TriangulatedTarget &target) {
     tracks_.emplace_back(target.position, std::chrono::steady_clock::now(), true, 1);
 }
 
+double TargetHandler::CalculateDistanceThreshold(const Track &track) {
+    double value = kMinTrackHitDistance + 0.325 * log(track.hits);
+    if (value > kMaxTrackHitDistance)
+        value = kMaxTrackHitDistance;
+    return value;
+}
+
+long TargetHandler::CalculateDurationThreshold(const Track &track) {
+    return 0l;
+}
+
 void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCompare, // NOLINT(*-no-recursion)
                                               const std::vector<std::vector<CartesianTarget> >::iterator begin,
                                               const std::vector<std::vector<CartesianTarget> >::iterator end,
@@ -131,12 +138,7 @@ void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCo
         auto it = begin;
         while (it != end) {
             for (CartesianTarget &otherTarget: *it) {
-                if (target.gradient > minGradient_ || otherTarget.gradient > minGradient_) {
-                    continue;
-                }
-
-
-                Eigen::Vector3d intersection = triangulatePoint(target.directionLine, otherTarget.directionLine);
+                Eigen::Vector3d intersection = triangulatePoint(target.directionLine, otherTarget.directionLine, 1);
 
                 if constexpr (debugLogging_) {
                     logFile_ << target.directionLine.origin().transpose() << "," << target.directionLine.direction().
@@ -150,7 +152,6 @@ void TargetHandler::FindIntersectsRecursively(std::vector<CartesianTarget> &toCo
                 if (intersection.norm() == 0 || intersection.norm() > 50) {
                     continue;
                 }
-
 
                 TriangulatedTarget newTarget{
                     intersection, (otherTarget.power + target.power) / 2,
@@ -197,14 +198,12 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
 
             int validTracks = 0;
 
-            for (auto track: tracks_) {
+            for (const auto& track: tracks_) {
                 if (!track.valid)
                     continue;
                 validTracks++;
-                std::cout << track.position.transpose() << std::endl;
             }
 
-            std::this_thread::sleep_for(waraPSUpdateInterval_);
 
             if (!isfinite(gpsData_->fix.latitude) ||
                 !isfinite(gpsData_->fix.longitude) ||
@@ -215,10 +214,13 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
 
             std::cout << "Currently tracking " << validTracks << " tracks" << std::endl;
 
+            std::cout << "Best position at:" << bestTrack_.position.transpose() << " With " << bestTrack_.hits <<
+                    " hits" << std::endl;
 
             const nlohmann::json targetJson = PositionToGPS(outPosition, *gpsData_);
 
             targetClient_.PublishMessage("sensor/position", targetJson.dump());
+            std::this_thread::sleep_for(waraPSUpdateInterval_);
         }
     });
 }

@@ -5,7 +5,6 @@
 
 #include "triangulate.h"
 #include "nlohmann/json.hpp"
-#include <opencv2/core/matx.hpp>
 
 
 Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::ParametrizedLine<double, 3> &l2, const double distance_threshold) {
@@ -23,7 +22,10 @@ Eigen::Vector3d triangulatePoint(Eigen::ParametrizedLine<double, 3> &l1, Eigen::
     const Vec3 closestPoint1 = r1 + e1 * t1;
     const Vec3 closestPoint2 = r2 + e2 * t2;
 
-    if((closestPoint1 - closestPoint2).norm() > distance_threshold || (closestPoint1 + closestPoint2).z() < 0) { // z is outwards, we can never triangulate behind us
+    if(constexpr double min_dist = 0, max_dist = 1;
+    (closestPoint1 - closestPoint2).norm() > distance_threshold
+        || (closestPoint1 + closestPoint2).z() < min_dist // Targets behind us are not valid
+        || ((closestPoint1 + closestPoint2) / 2).z() < max_dist) { // Targets too close are usually from static noise
         return Vec3::Zero();
     }
 
