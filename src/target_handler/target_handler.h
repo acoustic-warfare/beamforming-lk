@@ -129,7 +129,7 @@ protected:
     std::vector<Eigen::Vector3d> awpu_positions_;
 
     // Tracker hit and timeout sensitivities
-    constexpr double kMinGradient_ = 1000,
+    static constexpr double kMinGradient_ = 1000,
             kMinTrackTimeoutTime = 0.5,
             kMaxTrackTimeoutTime = 2,
             kMinTrackHitDistance = 0.2,
@@ -144,9 +144,9 @@ protected:
 
     void CheckTracksForTarget(TriangulatedTarget &target);
 
-    inline double CalculateDistanceThreshold(Track &track);
+    static double CalculateDistanceThreshold(const Track &track);
 
-    inline long CalculateDurationThreshold(Track &track);
+    static long CalculateDurationThreshold(const Track &track);
 
     // Mysig funktionssignatur, precis lagom lång
     void FindIntersectsRecursively(

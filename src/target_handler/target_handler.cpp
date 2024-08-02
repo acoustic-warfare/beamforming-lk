@@ -37,11 +37,6 @@ void TargetHandler::Start() {
     });
 }
 
-
-void TargetHandler::SetSensitivity(const double sensitivity) {
-    minGradient_ = sensitivity;
-}
-
 TargetHandler &TargetHandler::AddAWPU(AWProcessingUnit *awpu, const Eigen::Vector3d &position) {
     awpus_.emplace_back(awpu);
     awpu_positions_.emplace_back(position);
@@ -202,7 +197,7 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
 
             int validTracks = 0;
 
-            for (auto track: tracks_) {
+            for (const auto& track: tracks_) {
                 if (!track.valid)
                     continue;
                 validTracks++;
