@@ -13,6 +13,8 @@
 #include "streams.hpp"
 #include "worker.h"
 
+#define USE_BANDPASS 1
+
 inline void normalizeSpherical(Spherical &direction, double theta_limit) {
     direction.phi = wrapAngle(direction.phi);
     direction.theta = clip(direction.theta, 0.0, theta_limit);
