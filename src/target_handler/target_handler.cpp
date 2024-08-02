@@ -17,7 +17,8 @@ void TargetHandler::Stop() {
 }
 
 TargetHandler::~TargetHandler() {
-    Stop();
+    if(*running)
+        Stop();
 }
 
 void TargetHandler::Start() {
@@ -203,7 +204,6 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
                 validTracks++;
             }
 
-            std::this_thread::sleep_for(waraPSUpdateInterval_);
 
             if (!isfinite(gpsData_->fix.latitude) ||
                 !isfinite(gpsData_->fix.longitude) ||
@@ -220,6 +220,7 @@ void TargetHandler::DisplayToWaraPS(const bool toggle) {
             const nlohmann::json targetJson = PositionToGPS(outPosition, *gpsData_);
 
             targetClient_.PublishMessage("sensor/position", targetJson.dump());
+            std::this_thread::sleep_for(waraPSUpdateInterval_);
         }
     });
 }
