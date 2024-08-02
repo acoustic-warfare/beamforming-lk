@@ -20,6 +20,8 @@
 
 #define BLUR_KERNEL_SIZE 11
 
+#define BLUR_EFFECT false
+
 /**
  * Create a name for the video file
  */
@@ -199,8 +201,6 @@ int main(int argc, char* argv[]) {
 
         AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose, audio);
         awpus.push_back(awpu);
-        //awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
-        //AWProcessingUnit &awpu = awpus.back();
 
         // Start different modes
         if (tracking) { awpu->start(GRADIENT); }
@@ -263,10 +263,11 @@ int main(int argc, char* argv[]) {
             // Draw onto frames
             awpus[i]->draw(&smallFrames[i], &bigFrames[i]);
 
+#if BLUR_EFFECT
             // Blur the image with a Gaussian kernel
-            //cv::GaussianBlur(bigFrames[i], bigFrames[i],
-            //                 cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-
+            cv::GaussianBlur(bigFrames[i], bigFrames[i],
+                             cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
+#endif
             // Pretty colors
             cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_JET);
 

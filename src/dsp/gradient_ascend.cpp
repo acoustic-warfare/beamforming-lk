@@ -4,6 +4,11 @@
 
 #include "gradient_ascend.h"
 
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
 /**
  * @brief Parent Gradient particle
@@ -69,8 +74,7 @@ void GradientParticle::step(const double rate, const double reference) {
     directionGradient.phi = phi;
 #endif
 
-    directionGradient.radius = sum / 4;// / reference;
-    //gradientError = abs(directionGradient.theta) + abs(directionGradient.phi);
+    directionGradient.radius = sum / 4;
 #endif
 
     Particle::step(rate);
@@ -128,36 +132,14 @@ void SphericalGradient::initialize_particles() {
     }
 }
 
-#include <chrono>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-
 std::string timePointToString(const std::chrono::time_point<std::chrono::high_resolution_clock> &tp, const int id) {
-    // Get the time since epoch
-    //auto duration = tp.time_since_epoch();
-    //auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-
     // Capture the end time
     auto end = std::chrono::high_resolution_clock::now();
-    // Calculate the duration
-    //duration = std::chrono::duration_cast<std::chrono::seconds>(end - tp);
-
-    // Print the duration
-    //std::cout << "Duration since start: " << duration.count() << " milliseconds" << std::endl;
-
-
-    // Convert to std::time_t
-    //std::time_t time = millis / 1000;
 
     // Create a time string stream
     std::stringstream ss;
-    //ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
 
     ss << "  :" << id << " ";
-
-    //ss << duration.count() << "s";
 
     // Calculate the duration
     std::chrono::duration<double> duration = end - tp;
@@ -165,10 +147,6 @@ std::string timePointToString(const std::chrono::time_point<std::chrono::high_re
     // Print the duration rounded to 2 decimal places
     ss << std::fixed << std::setprecision(2);
     ss << duration.count() << "s";
-
-
-    // Add milliseconds
-    //ss << '.' << std::setw(3) << std::setfill('0') << (millis % 1000);
 
     return ss.str();
 }
@@ -226,9 +204,6 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
         // Draw the hollow square
         cv::rectangle(*heatmap, cv::Point(x - size, y_res - y - 1 - size), cv::Point(x + size, y_res - y - 1 + size), color, thickness);
-
-
-        //cv::circle(*heatmap, cv::Point(x, y_res - y - 1), 1 + (int) (gradientError * 15.0), cv::Scalar(m, m, m), cv::FILLED, 8, 0);
 
         n_trackers++;
 
@@ -364,7 +339,6 @@ void SphericalGradient::update() {
                 maxPower = seeker.directionGradient.radius;
                 bestDirection = seeker.directionCurrent;
                 better = true;
-                //std::cout << "Found better " << bestDirection << std::endl;
             } 
 
             
@@ -372,27 +346,13 @@ void SphericalGradient::update() {
 
         if (better) {
             if (n_tracking < trackerMax) {
-                //std::cout << "Can track" << std::endl;
                 for (auto &tracker: trackers) {
                     if (!tracker.tracking) {
                         tracker.startTracking(bestDirection);
-                        //std::cout << "Starting tracking: " << bestDirection << std::endl;
-                        //seeker.jump();
                     }
                 }
             }
         }
-        //if (n_tracking < trackerMax) {
-        //    if (seeker.gradientError < trackerErrorThreshold &&
-        //        seeker.directionGradient.radius > mean) {
-        //        for (auto &tracker: trackers) {
-        //            if (!tracker.tracking) {
-        //                tracker.startTracking(seeker.directionCurrent);
-        //                seeker.jump();
-        //            }
-        //        }
-        //    }
-        //}
 
         mean = tmpMean / static_cast<double>(validCount);
     }

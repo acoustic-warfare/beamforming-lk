@@ -13,7 +13,7 @@
 #include "streams.hpp"
 #include "worker.h"
 
-#define USE_BANDPASS 1
+#define USE_BANDPASS 1 // If bandpass filter will be used
 
 inline void normalizeSpherical(Spherical &direction, double theta_limit) {
     direction.phi = wrapAngle(direction.phi);
