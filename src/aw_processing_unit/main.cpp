@@ -18,7 +18,9 @@
 #define X_RES 1024
 #define Y_RES 1024
 
-#define BLUR_KERNEL_SIZE 5
+#define BLUR_KERNEL_SIZE 11
+
+#define BLUR_EFFECT false
 
 /**
  * Create a name for the video file
@@ -105,8 +107,8 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .help("Program output");
 
     program.add_argument("--fov")
-            .scan<'f', float>()
-            .default_value(FOV)
+            .default_value(static_cast<float>(180.0f))
+            .scan<'g', float>()
             .help("Field of view");
 
     program.add_argument("--port")
@@ -168,6 +170,7 @@ int main(int argc, char* argv[]) {
 
 
     if (use_camera) {
+        fov = FOV;
         cap = cv::VideoCapture(camera);
         if (!cap.isOpened()) {
             std::cerr << "Error: Could not open the webcam." << std::endl;
@@ -198,8 +201,6 @@ int main(int argc, char* argv[]) {
 
         AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose, audio);
         awpus.push_back(awpu);
-        //awpus.emplace_back(ip_address.c_str(), port, fov, mimo_res, verbose);
-        //AWProcessingUnit &awpu = awpus.back();
 
         // Start different modes
         if (tracking) { awpu->start(GRADIENT); }
@@ -262,10 +263,11 @@ int main(int argc, char* argv[]) {
             // Draw onto frames
             awpus[i]->draw(&smallFrames[i], &bigFrames[i]);
 
+#if BLUR_EFFECT
             // Blur the image with a Gaussian kernel
             cv::GaussianBlur(bigFrames[i], bigFrames[i],
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
-
+#endif
             // Pretty colors
             cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_JET);
 
@@ -294,6 +296,20 @@ int main(int argc, char* argv[]) {
                 bigFrames[i].copyTo(result, mask);
                 bigFrames[i] = result;
             }
+
+            // Define font face
+            int fontFace = cv::FONT_HERSHEY_SIMPLEX;
+
+            // Define font scale (size)
+            double fontScale = 1;
+
+            // Define font color (here it's white)
+            cv::Scalar color(255, 255, 255);
+
+            std::stringstream ss;
+
+            ss << "Trackers: " << awpus[i]->targets().size();
+            cv::putText(bigFrames[i], ss.str(), cv::Point(0, 20), fontFace, fontScale, color, 2);
         }
 
         if (awpu_count == 0) {

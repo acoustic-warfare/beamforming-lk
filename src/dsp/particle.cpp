@@ -65,9 +65,17 @@ double Particle::beam() {
         delay(&out[0], signal, fraction);
     }
     float power_accumulator = 0.0f;
-    for (int i = 0; i < N_SAMPLES; i++) {
-        power_accumulator += powf(out[i] * norm, 2);
+
+#if USE_BANDPASS
+    for (int i = 1; i < N_SAMPLES - 1; i++) {
+        float MA = out[i] * 0.5f - 0.25f * (out[i + 1] + out[i - 1]);
+        power_accumulator += powf(MA, 2);
     }
+#else
+    for (int i = 0; i < N_SAMPLES; i++) {
+        power_accumulator += powf(out[i], 2);
+    }
+#endif
 
     power_accumulator /= static_cast<float>(N_SAMPLES);
 
