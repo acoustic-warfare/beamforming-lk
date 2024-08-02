@@ -5,20 +5,20 @@
  * We use the physics convention where theta in [0, pi/2] and phi in [0, 2*pi)
  */
 
-#ifndef BEAMFORMER_ANTENNA_H
-#define BEAMFORMER_ANTENNA_H
+#ifndef ANTENNA_H
+#define ANTENNA_H
 
 #include <Eigen/Dense>
 #include <cmath>
 
 #include "geometry.h"
 
-#define PROPAGATION_SPEED 340.0 // Speed of sound in air [m * s^-1]
-#define SAMPLE_RATE 48828.0 // Hz [s^-1]
+#define PROPAGATION_SPEED 340.0// Speed of sound in air [m * s^-1]
+#define SAMPLE_RATE 48828.0    // Hz [s^-1]
 #define COLUMNS 8
 #define ROWS 8
 #define ELEMENTS (COLUMNS * ROWS)
-#define DISTANCE 0.02 // [m]
+#define DISTANCE 0.02// [m]
 
 const int second[16] = {
         0, 2, 4, 6,    // first column
@@ -27,7 +27,6 @@ const int second[16] = {
         48, 50, 52, 54
 
 };
-
 
 const int second_sector[16] = {0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27};
 
@@ -89,18 +88,15 @@ struct Antenna {
      */
     Eigen::MatrixXf points;// The 3D representation of the antenna
     int id;
-    int usable = 0;              ///< Number of usable elements; 
-    int *index;                  ///< Index of usable element 
-    float *power_correction_mask;///< Correction of microphone to reach some value 
-    float mean;                  ///< Pseudo valid metrics for checking the power level of antenna during auto calibration 
+    int usable = 0;              ///< Number of usable elements;
+    int *index;                  ///< Index of usable element
+    float *power_correction_mask;///< Correction of microphone to reach some value
+    float mean;                  ///< Pseudo valid metrics for checking the power level of antenna during auto calibration
     float median;
 
-
-    // TODO calculate angle correction
+    // TODO: calculate angle correction
     float *angle_correction_mask;///< How much to compensate for non-isotropic elements
     int angle_resolution;
-
-    //Sector sectors[4];
 
     ~Antenna() {
         if (usable > 0) {
@@ -108,12 +104,6 @@ struct Antenna {
             delete[] power_correction_mask;
         }
     }
-
-    //void setup_sectors() {
-    //  for (int i = 0; i < 4; i++) {
-    //    sectors[i].construct_sector(this->index, usable, i);
-    //  }
-    //}
 };
 
 /**
@@ -147,7 +137,6 @@ Antenna create_antenna(const Position &position, const int columns,
  * thought as a point cloud laying on the XY plane, the Z value will be the
  * distance to the target and is used to calculate the necessary delays to
  * accomodate for a planar wave.
- *
  * @param antenna The antenna that will be used to compute the delays
  * @return a 1D vector of time delays
  */
@@ -167,7 +156,6 @@ Eigen::VectorXf compute_delays(const Antenna &antenna);
  * @return The rotated antenna.
  */
 Antenna steer(const Antenna &antenna, const double theta, const double phi);
-
 
 /**
  * @brief Steer the antenna using horizontal angles. bore-sight is the x-axis and 
@@ -222,4 +210,4 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
 
 void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &lookup_table);
 
-#endif //BEAMFORMER_ANTENNA_H
+#endif//ANTENNA_H
