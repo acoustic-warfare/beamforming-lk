@@ -24,8 +24,8 @@
 #define BLUR_KERNEL_SIZE 5 //Kernel size of blur on heatmap
 
 void AWControlUnit::Start() {
-    auto awpu2 = AWProcessingUnit("10.0.0.1", 21875);
-    auto awpu1 = AWProcessingUnit("10.0.0.1", 21876);
+    auto awpu2 = AWProcessingUnit("10.0.0.1", 21875, 180);
+    auto awpu1 = AWProcessingUnit("10.0.0.1", 21876, 180);
     awpu1.start(GRADIENT);
     awpu2.start(GRADIENT);
 
@@ -39,8 +39,8 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
-    targetHandler_.AddAWPU(&awpu1, {2.6, 0, 0})
-            .AddAWPU(&awpu2, {-2.6, 0, 0})
+    targetHandler_.AddAWPU(&awpu1, {1, 0, 0})
+            .AddAWPU(&awpu2, {-1, 0, 0})
             .Start();
 
     if (usingWaraPS_) {
@@ -55,6 +55,8 @@ void AWControlUnit::Start() {
 
 
     while ((usingWaraPS_ && client_.running()) || !usingWaraPS_) {
+        frame.setTo(cv::Scalar(0));
+        awpu2.draw_heatmap(&frame);
         awpu1.draw_heatmap(&frame);
 
         GaussianBlur(frame, colorFrame,
