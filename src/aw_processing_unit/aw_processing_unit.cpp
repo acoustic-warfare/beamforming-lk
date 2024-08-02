@@ -77,7 +77,7 @@ bool AWProcessingUnit::start(const worker_t worker) {
             job = nullptr;
             break;
         case GRADIENT:
-            job = new SphericalGradient(pipeline, antennas[0], &running, 50, 10, fov);
+            job = new SphericalGradient(pipeline, antennas[0], &running, 16, 10, fov);
             break;
         default:
             return false;

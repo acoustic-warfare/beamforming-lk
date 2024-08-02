@@ -173,6 +173,10 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     // Define thickness of the text
     int thickness = 2;
     int i = 0;
+    double bestValue = 0.0;
+    auto end = std::chrono::high_resolution_clock::now();
+    bool hasBest = false;
+    cv::Point best;
     for (GradientTracker &particle: trackers) {
         i++;
         if (!particle.tracking) {
@@ -185,6 +189,22 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
         // Use the position values to plot over the heatmap
         int x = static_cast<int>(x_res * (position.x / ratio / 2.0 + 0.5));
         int y = static_cast<int>(y_res * (position.y / ratio / 2.0 + 0.5));
+
+#if 0
+        if (particle.directionGradient.radius > bestValue) {
+            bestValue = particle.directionGradient.radius;
+            hasBest = true;
+            best = cv::Point(x, y_res - y - 1);
+        }
+#else
+        if (particle.start < end) {
+            bestValue = particle.directionGradient.radius;
+            end = particle.start;
+            hasBest = true;
+            best = cv::Point(x, y_res - y - 1);
+        }
+
+#endif
 
         float gradientError = 1.0 - clip(particle.gradientError, 0.0, 2.0) / 2.0;
         gradientError = 1.0;
@@ -215,7 +235,27 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
 
     ss << "Tracking: " << n_trackers;
     cv::putText(*heatmap, ss.str(), cv::Point(0,0), fontFace, fontScale, color, thickness);
+    if (hasBest) {
+        int length = 1000;
+        int extra = 20;
+        // Draw the hollow square
+        //cv::rectangle(*heatmap, cv::Point(best.x - extra, best.y - extra), cv::Point(best.x + extra, best.y + extra), color, thickness);
 
+        // Draw the vertical line of the cross
+        cv::line(*heatmap, cv::Point(best.x, best.y - length), cv::Point(best.x, best.y - extra), color, thickness);
+        cv::line(*heatmap, cv::Point(best.x, best.y + extra), cv::Point(best.x, best.y + length), color, thickness);
+        // Draw the horizontal line of the cross
+        cv::line(*heatmap, cv::Point(best.x - length, best.y), cv::Point(best.x - extra, best.y), color, thickness);
+        cv::line(*heatmap, cv::Point(best.x + extra, best.y), cv::Point(best.x + length, best.y), color, thickness);
+        //// Draw the vertical line of the cross
+        //cv::line(*heatmap, cv::Point(best.x, best.y - length), cv::Point(best.x, best.y + length), color, thickness);
+        //// Draw the horizontal line of the cross
+        //cv::line(*heatmap, cv::Point(best.x - length, best.y), cv::Point(best.x + length, best.y), color, thickness);
+        std::stringstream ss;
+        ss << std::scientific << std::setprecision(2);
+        ss << "Mag: " << bestValue << "W";
+        cv::putText(*heatmap, ss.str(), cv::Point(best.x + 30, best.y - 10), fontFace, fontScale, color, thickness);
+    }
 
 #if DEBUG_GRADIENT
     double maxValue = 0.0;

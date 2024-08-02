@@ -236,6 +236,10 @@ int main(int argc, char* argv[]) {
         bigFrames.push_back(cv::Mat(Y_RES, X_RES, CV_8UC1));
     }
 
+    // Initialize variables for FPS calculation
+    auto start = std::chrono::high_resolution_clock::now();
+    int frameCount = 0;
+
     while (running) {
 
         cv::Mat frame;
@@ -269,7 +273,7 @@ int main(int argc, char* argv[]) {
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 #endif
             // Pretty colors
-            cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_JET);
+            cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_OCEAN);
 
             // Overlay onto camera
             if (use_camera) {
@@ -325,6 +329,21 @@ int main(int argc, char* argv[]) {
             // Write the frame to the video file
             videoWriter.write(combinedFrame);
         }
+
+        // Calculate FPS
+        frameCount++;
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        if (elapsed.count() >= 1.0) {
+            fps = frameCount / elapsed.count();
+            frameCount = 0;
+            start = end;
+        }
+
+        // Display FPS on the frame
+        std::string fpsText = "FPS: " + std::to_string(fps);
+        cv::putText(combinedFrame, fpsText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
+
 
         // Display the frame
         cv::imshow(APPLICATION_NAME, combinedFrame);
