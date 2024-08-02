@@ -10,7 +10,7 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
-#include "../target_handler/target_handler.h"
+#include "target_handler.h"
 
 #define USE_AUDIO true
 
@@ -63,9 +63,6 @@ void AWControlUnit::Start() {
                      cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
         applyColorMap(colorFrame, colorFrame, cv::COLORMAP_JET);
         imshow(APPLICATION_NAME, colorFrame);
-
-        std::unique_lock lock(pauseMutex_);
-        pausedCV_.wait(lock, [&] { return !paused_; });
 
         if (cv::waitKey(1) == 'q' || (usingWaraPS_ && !client_.running())) {
             break;

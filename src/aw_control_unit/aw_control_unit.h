@@ -39,13 +39,6 @@ private:
     /// Classifies and draws targets to the WARA PS display
     TargetHandler targetHandler_;
 
-    /// Condition variable to manage pausing of the control loop
-    std::condition_variable pausedCV_{};
-    /// Mutex to protect the pause condition variable
-    std::mutex pauseMutex_;
-    /// Flag to indicate if the unit is paused
-    bool paused_ = false;
-
     /**
      * @brief Publishes data from the control unit.
      */
@@ -56,7 +49,12 @@ public:
      * @brief Default constructor for AWControlUnit.
      */
     AWControlUnit();
+
+    /**
+     * The MQTT Client does not have a move or copy constructor, this propagates all the way up to here were we can't support it either
+     */
     AWControlUnit(const AWControlUnit &) = delete;
+
     AWControlUnit operator=(const AWControlUnit &) = delete;
 
     /**
