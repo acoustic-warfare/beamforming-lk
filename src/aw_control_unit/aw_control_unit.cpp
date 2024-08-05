@@ -18,12 +18,12 @@
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
 
-#define LK_HEADING 180 // LK heading in degrees
+#define LK_HEADING 180// LK heading in degrees
 
 #define X_RES 1024
 #define Y_RES 1024
 
-#define BLUR_KERNEL_SIZE 5 //Kernel size of blur on heatmap
+#define BLUR_KERNEL_SIZE 5//Kernel size of blur on heatmap
 
 void AWControlUnit::Start() {
     auto awpu2 = AWProcessingUnit("10.0.0.1", 21875, 180);
@@ -41,8 +41,8 @@ void AWControlUnit::Start() {
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
 
-    targetHandler_.AddAWPU(&awpu1, {1, 0, 0})
-            .AddAWPU(&awpu2, {-1, 0, 0})
+    targetHandler_.AddAWPU(&awpu1, {1, 0, 0})//1 = Distance of arrays relative GPS dongle, IMPORTANT!
+            .AddAWPU(&awpu2, {-1, 0, 0})     //-1 = Distance of arrays relative GPS dongle, IMPORTANT!
             .Start();
 
     if (usingWaraPS_) {
@@ -96,11 +96,10 @@ void AWControlUnit::publishData() {
             // Sending NaN breaks WARA PS Arena
 
             const nlohmann::json gpsJson = {
-                {"longitude", gpsData_.fix.longitude},
-                {"latitude", gpsData_.fix.latitude},
-                {"altitude", gpsData_.fix.altitude},
-                {"type", "GeoPoint"}
-            };
+                    {"longitude", gpsData_.fix.longitude},
+                    {"latitude", gpsData_.fix.latitude},
+                    {"altitude", gpsData_.fix.altitude},
+                    {"type", "GeoPoint"}};
             client_.PublishMessage("sensor/position", gpsJson.dump(4));
         }
     }
