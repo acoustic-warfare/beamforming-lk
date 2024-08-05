@@ -4,17 +4,17 @@ import matplotlib.pyplot as plt
 import math
 
 ## MAGIC NUMBERS START##
-intersection_grace_radius = 1  # meters between two vectors to find a intersect
+intersection_grace_radius = 0.2  # meters between two vectors to find a intersect
 
-min_track_distance = 1
-max_track_distance = 2
+min_track_distance = 0.2
+max_track_distance = 0.2
 track_distance_factor = 1  # factor to change the kill_time
 
-min_track_kill_time = 1  # min numger of second this is a baseline for new targets with very few hits
-max_track_kill_time = 2  # max number of seconds the kill_time can acheve for a target with many hits
+min_track_kill_time = 0.1  # min numger of second this is a baseline for new targets with very few hits
+max_track_kill_time = 0.1  # max number of seconds the kill_time can acheve for a target with many hits
 kill_time_factor = 1  # factor to change the kill_time
 
-plt_pause_on = False
+plt_pause_on = True  # True/False = 3d plot/no 3d plot, no 3d plot makes the program run faster
 plt_pause_factor = 0.1  # make the pauses shorter
 ## MAGIC NUMBERS END ##
 
@@ -67,16 +67,14 @@ def read_file(direction_1, direction_2, timestamps, file_name):
     return direction_1, direction_2, timestamps
 
 
-direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "tests/Targets2.txt")
+direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/Targets_3m_dator.txt")
 
 
 def triangulatePoints(r1, e1, r2, e2):
     n = cross(e1, e2)
-    # print("n", n)
 
     t1 = dot(cross(e2, n), (r2 - r1)) / dot(n, n)
     t2 = dot(cross(e1, n), (r2 - r1)) / dot(n, n)
-    # print("t", t1, t2)
 
     p1 = r1 + t1 * e1
     p2 = r2 + t2 * e2
@@ -133,17 +131,16 @@ def track(p, timestamp, same_hit_count, unique_hit_count):
                 target_list[i] = (track_point, time_since_last_hit, 0, timestamp)
 
     # find best hit to return
-    best_total_hits = 0
+    best_nr_hits = 0
     best_point = np.zeros(3)
     best_track_id = 99
     for i, (track_point, time_since_last_hit, total_hits, timestamp) in enumerate(target_list):
-        if total_hits > best_total_hits:
-            best_total_hits = total_hits
+        if total_hits > best_nr_hits:
+            best_nr_hits = total_hits
             best_point = track_point
             best_track_id = i
-
     history_target_list.append([[*target_list], current_time])
-    return best_point, best_track_id, same_hit_count, unique_hit_count
+    return best_point, best_track_id, best_nr_hits, same_hit_count, unique_hit_count
 
 
 def track_distance_generation(total_hits, min_value, max_value, track_distance_factor):
@@ -197,11 +194,11 @@ def plot_intersections(ax, p, p1, p2):
     ax.scatter(p[0], p[1], p[2], color="g", s=3)
 
 
-def plot_best_target(ax, colors, max_nr_colors, best_target, best_track_id):
+def plot_best_target(ax, colors, max_nr_colors, best_target, best_track_id, best_nr_hits):
     color = colors[best_track_id % max_nr_colors]
 
     targets = []
-    targets.append(ax.scatter(best_target[0], best_target[1], best_target[2], color=color, s=75, marker="x"))
+    targets.append(ax.scatter(best_target[0], best_target[1], best_target[2], color=color, s=75 + best_nr_hits / 2, marker="x"))
     return targets
 
 
@@ -244,7 +241,7 @@ def setup_3d_plot(ax):
     ax.view_init(elev=-30, azim=91, roll=0)
 
     origin = np.array([0, 0, 0])
-    ax.scatter(origin[0], origin[1], origin[2], color="r", s=100)
+    ax.scatter(origin[0], origin[1], origin[2], color="r", s=30)
     ax.scatter(origin_1[0], origin_1[1], origin_1[2], color="g", s=100)
     ax.scatter(origin_2[0], origin_2[1], origin_2[2], color="g", s=100)
 
@@ -260,21 +257,21 @@ all_targets = []
 last_hit_time = timestamps[0]
 current_time = timestamps[0]
 
-for i in range(0, len(direction_1)):
+for i in range(3000, len(direction_1)):
     p1, p2 = triangulatePoints(origin_1, direction_1[i], origin_2, direction_2[i])
     p = (p1 + p2) / 2
 
     current_time = timestamps[i]
-    if np.linalg.norm(p1 - p2) > intersection_grace_radius or p[2] < 0 or np.linalg.norm(p) > 20:
+    if np.linalg.norm(p1 - p2) > intersection_grace_radius or p[2] < 0 or np.linalg.norm(p) > 20 or p[2] < 2:
         p = np.zeros(3)
 
     if p.all() == 0:
         failed_intersect_count += 1
     else:
         if plt_pause_on:
-            print((current_time - last_hit_time) * 10**-9)
+            # print((current_time - last_hit_time) * 10**-9)
             plt.pause(
-                (current_time - last_hit_time) * 10**-9 * plt_pause_on * plt_pause_factor
+                (current_time - last_hit_time) * 10**-9 * plt_pause_on * plt_pause_factor + 0.000000001
             )  # Pause for a short time to update the plot
         last_hit_time = current_time
 
@@ -287,8 +284,10 @@ for i in range(0, len(direction_1)):
         for target in best_target:
             target.remove()
 
-        best_target_point, best_track_id, same_hit_count, unique_hit_count = track(p, timestamps[i], same_hit_count, unique_hit_count)
-        best_target = plot_best_target(ax, colors, max_nr_colors, best_target_point, best_track_id)
+        best_target_point, best_track_id, same_hit_count, unique_hit_count, best_nr_hits = track(
+            p, timestamps[i], same_hit_count, unique_hit_count
+        )
+        best_target = plot_best_target(ax, colors, max_nr_colors, best_target_point, best_track_id, best_nr_hits)
         all_targets = plot_all_targets(ax, colors, max_nr_colors, target_list)
 
         plt.draw()
@@ -297,67 +296,3 @@ for i in range(0, len(direction_1)):
 plt.ioff()  # Turn off interactive mode
 plt.close()
 print("Done!")
-
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
-setup_3d_plot(ax)
-ax.set_box_aspect([1, 1, 1])  # This ensures equal aspect ratio
-for i, (track_point, time_since_last_hit, total_hits, timestamp) in enumerate(target_list):
-    color = colors[i % max_nr_colors]
-    ax.scatter(track_point[0], track_point[1], track_point[2], color=color, s=10)
-plt.show()
-
-
-# plot log distance function
-i_values = np.linspace(1, 100, 100)  # Range for the line
-track_distances = [track_distance_generation(i, min_track_distance, max_track_distance, track_distance_factor) for i in i_values]
-kill_times = [kill_time_generation(i, min_track_kill_time, max_track_kill_time, kill_time_factor) for i in i_values]
-plt.figure(figsize=(10, 6))
-plt.subplot(2, 1, 1)
-plt.plot(i_values, track_distances, linestyle="-", color="b")
-plt.ylabel("Track Distance")
-plt.subplot(2, 1, 2)
-plt.plot(i_values, kill_times, linestyle="-", color="r")
-plt.xlabel("Number of Hits")
-plt.ylabel("Kill Time")
-plt.tight_layout()
-plt.show()
-
-# plot history target list
-target_hits_over_time = {}
-plt.figure(figsize=(12, 8))
-
-# Process each snapshot in history_target_list
-for snapshot, time_of_snapshot in history_target_list:
-    for target_id, (track_point, time_since_last_hit, total_hits, timestamp) in enumerate(snapshot):
-        if target_id not in target_hits_over_time:
-            target_hits_over_time[target_id] = {"time": [], "total_hits": []}
-
-        target_hits_over_time[target_id]["time"].append((time_of_snapshot - timestamps[0]) * 10**-9)
-        target_hits_over_time[target_id]["total_hits"].append(total_hits)
-
-for target_id, data in target_hits_over_time.items():
-    color = colors[target_id % max_nr_colors]
-
-    # Separate data based on the total_hits condition
-    times_with_hits = [t for t, hits in zip(data["time"], data["total_hits"]) if hits >= 1]
-    hits_with_hits = [hits for hits in data["total_hits"] if hits >= 1]
-
-    times_without_hits = [t for t, hits in zip(data["time"], data["total_hits"]) if hits < 1]
-    hits_without_hits = [hits for hits in data["total_hits"] if hits < 1]
-
-    # Plot points with hits >= 1 with markers
-    if times_with_hits:
-        plt.plot(times_with_hits, hits_with_hits, color=color, marker="o", label=f"Target {target_id}")
-
-plt.xlabel("Time (Snapshot Index)")
-plt.ylabel("Total Hits")
-plt.grid(True)
-plt.show()
-
-# Print some stats
-print("failed_intersect_count", failed_intersect_count)
-print("unique_hit_count", unique_hit_count)
-print("same_hit_count", same_hit_count)
-print("nr_of_tracks", len(target_list))
