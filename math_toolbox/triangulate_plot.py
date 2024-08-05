@@ -59,7 +59,7 @@ def read_file(direction_1, direction_2, timestamps, file_name):
     return direction_1, direction_2, timestamps
 
 
-direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/intersections_demo_plot.txt")
+direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/recorderd_data/intersections_demo_plot.txt")
 
 
 def triangulatePoints(r1, e1, r2, e2):
