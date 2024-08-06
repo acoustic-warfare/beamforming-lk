@@ -112,7 +112,7 @@ bool GradientTracker::operator>(const GradientTracker &other) const {
 }
 
 
-SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations, float fov) : Worker(pipeline, antenna, running), swarm_size(swarm_size), iterations(iterations), fov(fov) {
+SphericalGradient::SphericalGradient(Pipeline *pipeline, Antenna &antenna, bool *running, std::size_t swarm_size, std::size_t iterations, float fov) : Worker(pipeline, antenna, running), swarm_size(swarm_size), fov(fov) {
 
     this->fov = TO_RADIANS(fov / 2.0);
 
@@ -234,23 +234,23 @@ void SphericalGradient::populateHeatmap(cv::Mat *heatmap) {
     std::stringstream ss;
 
     ss << "Tracking: " << n_trackers;
-    cv::putText(*heatmap, ss.str(), cv::Point(0,0), fontFace, fontScale, color, thickness);
+    cv::putText(*heatmap, ss.str(), cv::Point(0, 0), fontFace, fontScale, color, thickness);
     if (hasBest) {
-        int length = 1000;
-        int extra = 20;
-        // Draw the hollow square
-        //cv::rectangle(*heatmap, cv::Point(best.x - extra, best.y - extra), cv::Point(best.x + extra, best.y + extra), color, thickness);
+        constexpr int length = 1000;
+        constexpr int extra = 20;
 
+        kf.update(Eigen::Vector3f((float) best.x, (float) best.y, 1.0));
+        Eigen::Vector3f p = kf.predict(0);
+        // Draw the tracker
+        cv::circle(*heatmap, cv::Point(p(X_INDEX), p(Y_INDEX)), 30, color, 2, 8, 0);
+        cv::line(*heatmap, cv::Point(p(X_INDEX), p(Y_INDEX)), cv::Point(best.x, best.y), color, thickness);
         // Draw the vertical line of the cross
         cv::line(*heatmap, cv::Point(best.x, best.y - length), cv::Point(best.x, best.y - extra), color, thickness);
         cv::line(*heatmap, cv::Point(best.x, best.y + extra), cv::Point(best.x, best.y + length), color, thickness);
         // Draw the horizontal line of the cross
         cv::line(*heatmap, cv::Point(best.x - length, best.y), cv::Point(best.x - extra, best.y), color, thickness);
         cv::line(*heatmap, cv::Point(best.x + extra, best.y), cv::Point(best.x + length, best.y), color, thickness);
-        //// Draw the vertical line of the cross
-        //cv::line(*heatmap, cv::Point(best.x, best.y - length), cv::Point(best.x, best.y + length), color, thickness);
-        //// Draw the horizontal line of the cross
-        //cv::line(*heatmap, cv::Point(best.x - length, best.y), cv::Point(best.x + length, best.y), color, thickness);
+
         std::stringstream ss;
         ss << std::scientific << std::setprecision(2);
         ss << "Mag: " << bestValue << "W";
@@ -308,7 +308,7 @@ void SphericalGradient::update() {
             tmp_reference += powf(MA, 2);
         }
     }
-    
+
 
     tmp_reference /= static_cast<float>(N_SAMPLES - 2);
     double reference = static_cast<double>(tmp_reference);
@@ -379,9 +379,7 @@ void SphericalGradient::update() {
                 maxPower = seeker.directionGradient.radius;
                 bestDirection = seeker.directionCurrent;
                 better = true;
-            } 
-
-            
+            }
         }
 
         if (better) {
@@ -405,7 +403,7 @@ void SphericalGradient::update() {
             continue;
         }
         if (tracker.tracking) {
-            tracking.emplace_back(tracker.directionCurrent, (float)tracker.directionGradient.radius, (float)(1 / tracker.gradientError), tracker.start);
+            tracking.emplace_back(tracker.directionCurrent, (float) tracker.directionGradient.radius, (float) (1 / tracker.gradientError), tracker.start);
         }
     }
 }

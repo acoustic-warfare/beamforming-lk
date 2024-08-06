@@ -11,7 +11,7 @@
 
 #define UDP_ADDRESS "10.0.0.1"
 
-#define APPLICATION_NAME "Beamforming"
+#define APPLICATION_NAME "Acoustic Warfare"
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
 #define RESOLUTION_MULTIPLIER 16
@@ -20,7 +20,7 @@
 
 #define BLUR_KERNEL_SIZE 11
 
-#define BLUR_EFFECT false
+#define BLUR_EFFECT true
 
 /**
  * Create a name for the video file
@@ -236,6 +236,19 @@ int main(int argc, char* argv[]) {
         bigFrames.push_back(cv::Mat(Y_RES, X_RES, CV_8UC1));
     }
 
+    // Load the logo image (with alpha channel if available)
+    cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
+    if (logo.empty()) {
+        std::cerr << "Error: Unable to load logo image" << std::endl;
+        return -1;
+    }
+
+    // Calculate new size (10% of original size)
+    cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
+
+    // Resize the image
+    cv::resize(logo, logo, newSize);
+
     // Initialize variables for FPS calculation
     auto start = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
@@ -313,7 +326,7 @@ int main(int argc, char* argv[]) {
             std::stringstream ss;
 
             ss << "Trackers: " << awpus[i]->targets().size();
-            cv::putText(bigFrames[i], ss.str(), cv::Point(0, 20), fontFace, fontScale, color, 2);
+            //cv::putText(bigFrames[i], ss.str(), cv::Point(0, 20), fontFace, fontScale, color, 2);
         }
 
         if (awpu_count == 0) {
@@ -344,6 +357,60 @@ int main(int argc, char* argv[]) {
         std::string fpsText = "FPS: " + std::to_string(fps);
         cv::putText(combinedFrame, fpsText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
 
+//        // Define the top-left corner where the logo will be placed
+//        cv::Point position(10, 10);// Adjust as needed
+//
+//        // Define the region of interest (ROI) in the background image
+//        cv::Rect roi(position.x, position.y, logo.cols, logo.rows);
+//
+//        // Ensure the ROI is within the bounds of the background image
+//        if (roi.x + roi.width > combinedFrame.cols || roi.y + roi.height > combinedFrame.rows) {
+//            std::cerr << "Error: Logo image exceeds background image bounds" << std::endl;
+//            return -1;
+//        }
+//
+//        // Create a mask for the logo image (if it has an alpha channel)
+//        cv::Mat mask;
+//        if (logo.channels() == 4) {
+//            cv::extractChannel(logo, mask, 3);// Extract alpha channel
+//        } else {
+//            mask = cv::Mat::ones(logo.size(), CV_8UC1) * 255;// Create a full-opacity mask if no alpha channel
+//        }
+//
+//        // Create submatrices for the ROI and the logo
+//        cv::Mat combinedFrameROI = combinedFrame(roi);
+//        cv::Mat logoROI = logo(cv::Rect(0, 0, combinedFrameROI.cols, combinedFrameROI.rows));
+//        cv::Mat maskROI = mask(cv::Rect(0, 0, combinedFrameROI.cols, combinedFrameROI.rows));
+//
+//        // Blend the logo onto the background using the mask
+//        cv::Mat blended;
+//        cv::bitwise_and(combinedFrameROI, combinedFrameROI, blended, maskROI);
+//        cv::bitwise_and(logoROI, logoROI, logoROI, maskROI);
+//        //cv::add(blended, logoROI, combinedFrameROI);
+
+        //cv::Mat insetImage(combinedFrame, cv::Rect(100, 0, logo.cols, logo.rows));
+
+        int x = 840;
+        int y = 0;
+        // Convert logo to grayscale if it has an alpha channel or is in color
+        if (logo.channels() == 4 || logo.channels() == 3) {
+            cv::Mat logoGray;
+            cv::cvtColor(logo, logoGray, cv::COLOR_BGR2GRAY);// Convert to grayscale
+            cv::Mat logoColor;
+            cv::applyColorMap(logoGray, logoColor, cv::COLORMAP_BONE);// Apply the same colormap if needed
+            logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
+        } else if (logo.channels() == 1) {
+            // Logo is already grayscale
+            cv::Mat logoColor;
+            cv::applyColorMap(logo, logoColor, cv::COLORMAP_BONE);// Apply colormap to logo if needed
+            logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
+        } else {
+            std::cerr << "Error: Unsupported number of channels in the logo image." << std::endl;
+        }
+
+        //combinedFrame = insetImage;
+
+        //logo.copyTo(combinedFrame(cv::Rect(logo.cols, 0, logo.cols, logo.rows)));
 
         // Display the frame
         cv::imshow(APPLICATION_NAME, combinedFrame);
