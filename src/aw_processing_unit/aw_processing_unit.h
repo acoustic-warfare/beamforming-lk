@@ -15,7 +15,7 @@
 #include "pipeline.h"
 #include "worker.h"
 
-#define FOV 63.0
+#define FOV 180.0
 #define MIMO_SIZE 256
 
 /**

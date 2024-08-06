@@ -1,5 +1,5 @@
 /** @file aw_control_unit.h
- * @author Janne
+ * @author Janne, Tuva
  * @brief Manages AW Processing Units (AWPU) and handles data publishing, GPS data, and WaraPS client communication.
  * @date 2024-07-04
  */
@@ -32,9 +32,6 @@ private:
     /// Flag to indicate if GPS should be used
     bool usingGps_ = false;
 
-    /// Vector of AW Processing Units, to differentiate between APWUs (FPGAs)
-    std::vector<AWProcessingUnit> awpus_;
-
     /// Classifies and draws targets to the WARA PS display
     TargetHandler targetHandler_;
 
@@ -52,14 +49,16 @@ public:
     /**
      * The MQTT Client does not have a move or copy constructor, this propagates all the way up to here were we can't support it either
      */
-    AWControlUnit(const AWControlUnit &) = delete;
+    AWControlUnit(const AWControlUnit&) = delete;
 
-    AWControlUnit operator=(const AWControlUnit &) = delete;
+    AWControlUnit operator=(const AWControlUnit&) = delete;
 
     /**
      * @brief Spools up the AW Control unit and blocks the current thread until it finished.
+     * @param TODO:
      */
-    void Start();
+    void Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
+               bool audio, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov);
 };
 
-#endif //AW_CONTROL_UNIT_H
+#endif//AW_CONTROL_UNIT_H
