@@ -13,12 +13,12 @@
 
 #include "geometry.h"
 
-#define PROPAGATION_SPEED 340.0 // Speed of sound in air [m * s^-1]
-#define SAMPLE_RATE 48828.0 // Hz [s^-1]
+#define PROPAGATION_SPEED 340.0// Speed of sound in air [m * s^-1]
+#define SAMPLE_RATE 48828.0    // Hz [s^-1]
 #define COLUMNS 8
 #define ROWS 8
 #define ELEMENTS (COLUMNS * ROWS)
-#define DISTANCE 0.02 // [m]
+#define DISTANCE 0.02// [m]
 
 const int second[16] = {
         0, 2, 4, 6,    // first column
@@ -29,21 +29,24 @@ const int second[16] = {
 };
 
 
-const int second_sector[16] = {0, 1, 2, 3, 8, 9, 10, 11, 16, 17, 18, 19, 24, 25, 26, 27};
+const int second_sector[16] = {0, 1, 2, 3, //
+8, 9, 10, 11, //
+16, 17, 18, 19, //
+24, 25, 26, 27};
 
-const int first_sector[16] = {4, 5, 6, 7,
-                              12, 13, 14, 15,
-                              20, 21, 22, 23,
+const int first_sector[16] = {4, 5, 6, 7, //
+                              12, 13, 14, 15, //
+                              20, 21, 22, 23, //
                               28, 29, 30, 31};
 
-const int third_sector[16] = {32, 33, 34, 35,
-                              40, 41, 42, 43,
-                              48, 49, 50, 51,
+const int third_sector[16] = {32, 33, 34, 35,//
+                              40, 41, 42, 43,//
+                              48, 49, 50, 51,//
                               56, 57, 58, 59};
 
-const int fourth_sector[16] = {36, 37, 38, 39,
-                               44, 45, 46, 47,
-                               52, 53, 54, 55,
+const int fourth_sector[16] = {36, 37, 38, 39,//
+                               44, 45, 46, 47,//
+                               52, 53, 54, 55,//
                                60, 61, 62, 63};
 
 /**
@@ -69,14 +72,6 @@ struct Sector {
     int sector;// 1, 2, 3, 4
     int usable = 0;
     int index[16];
-
-    //void construct_sector(const int *sensors, const int n, int sector) : sector(sector) {
-    //  for (int i = 0; i < n; i++) {
-    //    if (in_sector(sector, i)) {
-    //      this->index[this->usable++] = sensors[i];
-    //    }
-    //  }
-    //}
 };
 
 /**
@@ -87,12 +82,12 @@ struct Antenna {
     /**
      * @brief The 3D representation of the antenna
      */
-    Eigen::MatrixXf points;// The 3D representation of the antenna
-    int id;
-    int usable = 0;              ///< Number of usable elements; 
-    int *index;                  ///< Index of usable element 
-    float *power_correction_mask;///< Correction of microphone to reach some value 
-    float mean;                  ///< Pseudo valid metrics for checking the power level of antenna during auto calibration 
+    Eigen::MatrixXf points;      // The 3D representation of the antenna
+    int id;                      // Id of antenna
+    int usable = 0;              ///< Number of usable elements;
+    int *index;                  ///< Index of usable element
+    float *power_correction_mask;///< Correction of microphone to reach some value
+    float mean;                  ///< Pseudo valid metrics for checking the power level of antenna during auto calibration
     float median;
 
 
@@ -222,4 +217,4 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
 
 void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &lookup_table);
 
-#endif //BEAMFORMER_ANTENNA_H
+#endif//BEAMFORMER_ANTENNA_H

@@ -56,6 +56,11 @@ struct Particle {
     int offsetDelays[ELEMENTS];
     float fractionalDelays[ELEMENTS];
 
+    /**
+     * Output signal
+     */
+    float out[N_SAMPLES];
+
     Particle(Antenna &antenna, Streams *streams, double fov);
 
     /**
@@ -87,6 +92,16 @@ struct Particle {
      * Amplitude delay and sum adaptive beamforming
      */
     double beam();
+    
+    /**
+     * Delay and sum used as API
+     */
+    void das(float *out);
+
+    /**
+     * Move the particle to a specific direction
+     */
+    void move(Spherical direction);
 
     /**
      * Steer the particle beam to a specific direction

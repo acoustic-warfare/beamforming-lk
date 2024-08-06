@@ -18,6 +18,8 @@ set(DSP_SOURCES
     mimo.cpp
     gradient_ascend.h
     gradient_ascend.cpp
+    miso.h
+    miso.cpp
 )
 
 set(SOURCES ${SOURCES} ${DSP_SOURCES})
@@ -26,6 +28,7 @@ add_library(dsp STATIC ${DSP_SOURCES})
 target_include_directories(dsp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(dsp PUBLIC
     fpga
+    audio
     Eigen3::Eigen
     ${OpenCV_LIBS}
 )

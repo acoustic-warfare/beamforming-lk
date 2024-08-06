@@ -15,8 +15,8 @@
 #define Z_INDEX 2
 #define PI_HALF M_PI / 2.0
 
-#define TO_RADIANS(degree) degree *(M_PI / 180.0)
-#define TO_DEGREES(radian) radian * (180.0 / M_PI)
+#define TO_RADIANS(degree) (degree *(M_PI / 180.0))
+#define TO_DEGREES(radian) (radian * (180.0 / M_PI))
 
 #define NORTH 0
 #define EAST 1
@@ -88,6 +88,7 @@ Position spherical_to_cartesian(double theta, double phi, double radius);
 
 struct Spherical;
 struct Horizontal;// Horizontal with a 90degree rotation on y-axis
+struct Cartesian;
 
 /**
  * @brief Spherical representation of a position
@@ -107,6 +108,7 @@ struct Spherical {
 
     Spherical() = default;
     Spherical(double theta, double phi, double radius = 1.0);
+    Spherical(Cartesian position);
 
     /**
      * @brief Computes the distance to another spherical coordinate.
@@ -194,11 +196,6 @@ struct Horizontal {
      * @return The distance in radians.
      */
     double distanceTo(const Spherical &spherical);
-
-    //std::ostream &operator<<(std::ostream &out) {
-    //    out << "Horizontal: azimuth=" << degrees(azimuth) << " elevation=" << degrees(elevation);
-    //    return out;
-    //}
 
     friend std::ostream &operator<<(std::ostream &out, const Horizontal &direction) {
         out << "Horizontal: azimuth=" << TO_DEGREES(direction.azimuth) << " elevation=" << TO_DEGREES(direction.elevation);
