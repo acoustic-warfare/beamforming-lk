@@ -57,6 +57,7 @@ enum worker_t {
     GENERIC,
     PSO,
     MIMO,
+    MISO,
     SOUND,
     GRADIENT
 };
@@ -115,7 +116,7 @@ public:
 
     /**
      * @brief Getter for current targets
-     * @return
+     * @return Current tracked targets (if any)
      */
     [[nodiscard]] std::vector<Target> getTargets() const {
         std::vector<Target> r_targets;
@@ -134,11 +135,19 @@ public:
         lock.unlock();
     };
 
+    /**
+     * @brief Steer the worker to a specific direction
+     */
+    virtual void steer(Spherical direction) {};
+
 protected:
     /// Current direction
     Spherical direction;
 
+    /// Incoming data
     Streams *streams;
+
+    /// @brief steerable antenna with valid sensors
     Antenna &antenna;
 
     /// Current tracking objects
@@ -198,7 +207,7 @@ protected:
     }
 
 private:
-    ///
+    /// Self check against pipeline to only operate on newest data
     int start;
 
     /// Lock to prevent multiple access from outside and inside
