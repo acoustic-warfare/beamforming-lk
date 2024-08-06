@@ -1,5 +1,5 @@
 /** @file main.cpp
- * @author Janne
+ * @author Janne, Tuva
  * @date 2024-07-04
 */
 
@@ -7,5 +7,6 @@
 
 int main() {
     AWControlUnit controlUnit;
-    controlUnit.Start();
+    controlUnit.Start({21875}, "10.0.0.1",false, "false",
+                          0, true, true, 100, false, false, 180, false, false, false);
 }

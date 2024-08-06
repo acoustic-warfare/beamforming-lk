@@ -17,6 +17,14 @@ origin_2 = np.array([-1, 0, 0])
 direction_2 = []
 timestamps = []
 
+# 4 array side by side
+# origin_3 = np.array([-2, 0, 0])
+# origin_4 = np.array([2, 0, 0])
+
+# 4 array 2 over 2 under
+# origin_3 = np.array([-1, 2, 0])
+# origin_4 = np.array([1, 2, 0])
+
 
 def read_file(direction_1, direction_2, timestamps, file_name):
     with open(file_name, "r") as file:
@@ -59,7 +67,9 @@ def read_file(direction_1, direction_2, timestamps, file_name):
     return direction_1, direction_2, timestamps
 
 
-direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/recorderd_data/intersections_demo_plot.txt")
+direction_1, direction_2, timestamps = read_file(
+    direction_1, direction_2, timestamps, "math_toolbox/recorded_data/intersections_demo_plot.txt"
+)
 
 
 def triangulatePoints(r1, e1, r2, e2):
@@ -75,7 +85,7 @@ def triangulatePoints(r1, e1, r2, e2):
 
 
 def plot_direction_vector(ax, origin_1, direction_1_i, color):
-    line_space = np.linspace(0, 15, 100)  # Range for the line
+    line_space = np.linspace(0, 10, 100)  # Range for the line
     line_points_1 = origin_1 + line_space[:, np.newaxis] * direction_1_i
     vector = ax.plot(
         line_points_1[:, 0],
@@ -113,12 +123,15 @@ def setup_3d_plot(ax):
     ax.set_xlim([-6, 6])
     ax.set_ylim([-6, 6])
     ax.set_zlim([-1, 15])
-    ax.view_init(elev=-30, azim=91, roll=0)
+    ax.view_init(elev=-70, azim=91, roll=0)
 
     origin = np.array([0, 0, 0])
-    ax.scatter(origin[0], origin[1], origin[2], color="r", s=30)
-    ax.scatter(origin_1[0], origin_1[1], origin_1[2], color="y", s=100)
-    ax.scatter(origin_2[0], origin_2[1], origin_2[2], color="b", s=100)
+    ax.scatter(origin[0], origin[1], origin[2], color="black", s=10)
+
+    ax.scatter(origin_1[0], origin_1[1], origin_1[2], color="y", s=50)
+    ax.scatter(origin_2[0], origin_2[1], origin_2[2], color="b", s=50)
+    # ax.scatter(origin_3[0], origin_3[1], origin_3[2], color="g", s=50)
+    # ax.scatter(origin_4[0], origin_4[1], origin_4[2], color="r", s=50)
 
 
 setup_3d_plot(ax)
@@ -128,6 +141,8 @@ plt_pause = 0
 
 vector_1 = []
 vector_2 = []
+vector_3 = []
+vector_4 = []
 intersections = []
 
 last_hit_time = timestamps[0]
@@ -151,10 +166,14 @@ for i in range(3000, len(direction_1)):
 
     vector_1.append(plot_direction_vector(ax, origin_1, direction_1[i], color="y"))
     vector_2.append(plot_direction_vector(ax, origin_2, direction_2[i], color="b"))
+    # vector_3.append(plot_direction_vector(ax, origin_3, direction_2[i], color="g"))
+    # vector_4.append(plot_direction_vector(ax, origin_4, direction_1[i], color="r"))
+
     plt.draw()
     plt_pause += 1
 
     if min(len(vector_1), len(vector_2)) > 5:
+        # input()
 
         if plt_pause_on:
             # print((current_time - last_hit_time) * 10**-9)
@@ -174,11 +193,19 @@ for i in range(3000, len(direction_1)):
             vector.remove()
         for vector in vector_2:
             vector.remove()
+
+        for vector in vector_3:
+            vector.remove()
+        for vector in vector_4:
+            vector.remove()
+
         for intersection in intersections:
             intersection.remove()
 
         vector_1 = []
         vector_2 = []
+        vector_3 = []
+        vector_4 = []
         intersections = []
 
 

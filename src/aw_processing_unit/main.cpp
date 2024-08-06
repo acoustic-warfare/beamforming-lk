@@ -291,18 +291,19 @@ int main(int argc, char* argv[]) {
     // Load the logo image (with alpha channel if available)
     cv::Mat logo;
     
-    if (use_logo)
-    {logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
-    if (logo.empty()) {
+    if (use_logo) {
+      logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
+      if (logo.empty()) {
         std::cerr << "Error: Unable to load logo image" << std::endl;
         return -1;
+      }
+
+        // Calculate new size (10% of original size)
+        cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
+
+        // Resize the image
+        cv::resize(logo, logo, newSize);
     }
-
-    // Calculate new size (10% of original size)
-    cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
-
-    // Resize the image
-    cv::resize(logo, logo, newSize);}
 
     // Initialize variables for FPS calculation
     auto start = std::chrono::high_resolution_clock::now();
@@ -368,7 +369,7 @@ int main(int argc, char* argv[]) {
                 bigFrames[i].copyTo(result, mask);
                 bigFrames[i] = result;
             }
-            
+
             if (debug) {
                 // Define font face
                 int fontFace = cv::FONT_HERSHEY_SIMPLEX;
@@ -384,7 +385,6 @@ int main(int argc, char* argv[]) {
                 ss << "Trackers: " << awpus[i]->targets().size();
                 cv::putText(bigFrames[i], ss.str(), cv::Point(0, 20), fontFace, fontScale, color, 2);
             }
-            
         }
 
         if (awpu_count == 0) {
