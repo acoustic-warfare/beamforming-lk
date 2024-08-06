@@ -81,7 +81,6 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .help("PORT numbers");
 }
 
-
 int main(int argc, char* argv[]) {
     argparse::ArgumentParser program(argv[0]);
     setupArgumentParser(program);
@@ -120,11 +119,13 @@ int main(int argc, char* argv[]) {
         for (const auto& port: ports) std::cout << port << " ";
         std::cout << std::endl;
         std::cout << "Use camera: " << use_camera << std::endl;
-        //TODO: add for logo, fps, debug
+        std::cout << "Use logo: " << use_logo << std::endl;
+        std::cout << "Use fps: " << use_fps << std::endl;
+        std::cout << "Debug: " << debug << std::endl;
     }
 
     AWControlUnit awControlUnit;
-    awControlUnit.Start(ports, ip_address, use_camera, camera, audio, mimo, tracking, mimo_res, verbose, record, fov); //TODO: add logo, fps, debug
+    awControlUnit.Start(ports, ip_address, use_camera, camera, audio, mimo, tracking, mimo_res, verbose, record, fov, use_fps, use_logo, debug);
 
     return 0;
 }
