@@ -55,7 +55,20 @@ public:
 
     /**
      * @brief Spools up the AW Control unit and blocks the current thread until it finished.
-     * @param TODO:
+     * @param ports List of ports to be used by the control unit.
+     * @param ip_address IP address of the target device.
+     * @param use_camera Flag indicating whether to use the camera.
+     * @param camera The camera identifier (e.g., device path or ID).
+     * @param audio_port Port number for audio communication.
+     * @param mimo Flag indicating whether MIMO (Multiple Input Multiple Output) is enabled.
+     * @param tracking Flag indicating whether tracking functionality is enabled.
+     * @param mimo_res Resolution setting for MIMO.
+     * @param verbose Flag indicating whether verbose logging is enabled.
+     * @param record Flag indicating whether recording is enabled.
+     * @param fov Field of view setting.
+     * @param use_fps Flag indicating whether FPS (Frames Per Second) display is enabled.
+     * @param use_logo Flag indicating whether to display a logo.
+     * @param debug Flag indicating whether debug mode is enabled.
      */
     void Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
                int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug);

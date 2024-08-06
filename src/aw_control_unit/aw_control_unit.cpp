@@ -23,7 +23,87 @@
 #define BLUR_EFFECT false
 
 /**
- * Create a name for the video file
+ * Computes and displays FPS on the frame.
+ */
+int compute_fps(int frameCount, auto start, double fps, cv::Mat combinedFrame) {
+    // Calculate FPS
+    frameCount++;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    if (elapsed.count() >= 1.0) {
+        fps = frameCount / elapsed.count();
+        frameCount = 0;
+        start = end;
+    }
+
+    // Display FPS on the frame
+    std::string fpsText = "FPS: " + std::to_string(fps);
+    cv::putText(combinedFrame, fpsText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
+    return frameCount;
+}
+
+/**
+ * Initializes use of a logo.
+ */
+void init_logo(cv::Mat logo) {
+    if (logo.empty()) {
+        std::cerr << "Error: Unable to load logo image" << std::endl;
+    }
+
+    // Calculate new size (10% of original size)
+    cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
+
+    // Resize the image
+    cv::resize(logo, logo, newSize);
+}
+
+/**
+ * Displays logo on heatmap.
+ */
+void display_logo(cv::Mat logo, cv::Mat combinedFrame) {
+    int x = 840;
+    int y = 0;
+    // Convert logo to grayscale if it has an alpha channel or is in color
+    if (logo.channels() == 4 || logo.channels() == 3) {
+        cv::Mat logoGray;
+        cv::cvtColor(logo, logoGray, cv::COLOR_BGR2GRAY);// Convert to grayscale
+        cv::Mat logoColor;
+        cv::applyColorMap(logoGray, logoColor, cv::COLORMAP_BONE);// Apply the same colormap if needed
+        logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
+    } else if (logo.channels() == 1) {
+        // Logo is already grayscale
+        cv::Mat logoColor;
+        cv::applyColorMap(logo, logoColor, cv::COLORMAP_BONE);// Apply colormap to logo if needed
+        logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
+    } else {
+        std::cerr << "Error: Unsupported number of channels in the logo image." << std::endl;
+    }
+}
+
+/**
+ * Initializes the webcamera.
+ */
+void init_camera(float fov, std::string camera, cv::VideoCapture cap, int delay, double fps) {
+    fov = FOV;
+    cap = cv::VideoCapture(camera);
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Could not open the webcam." << std::endl;
+    }
+
+    // Get the frames per second of the video
+    fps = cap.get(cv::CAP_PROP_FPS);
+
+    // Calculate the delay between frames
+    delay = 1000 / fps;
+
+    // Get the width and height of frames from the webcam
+    int frame_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    int frame_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    cv::Size frame_size(frame_width, frame_height);
+}
+
+/**
+ * Create a name for the video file.
  */
 std::string generateUniqueFilename() {
     // Get the current time
@@ -41,7 +121,7 @@ std::string generateUniqueFilename() {
 }
 
 /**
- * Initiate the videostream writer
+ * Initiate the videostream writer.
  */
 int startRecording(cv::VideoWriter& videoWriter, cv::Size frame_size, double fps) {
 
@@ -59,7 +139,7 @@ int startRecording(cv::VideoWriter& videoWriter, cv::Size frame_size, double fps
 
 
 /**
- * Stop the videostream writer
+ * Stop the videostream writer.
  */
 void stopRecording(cv::VideoWriter& videoWriter) {
     videoWriter.release();
@@ -77,25 +157,10 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     double fps = 60.0;
 
     if (use_camera) {
-        fov = FOV;
-        cap = cv::VideoCapture(camera);
-        if (!cap.isOpened()) {
-            std::cerr << "Error: Could not open the webcam." << std::endl;
-        }
-
-        // Get the frames per second of the video
-        fps = cap.get(cv::CAP_PROP_FPS);
-
-        // Calculate the delay between frames
-        delay = 1000 / fps;
-
-        // Get the width and height of frames from the webcam
-        int frame_width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
-        int frame_height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
-        cv::Size frame_size(frame_width, frame_height);
+        init_camera(fov, camera, cap, delay, fps);
     }
 
-
+    // Setup AWPUS
     std::vector<AWProcessingUnit*> awpus;
 
     int i = 0;
@@ -108,6 +173,7 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
         AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose, audio_port);
         awpus.push_back(awpu);
 
+        // Start different modes
         if (tracking) { awpu->start(GRADIENT); }
         if (mimo) { awpu->start(MIMO); }
         if (audio_port == port) awpu->play_audio();
@@ -144,17 +210,9 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     }
 
     // Load the logo image (with alpha channel if available)
-    cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
-    if (use_logo != 0) {
-        if (logo.empty()) {
-            std::cerr << "Error: Unable to load logo image" << std::endl;
-        }
-
-        // Calculate new size (10% of original size)
-        cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
-
-        // Resize the image
-        cv::resize(logo, logo, newSize);
+    cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);//
+    if (use_logo) {
+        init_logo(logo);
     }
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -191,7 +249,6 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
                 videoWriter.write(frame);// Write the frame to the video file
             }
         }
-
 
         for (int i = 0; i < awpu_count; i++) {
 
@@ -269,38 +326,11 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
 
         if (use_fps) {
             // Calculate FPS
-            frameCount++;
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            if (elapsed.count() >= 1.0) {
-                fps = frameCount / elapsed.count();
-                frameCount = 0;
-                start = end;
-            }
-
-            // Display FPS on the frame
-            std::string fpsText = "FPS: " + std::to_string(fps);
-            cv::putText(combinedFrame, fpsText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
+            frameCount = compute_fps(frameCount, start, fps, combinedFrame);
         }
 
         if (use_logo) {
-            int x = 840;
-            int y = 0;
-            // Convert logo to grayscale if it has an alpha channel or is in color
-            if (logo.channels() == 4 || logo.channels() == 3) {
-                cv::Mat logoGray;
-                cv::cvtColor(logo, logoGray, cv::COLOR_BGR2GRAY);// Convert to grayscale
-                cv::Mat logoColor;
-                cv::applyColorMap(logoGray, logoColor, cv::COLORMAP_BONE);// Apply the same colormap if needed
-                logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
-            } else if (logo.channels() == 1) {
-                // Logo is already grayscale
-                cv::Mat logoColor;
-                cv::applyColorMap(logo, logoColor, cv::COLORMAP_BONE);// Apply colormap to logo if needed
-                logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
-            } else {
-                std::cerr << "Error: Unsupported number of channels in the logo image." << std::endl;
-            }
+            display_logo(logo, combinedFrame);
         }
 
         // Display the frame
