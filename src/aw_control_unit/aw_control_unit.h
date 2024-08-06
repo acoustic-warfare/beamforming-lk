@@ -58,7 +58,7 @@ public:
      * @param TODO:
      */
     void Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-               bool audio, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug);
+               int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug);
 };
 
 #endif//AW_CONTROL_UNIT_H

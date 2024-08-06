@@ -12,8 +12,6 @@
 
 #include "target_handler.h"
 
-#define USE_AUDIO true
-
 #define APPLICATION_NAME "Beamforming"
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
@@ -68,7 +66,7 @@ void stopRecording(cv::VideoWriter& videoWriter) {
 }
 
 void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-                          bool audio, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug) {
+                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug) {
     cv::VideoCapture cap;
     cv::VideoWriter videoWriter;
 
@@ -107,19 +105,15 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
             std::cout << "Starting MIMO: " << port << std::endl;
         }
 
-        AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose, audio);
+        AWProcessingUnit* awpu = new AWProcessingUnit(ip_address.c_str(), port, fov, mimo_res, verbose, audio_port);
         awpus.push_back(awpu);
 
         if (tracking) { awpu->start(GRADIENT); }
         if (mimo) { awpu->start(MIMO); }
-        //if (audio) awpu.play_audio();
+        if (audio_port == port) awpu->play_audio();
     }
 
     int awpu_count = awpus.size();
-
-    //if constexpr (USE_AUDIO) {
-    //    awpu1.play_audio();
-    //}
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
 
@@ -369,13 +363,7 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
         delete awpu;
     }
 
-    std::cout << "awpus" << std::endl;
-
     cv::destroyAllWindows();
-
-    //if constexpr (USE_AUDIO) {
-    //    awpu1.stop_audio();
-    //}
 }
 
 // Publishes data every second
