@@ -19,9 +19,9 @@ plt_pause_factor = 0.1  # make the pauses shorter
 ## MAGIC NUMBERS END ##
 
 # Initialize empty lists to read data
-origin_1 = np.array([1, 0, 0])
+origin_1 = np.array([1.7 / 2, 0, 0])
 direction_1 = []
-origin_2 = np.array([-1, 0, 0])
+origin_2 = np.array([-1.7 / 2, 0, 0])
 direction_2 = []
 timestamps = []
 
@@ -67,7 +67,7 @@ def read_file(direction_1, direction_2, timestamps, file_name):
     return direction_1, direction_2, timestamps
 
 
-direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/recorderd_data/Targets_3m_dator.txt")
+direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/recorded_data/hover_4m.txt")
 
 
 def triangulatePoints(r1, e1, r2, e2):
@@ -241,9 +241,10 @@ def setup_3d_plot(ax):
     ax.view_init(elev=-30, azim=91, roll=0)
 
     origin = np.array([0, 0, 0])
-    ax.scatter(origin[0], origin[1], origin[2], color="r", s=30)
-    ax.scatter(origin_1[0], origin_1[1], origin_1[2], color="g", s=100)
-    ax.scatter(origin_2[0], origin_2[1], origin_2[2], color="g", s=100)
+    ax.scatter(origin[0], origin[1], origin[2], color="black", s=10)
+
+    ax.scatter(origin_1[0], origin_1[1], origin_1[2], color="y", s=50)
+    ax.scatter(origin_2[0], origin_2[1], origin_2[2], color="b", s=50)
 
 
 setup_3d_plot(ax)
@@ -260,6 +261,7 @@ current_time = timestamps[0]
 for i in range(3000, len(direction_1)):
     p1, p2 = triangulatePoints(origin_1, direction_1[i], origin_2, direction_2[i])
     p = (p1 + p2) / 2
+    p[1] = -p[1]
 
     current_time = timestamps[i]
     if np.linalg.norm(p1 - p2) > intersection_grace_radius or p[2] < 0 or np.linalg.norm(p) > 20 or p[2] < 2:
