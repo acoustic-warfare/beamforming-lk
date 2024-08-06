@@ -421,27 +421,29 @@ void AWControlUnit::publishData() {
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
 }
 
-AWControlUnit::AWControlUnit() : client_(WARAPS_NAME, WARAPS_ADDRESS,
-                                         std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
-                                         std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")),
-                                 targetHandler_(&gpsData_) {
-    int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
-    gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
+AWControlUnit::AWControlUnit(bool use_waraps) : client_(WARAPS_NAME, WARAPS_ADDRESS,
+                                                        std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
+                                                        std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")),
+                                                targetHandler_(&gpsData_) {
+    if (use_waraps) {
+        int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
+        gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);
 
-    if (gpsError != 0) {
-        std::cerr << "GPS Error: " << gps_errstr(gpsError) << std::endl;
-        std::cerr << "Continuing without gps" << std::endl;
-        usingGps_ = false;
-    } else {
-        usingGps_ = true;
-    }
+        if (gpsError != 0) {
+            std::cerr << "GPS Error: " << gps_errstr(gpsError) << std::endl;
+            std::cerr << "Continuing without gps" << std::endl;
+            usingGps_ = false;
+        } else {
+            usingGps_ = true;
+        }
 
-    try {
-        client_.Start();
-        usingWaraPS_ = true;
-    } catch (std::runtime_error& e) {
-        std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
-        std::cout << "Continuing without WARA PS Connection" << std::endl;
-        usingWaraPS_ = false;
+        try {
+            client_.Start();
+            usingWaraPS_ = true;
+        } catch (std::runtime_error& e) {
+            std::cerr << "WARA PS Connection error: " << e.what() << std::endl;
+            std::cout << "Continuing without WARA PS Connection" << std::endl;
+            usingWaraPS_ = false;
+        }
     }
 }

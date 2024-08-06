@@ -44,7 +44,7 @@ public:
     /**
      * @brief Default constructor for AWControlUnit.
      */
-    AWControlUnit();
+    AWControlUnit(bool use_waraps);
 
     /**
      * The MQTT Client does not have a move or copy constructor, this propagates all the way up to here were we can't support it either

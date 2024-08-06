@@ -79,6 +79,11 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .append()
             .scan<'i', int>()
             .help("PORT numbers");
+
+    program.add_argument("--wara-ps")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Use WARA PS");
 }
 
 int main(int argc, char* argv[]) {
@@ -107,6 +112,7 @@ int main(int argc, char* argv[]) {
     bool use_fps = program.get<bool>("--fps");
     bool use_logo = program.get<bool>("--logo");
     bool debug = program.get<bool>("--debug");
+    bool use_waraps = program.get<bool>("--wara-ps");
 
     if (verbose) {
         std::cout << "Camera: " << camera << std::endl;
@@ -122,9 +128,10 @@ int main(int argc, char* argv[]) {
         std::cout << "Use logo: " << use_logo << std::endl;
         std::cout << "Use fps: " << use_fps << std::endl;
         std::cout << "Debug: " << debug << std::endl;
+        std::cout << "WARA PS: " << use_waraps << std::endl;
     }
 
-    AWControlUnit awControlUnit;
+    AWControlUnit awControlUnit(use_waraps);
     awControlUnit.Start(ports, ip_address, use_camera, camera, audio, mimo, tracking, mimo_res, verbose, record, fov, use_fps, use_logo, debug);
 
     return 0;
