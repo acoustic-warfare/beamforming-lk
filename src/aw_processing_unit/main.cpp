@@ -11,7 +11,7 @@
 
 #define UDP_ADDRESS "10.0.0.1"
 
-#define APPLICATION_NAME "Beamforming"
+#define APPLICATION_NAME "Acoustic Warfare"
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
 #define RESOLUTION_MULTIPLIER 16
@@ -20,7 +20,7 @@
 
 #define BLUR_KERNEL_SIZE 11
 
-#define BLUR_EFFECT false
+#define BLUR_EFFECT true
 
 /**
  * Create a name for the video file
@@ -106,6 +106,21 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .implicit_value(true)
             .help("Program output");
 
+    program.add_argument("--fps")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Program FPS");
+
+    program.add_argument("--logo")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Use logo");
+
+    program.add_argument("--debug")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Debug mode");
+
     program.add_argument("--fov")
             .default_value(static_cast<float>(180.0f))
             .scan<'g', float>()
@@ -141,6 +156,9 @@ int main(int argc, char* argv[]) {
     std::vector<int> ports = program.get<std::vector<int>>("--port");
     bool verbose = program.get<bool>("--verbose");
     bool use_camera = (camera.compare("false") != 0);
+    bool use_fps = program.get<bool>("--fps");
+    bool use_logo = program.get<bool>("--logo");
+    bool debug = program.get<bool>("--debug");
 
     if (verbose) {
         // Display the parsed argument values
@@ -236,6 +254,19 @@ int main(int argc, char* argv[]) {
         bigFrames.push_back(cv::Mat(Y_RES, X_RES, CV_8UC1));
     }
 
+    // Load the logo image (with alpha channel if available)
+    cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
+    if (logo.empty()) {
+        std::cerr << "Error: Unable to load logo image" << std::endl;
+        return -1;
+    }
+
+    // Calculate new size (10% of original size)
+    cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
+
+    // Resize the image
+    cv::resize(logo, logo, newSize);
+
     // Initialize variables for FPS calculation
     auto start = std::chrono::high_resolution_clock::now();
     int frameCount = 0;
@@ -300,20 +331,23 @@ int main(int argc, char* argv[]) {
                 bigFrames[i].copyTo(result, mask);
                 bigFrames[i] = result;
             }
+            
+            if (debug) {
+                // Define font face
+                int fontFace = cv::FONT_HERSHEY_SIMPLEX;
 
-            // Define font face
-            int fontFace = cv::FONT_HERSHEY_SIMPLEX;
+                // Define font scale (size)
+                double fontScale = 1;
 
-            // Define font scale (size)
-            double fontScale = 1;
+                // Define font color (here it's white)
+                cv::Scalar color(255, 255, 255);
 
-            // Define font color (here it's white)
-            cv::Scalar color(255, 255, 255);
+                std::stringstream ss;
 
-            std::stringstream ss;
-
-            ss << "Trackers: " << awpus[i]->targets().size();
-            cv::putText(bigFrames[i], ss.str(), cv::Point(0, 20), fontFace, fontScale, color, 2);
+                ss << "Trackers: " << awpus[i]->targets().size();
+                cv::putText(bigFrames[i], ss.str(), cv::Point(0, 20), fontFace, fontScale, color, 2);
+            }
+            
         }
 
         if (awpu_count == 0) {
@@ -330,20 +364,42 @@ int main(int argc, char* argv[]) {
             videoWriter.write(combinedFrame);
         }
 
-        // Calculate FPS
-        frameCount++;
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = end - start;
-        if (elapsed.count() >= 1.0) {
-            fps = frameCount / elapsed.count();
-            frameCount = 0;
-            start = end;
+        if (use_fps) {
+            // Calculate FPS
+            frameCount++;
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            if (elapsed.count() >= 1.0) {
+                fps = frameCount / elapsed.count();
+                frameCount = 0;
+                start = end;
+            }
+
+            // Display FPS on the frame
+            std::string fpsText = "FPS: " + std::to_string(fps);
+            cv::putText(combinedFrame, fpsText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
         }
 
-        // Display FPS on the frame
-        std::string fpsText = "FPS: " + std::to_string(fps);
-        cv::putText(combinedFrame, fpsText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
 
+        if (use_logo) {
+            int x = 840;
+            int y = 0;
+            // Convert logo to grayscale if it has an alpha channel or is in color
+            if (logo.channels() == 4 || logo.channels() == 3) {
+                cv::Mat logoGray;
+                cv::cvtColor(logo, logoGray, cv::COLOR_BGR2GRAY);// Convert to grayscale
+                cv::Mat logoColor;
+                cv::applyColorMap(logoGray, logoColor, cv::COLORMAP_BONE);// Apply the same colormap if needed
+                logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
+            } else if (logo.channels() == 1) {
+                // Logo is already grayscale
+                cv::Mat logoColor;
+                cv::applyColorMap(logo, logoColor, cv::COLORMAP_BONE);// Apply colormap to logo if needed
+                logoColor.copyTo(combinedFrame(cv::Rect(x, y, logoColor.cols, logoColor.rows)));
+            } else {
+                std::cerr << "Error: Unsupported number of channels in the logo image." << std::endl;
+            }
+        }
 
         // Display the frame
         cv::imshow(APPLICATION_NAME, combinedFrame);
