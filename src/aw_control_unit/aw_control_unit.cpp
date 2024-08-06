@@ -25,7 +25,7 @@
 /**
  * Computes and displays FPS on the frame.
  */
-int compute_fps(int frameCount, auto start, double fps, cv::Mat combinedFrame) {
+int computeFps(int frameCount, auto start, double fps, cv::Mat combinedFrame) {
     // Calculate FPS
     frameCount++;
     auto end = std::chrono::high_resolution_clock::now();
@@ -45,7 +45,7 @@ int compute_fps(int frameCount, auto start, double fps, cv::Mat combinedFrame) {
 /**
  * Initializes use of a logo.
  */
-void init_logo(cv::Mat logo) {
+void initLogo(cv::Mat logo) {
     if (logo.empty()) {
         std::cerr << "Error: Unable to load logo image" << std::endl;
     }
@@ -60,7 +60,7 @@ void init_logo(cv::Mat logo) {
 /**
  * Displays logo on heatmap.
  */
-void display_logo(cv::Mat logo, cv::Mat combinedFrame) {
+void displayLogo(cv::Mat logo, cv::Mat combinedFrame) {
     int x = 840;
     int y = 0;
     // Convert logo to grayscale if it has an alpha channel or is in color
@@ -83,7 +83,7 @@ void display_logo(cv::Mat logo, cv::Mat combinedFrame) {
 /**
  * Initializes the webcamera.
  */
-void init_camera(float fov, std::string camera, cv::VideoCapture cap, int delay, double fps) {
+void initCamera(float fov, std::string camera, cv::VideoCapture cap, int delay, double fps) {
     fov = FOV;
     cap = cv::VideoCapture(camera);
     if (!cap.isOpened()) {
@@ -157,7 +157,7 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     double fps = 60.0;
 
     if (use_camera) {
-        init_camera(fov, camera, cap, delay, fps);
+        initCamera(fov, camera, cap, delay, fps);
     }
 
     // Setup AWPUS
@@ -212,7 +212,7 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     // Load the logo image (with alpha channel if available)
     cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);//
     if (use_logo) {
-        init_logo(logo);
+        initLogo(logo);
     }
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -326,11 +326,11 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
 
         if (use_fps) {
             // Calculate FPS
-            frameCount = compute_fps(frameCount, start, fps, combinedFrame);
+            frameCount = computeFps(frameCount, start, fps, combinedFrame);
         }
 
         if (use_logo) {
-            display_logo(logo, combinedFrame);
+            displayLogo(logo, combinedFrame);
         }
 
         // Display the frame

@@ -28,7 +28,7 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
     program.add_argument("--audio")
             .default_value(0)
             .scan<'i', int>()
-            .help("Audio option");
+            .help("Audio option, port nr");
 
     program.add_argument("--mimo")
             .default_value(false)
