@@ -51,8 +51,7 @@ void Particle::steer(const Spherical &direction) {
 double Particle::beam() {
     const float norm = 1 / static_cast<float>(antenna.usable);
     
-
-    float out[N_SAMPLES] = {0.0};
+    std::fill(out, out + N_SAMPLES, 0);
 
     for (unsigned s = 0; s < antenna.usable; s++) {
 
@@ -80,4 +79,25 @@ double Particle::beam() {
     power_accumulator /= static_cast<float>(N_SAMPLES);
 
     return static_cast<double>(power_accumulator);
+}
+
+void Particle::move(Spherical direction) {
+    directionCurrent = direction;
+}
+
+void Particle::das(float *out) {
+    const float norm = 1 / static_cast<float>(antenna.usable);
+
+    std::fill(out, out + N_SAMPLES, 0);
+
+    for (unsigned s = 0; s < antenna.usable; s++) {
+
+        int i = antenna.index[s];
+        float fraction = fractionalDelays[i];
+
+        int offset = offsetDelays[i];
+
+        float *signal = streams->get_signal(i, offset);
+        delay(&out[0], signal, fraction);
+    }
 }
