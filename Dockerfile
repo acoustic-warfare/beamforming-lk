@@ -71,12 +71,6 @@ RUN git submodule init \
     && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON \
     && cmake --build build/ --target install
 
-
-RUN git clone https://github.com/Rookfighter/pso-cpp.git && \
-    mkdir -p pso-cpp/build && \
-    cd pso-cpp/build && \
-    cmake .. && make install
-
 FROM deps AS build
 
 WORKDIR /
@@ -95,8 +89,11 @@ RUN ldconfig
 # Create app directory
 RUN mkdir -p /usr/src/app
 
-RUN useradd -rm -d /home/newuser -s /bin/bash -g root -G sudo -G audio -u 1000 newuser
+RUN useradd -rm -d /home/newuser -s /bin/bash -g root -G sudo,audio,video -u 1000 newuser
+RUN apt-get install -y mpv
 USER newuser
+
+
 
 # Set working directory
 WORKDIR /usr/src/app
