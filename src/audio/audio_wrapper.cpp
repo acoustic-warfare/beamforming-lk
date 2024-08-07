@@ -116,6 +116,34 @@ static int audioCallback(const void *_, void *outputBuffer,
     return paContinue;
 }
 
+static int audioCallbackSimple(const void *_, void *outputBuffer,
+                         unsigned long framesPerBuffer,
+                         const PaStreamCallbackTimeInfo *timeInfo,
+                         PaStreamCallbackFlags statusFlags,
+                         void *userData) {
+    auto self = static_cast<AudioWrapper *>(userData);
+    auto out = static_cast<float *>(outputBuffer);
+    float *in = self->getMISO();
+    Pipeline *pipeline = self->getPipeline();
+    int i=0;
+    std::vector<float> *audioData = self->getAudioData();
+    //std::cout << framesPerBuffer << std::endl;
+    //pipeline->barrier();
+    //while (pipeline->readMISO() != true) {
+    //    i++;
+    //    std::cout << i <<" ";
+    //}
+    //in = pipeline->getStreams()->get_signal(0, 0);
+    //pipeline->miso_lock.lock();
+    for (unsigned long i = 0; i < framesPerBuffer; ++i) {
+        out[i] = in[i];
+        audioData->push_back(in[i]);
+    }
+    //pipeline->miso_lock.unlock();
+    self->processAudioData();
+    return paContinue;
+}
+
 static void checkErr(PaError err) {
     if (err != paNoError) {
         std::cerr << "\nPortAudio error: " << err << std::endl;
@@ -169,6 +197,41 @@ AudioWrapper::AudioWrapper(Pipeline *pipeline) : pipeline(pipeline) {
                         N_SAMPLES * 2,
                         paNoFlag,
                         audioCallback,
+                        this);
+
+    checkErr(err);
+
+    // Initializes audio files
+    if constexpr (AUDIO_FILE) {
+        initAudioFiles();
+    }
+}
+
+AudioWrapper::AudioWrapper(Pipeline *pipeline, float *buffer) : pipeline(pipeline), miso(buffer) {
+    // Initializes port audio
+    PaError err = paNoError;
+    err = Pa_Initialize();
+    checkErr(err);
+
+    if constexpr (DEBUG_AUDIO) {
+        printDevices();
+    }
+
+    // Opens port audio stream
+    PaStreamParameters out_param;
+    out_param.device = 19; //Pa_GetDefaultOutputDevice();
+    out_param.channelCount = 1;
+    out_param.hostApiSpecificStreamInfo = nullptr;
+    out_param.sampleFormat = paFloat32;
+    out_param.suggestedLatency = 0;// Pa_GetDeviceInfo(out_param.device)->defaultLowOutputLatency;
+
+    err = Pa_OpenStream(&audio_stream_,
+                        nullptr,
+                        &out_param,
+                        SAMPLE_RATE,
+                        N_SAMPLES,
+                        paNoFlag,
+                        audioCallbackSimple,
                         this);
 
     checkErr(err);

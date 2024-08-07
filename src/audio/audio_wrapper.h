@@ -1,5 +1,5 @@
 /** @file audio_wrapper.h
- * @author Janne, Tuva
+ * @author Janne, Tuva, Isac
  * @brief Manages audio streaming and processing, with support for file encoding (and real-time playback).
  * @date 2024-07-01
  */
@@ -22,7 +22,7 @@
 #define WAV true
 #define AUDIO_FILE true
 #define BUFFER_THRESHOLD 146484.0 //SAMPLE_RATE * 3, Flushing buffer every 3 seconds
-#define DEBUG_AUDIO 0
+#define DEBUG_AUDIO 1
 
 /**
  * @class AudioWrapper
@@ -30,6 +30,9 @@
  */
 class AudioWrapper {
 private:
+    /// Audio buffer from MISO
+    float *miso;
+
     /// Flag if audio stream is running
     std::atomic<bool> is_on_ = false;
 
@@ -85,6 +88,7 @@ public:
      * @param pipeline Pointer to a Pipeline object for data streaming.
      */
     AudioWrapper(Pipeline *pipeline);
+    AudioWrapper(Pipeline *pipeline, float *buffer);
 
     // Delete copy constructor and assignment operators.
     AudioWrapper(const AudioWrapper &) = delete;
@@ -107,6 +111,8 @@ public:
     * @brief Fetches the buffer of incoming audio data.
     */
     std::vector<float> *getAudioData();
+
+    float* getMISO() {return miso;};
 
     /**
     * @brief Starts the stream of audio.
