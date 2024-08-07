@@ -18,13 +18,3 @@ target_link_libraries(awcu PUBLIC
         gps
 )
 
-add_executable(awcu_test
-        main.cpp
-        ${AWCU_SOURCES}
-)
-target_link_libraries(awcu_test PUBLIC
-        awpu
-        targetHandler
-        gps
-)
-

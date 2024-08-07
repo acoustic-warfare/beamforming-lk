@@ -20,7 +20,7 @@
 #define Y_RES 1024
 
 #define BLUR_KERNEL_SIZE 5//Kernel size of blur on heatmap
-#define BLUR_EFFECT false
+#define BLUR_EFFECT 0
 
 /**
  * Callback function to capture mouse events
@@ -105,7 +105,7 @@ void displayLogo(cv::Mat logo, cv::Mat combinedFrame) {
 /**
  * Initializes the webcamera.
  */
-void initCamera(float fov, std::string camera, cv::VideoCapture cap, int delay, double fps) {
+void initCamera(float fov, std::string camera, cv::VideoCapture& cap, int delay, double fps) {
     fov = FOV;
     cap = cv::VideoCapture(camera);
     if (!cap.isOpened()) {
@@ -168,11 +168,18 @@ void stopRecording(cv::VideoWriter& videoWriter) {
 }
 
 void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, 
-                          bool use_logo, bool debug, bool miso) {
+                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps,
+                          bool use_logo, bool debug, bool miso, bool flipped, bool aesthetic) {
     cv::VideoCapture cap;
     cv::VideoWriter videoWriter;
+    int colorMap;
 
+    if (aesthetic) {
+        colorMap = cv::COLORMAP_OCEAN;
+    } else {
+        colorMap = cv::COLORMAP_JET;
+    }
+ 
     bool running = true;
     bool recording = false;
 
@@ -181,6 +188,7 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
 
     if (use_camera) {
         initCamera(fov, camera, cap, delay, fps);
+        //fov = FOV;
     }
 
     // Setup AWPUS
@@ -239,8 +247,9 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     }
 
     // Load the logo image (with alpha channel if available)
-    cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);//
+    cv::Mat logo;
     if (use_logo) {
+        logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);
         initLogo(logo);
     }
 
@@ -294,11 +303,11 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
                              cv::Size(BLUR_KERNEL_SIZE, BLUR_KERNEL_SIZE), 0);
 #endif
             // Pretty colors
-            cv::applyColorMap(bigFrames[i], bigFrames[i], cv::COLORMAP_OCEAN);
+            cv::applyColorMap(bigFrames[i], bigFrames[i], colorMap);
 
             // Overlay onto camera
             if (use_camera) {
-                cv::resize(frame, frame, cv::Size(bigFrames[i].cols, bigFrames[i].rows), 0, 0, cv::INTER_LINEAR);
+                cv::resize(frame, frame, cv::Size(X_RES, Y_RES), 0, 0, cv::INTER_LINEAR);
                 cv::addWeighted(frame, 1.0, bigFrames[i], 0.5, 0, bigFrames[i]);
             } else {
 
@@ -360,6 +369,10 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
 
         if (use_logo) {
             displayLogo(logo, combinedFrame);
+        }
+
+        if (flipped) {
+            cv::flip(combinedFrame, combinedFrame, 1);
         }
 
         // Display the frame
