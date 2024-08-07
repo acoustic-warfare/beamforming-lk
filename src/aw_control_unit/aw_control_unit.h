@@ -69,9 +69,11 @@ public:
      * @param use_fps Flag indicating whether FPS (Frames Per Second) display is enabled.
      * @param use_logo Flag indicating whether to display a logo.
      * @param debug Flag indicating whether debug mode is enabled.
+     * @param miso Flag indicating whether MISO (Multiple Input Multiple Output) is enabled
      */
     void Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-               int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug);
-};
+               int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps,
+               bool use_logo, bool debug, bool miso);
+}
 
 #endif//AW_CONTROL_UNIT_H

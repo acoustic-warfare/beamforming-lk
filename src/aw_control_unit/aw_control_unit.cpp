@@ -23,6 +23,28 @@
 #define BLUR_EFFECT false
 
 /**
+ * Callback function to capture mouse events
+ */
+void clickEvent(int event, int x, int y, int flags, void* userdata) {
+    AWProcessingUnit* awpu = (AWProcessingUnit*) userdata;
+    if (event == cv::EVENT_LBUTTONDOWN) {
+        double xd = (static_cast<double>(x) / X_RES - 0.5) * 2.0;
+        double yd = -(static_cast<double>(y) / Y_RES - 0.5) * 2.0;
+        std::cout << "Coordinates: x=" << xd << ", y=" << yd << std::endl;
+        double phi = atan2(yd, xd);
+        double theta = sqrt(xd * xd + yd * yd);
+
+        if (theta > 1.0) {
+            theta = 1.0;
+        }
+        //theta *= M_PI / 2;
+        theta = asin(theta);
+        //double theta = (sqrt(2.0 - xd * xd - yd * yd) / 2.0);
+        awpu->steer(Spherical(theta, phi));
+    }
+}
+
+/**
  * Computes and displays FPS on the frame.
  */
 int computeFps(int frameCount, auto start, double fps, cv::Mat combinedFrame) {
@@ -146,7 +168,8 @@ void stopRecording(cv::VideoWriter& videoWriter) {
 }
 
 void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, bool use_logo, bool debug) {
+                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps, 
+                          bool use_logo, bool debug, bool miso) {
     cv::VideoCapture cap;
     cv::VideoWriter videoWriter;
 
@@ -176,12 +199,18 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
         // Start different modes
         if (tracking) { awpu->start(GRADIENT); }
         if (mimo) { awpu->start(MIMO); }
+        if (miso) { awpu->start(MISO); }
         if (audio_port == port) awpu->play_audio();
     }
 
     int awpu_count = awpus.size();
 
     namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+
+    if (miso) {
+        // Set the mouse callback function
+        cv::setMouseCallback(APPLICATION_NAME, clickEvent, awpus[0]);
+    }
 
     cv::Mat frame(Y_RES, X_RES, CV_8UC1);
     cv::Mat colorFrame(Y_RES, X_RES, CV_8UC1);
