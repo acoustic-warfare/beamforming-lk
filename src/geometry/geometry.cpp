@@ -59,6 +59,12 @@ Spherical Horizontal::toSpherical(const Horizontal &horizontal) {
     return Spherical(theta, phi);
 }
 
+Spherical::Spherical(Cartesian position) {
+    phi = atan2(position.y, position.x);
+    double length = sqrt(position.x * position.x + position.y * position.y + position.z * position.z);
+    theta = acos(position.z / length);
+}
+
 Cartesian Cartesian::convert(const Spherical &spherical, const double radius = 1.0) {
     Cartesian point;
 

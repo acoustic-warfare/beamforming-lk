@@ -116,6 +116,11 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .implicit_value(true)
             .help("Use logo");
 
+    program.add_argument("--miso")
+            .default_value(false)
+            .implicit_value(true)
+            .help("MISO Mode");
+
     program.add_argument("--debug")
             .default_value(false)
             .implicit_value(true)
@@ -131,6 +136,27 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .scan<'i', int>()
             .help("PORT numbers");
 }
+
+// Callback function to capture mouse events
+void clickEvent(int event, int x, int y, int flags, void* userdata) {
+    AWProcessingUnit *awpu = (AWProcessingUnit*)userdata;
+    if (event == cv::EVENT_LBUTTONDOWN) {
+        double xd = (static_cast<double>(x) / X_RES - 0.5) * 2.0;
+        double yd = -(static_cast<double>(y) / Y_RES - 0.5) * 2.0;
+        std::cout << "Coordinates: x=" << xd << ", y=" << yd << std::endl;
+        double phi = atan2(yd, xd);
+        double theta = sqrt(xd * xd + yd * yd);
+
+        if (theta > 1.0) {
+            theta = 1.0;
+        }
+        //theta *= M_PI / 2;
+        theta = asin(theta);
+        //double theta = (sqrt(2.0 - xd * xd - yd * yd) / 2.0);
+        awpu->steer(Spherical(theta, phi));
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     argparse::ArgumentParser program(argv[0]);
@@ -159,6 +185,7 @@ int main(int argc, char* argv[]) {
     bool use_fps = program.get<bool>("--fps");
     bool use_logo = program.get<bool>("--logo");
     bool debug = program.get<bool>("--debug");
+    bool miso = program.get<bool>("--miso");
 
     if (verbose) {
         // Display the parsed argument values
@@ -223,12 +250,19 @@ int main(int argc, char* argv[]) {
         // Start different modes
         if (tracking) { awpu->start(GRADIENT); }
         if (mimo) { awpu->start(MIMO); }
+        if (miso) { awpu->start(MISO); }
     }
 
     int awpu_count = awpus.size();
 
     // Create a window to display the beamforming data
     cv::namedWindow(APPLICATION_NAME, cv::WINDOW_NORMAL);
+
+    if (miso) {
+        // Set the mouse callback function
+        cv::setMouseCallback(APPLICATION_NAME, clickEvent, awpus[0]);
+    }
+    
 
     cv::Mat combinedFrame;
     cv::Mat colorFrame;
@@ -255,12 +289,14 @@ int main(int argc, char* argv[]) {
     }
 
     // Load the logo image (with alpha channel if available)
-    cv::Mat logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
-    if (use_logo != 0) {
-        if (logo.empty()) {
-            std::cerr << "Error: Unable to load logo image" << std::endl;
-            return -1;
-        }
+    cv::Mat logo;
+    
+    if (use_logo) {
+      logo = cv::imread("logo.png", cv::IMREAD_UNCHANGED);// Load with alpha channel
+      if (logo.empty()) {
+        std::cerr << "Error: Unable to load logo image" << std::endl;
+        return -1;
+      }
 
         // Calculate new size (10% of original size)
         cv::Size newSize(static_cast<int>(logo.cols * 0.22), static_cast<int>(logo.rows * 0.22));
