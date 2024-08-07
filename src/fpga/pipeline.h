@@ -30,6 +30,7 @@
  */
 class Pipeline {
 public:
+    std::mutex miso_lock;
     /**
      * @brief Constructor to initialize the pipeline with FPGA address and port.
      * @param address The IP address of the FPGA.
@@ -86,6 +87,11 @@ public:
      * @return The stream attribute.
      */
     Streams *getStreams() const;
+
+    float* getMISO();
+
+    void writeMISO();
+    bool readMISO();
 
     /**
      * @brief Fetches the number of sensors attribute.
@@ -149,6 +155,9 @@ private:
 
     /// Flag indicating if synthetic data is used
     bool synthetic;
+
+    /// @brief Counter for miso write
+    int miso_count = 0;
 
     /**
      * @brief Allow the worker threads to continue.

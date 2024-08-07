@@ -1,6 +1,6 @@
 #include "miso.h"
 
-MISOWorker::MISOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, double fov) : Worker(pipeline, antenna, running), beamformer(antenna, pipeline->getStreams(), fov, TO_RADIANS(TRACKER_SPREAD)), aw(pipeline, &this->data[0]) {
+MISOWorker::MISOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, double fov) : Worker(pipeline, antenna, running), beamformer(antenna, pipeline->getStreams(), fov, TO_RADIANS(TRACKER_SPREAD)), aw(pipeline, &data[0]) {
     this->fov = TO_RADIANS(fov / 2.0);
     ratio = (sin(this->fov));
     beamformer.thetaLimit = fov;
@@ -8,6 +8,7 @@ MISOWorker::MISOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, doub
     beamformer.move(Spherical(0, 0, 0));
     beamformer.startTracking(Spherical(0, 0, 0));
     thread_loop = std::thread(&MISOWorker::loop, this);
+    aw.start_audio_playback();
 }
 
 void MISOWorker::steer(Spherical direction) {
@@ -39,8 +40,18 @@ void MISOWorker::update() {
             beamformer.step(PARTICLE_RATE / 10, reference);
             
         beamformer.steer(beamformer.directionCurrent);
+
+        //memcpy(&data[0], streams->get_signal(0, N_SAMPLES), N_SAMPLES * sizeof(float));
+        //pipeline->miso_lock.lock();
         beamformer.das(&data[0]);
-    }
+        //memcpy(&data[0], streams->get_signal(0, N_SAMPLES), N_SAMPLES * sizeof(float));
+
+        pipeline->writeMISO();
+        //std::cout << data[0] << std::endl;
+        //pipeline->miso_lock.unlock();
+        }
+
+    
 }
 
 void MISOWorker::populateHeatmap(cv::Mat *heatmap) {
