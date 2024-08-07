@@ -22,7 +22,7 @@
 #define WAV true
 #define AUDIO_FILE true
 #define BUFFER_THRESHOLD 146484.0//SAMPLE_RATE * 3, Flushing buffer every 3 seconds
-#define DEBUG_AUDIO 1
+#define DEBUG_AUDIO 0
 
 /**
  * @class AudioWrapper

@@ -88,7 +88,7 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
     program.add_argument("--miso")
             .default_value(false)
             .implicit_value(true)
-            .help("MISO Mode");
+            .help("MISO Mode, needs to be combined with --audio 'portnr'");
 }
 
 int main(int argc, char* argv[]) {
