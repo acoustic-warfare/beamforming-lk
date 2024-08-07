@@ -64,7 +64,6 @@ public:
      * @param tracking Flag indicating whether tracking functionality is enabled.
      * @param mimo_res Resolution setting for MIMO.
      * @param verbose Flag indicating whether verbose logging is enabled.
-     * @param record Flag indicating whether recording is enabled.
      * @param fov Field of view setting.
      * @param use_fps Flag indicating whether FPS (Frames Per Second) display is enabled.
      * @param use_logo Flag indicating whether to display a logo.
@@ -72,8 +71,8 @@ public:
      * @param miso Flag indicating whether MISO (Multiple Input Multiple Output) is enabled
      */
     void Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-               int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps,
-               bool use_logo, bool debug, bool miso);
+               int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, float fov, bool use_fps, bool use_logo, 
+               bool debug, bool miso);
 };
 
 #endif//AW_CONTROL_UNIT_H

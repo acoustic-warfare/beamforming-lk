@@ -35,11 +35,6 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .implicit_value(true)
             .help("MIMO option");
 
-    program.add_argument("--record")
-            .default_value(false)
-            .implicit_value(true)
-            .help("Record option");
-
     program.add_argument("--mimo-res")
             .default_value(100)
             .scan<'i', int>()
@@ -110,7 +105,6 @@ int main(int argc, char* argv[]) {
     bool tracking = program.get<bool>("--tracking");
     float fov = program.get<float>("--fov");
     int mimo_res = program.get<int>("--mimo-res");
-    bool record = program.get<bool>("--record");
     std::vector<int> ports = program.get<std::vector<int>>("--port");
     bool verbose = program.get<bool>("--verbose");
     bool use_camera = (camera.compare("false") != 0);
@@ -140,7 +134,7 @@ int main(int argc, char* argv[]) {
 
     AWControlUnit awControlUnit(use_waraps);
     awControlUnit.Start(ports, ip_address, use_camera, camera, audio,
-                        mimo, tracking, mimo_res, verbose, record, fov,
+                        mimo, tracking, mimo_res, verbose, fov,
                         use_fps, use_logo, debug, miso);
 
     return 0;
