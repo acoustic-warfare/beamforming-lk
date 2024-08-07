@@ -214,6 +214,15 @@ void Pipeline::barrier() {
     barrier_condition.wait(lock, [&] { return barrier_count == 0; });
 }
 
+bool Pipeline::readMISO() {
+    miso_count++;
+    return (miso_count == 1);
+}
+
+void Pipeline::writeMISO() {
+    miso_count = 0;
+}
+
 Streams *Pipeline::getStreams() const {
     return streams;
 }
