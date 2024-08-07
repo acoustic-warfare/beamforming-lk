@@ -199,8 +199,8 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
         // Start different modes
         if (tracking) { awpu->start(GRADIENT); }
         if (mimo) { awpu->start(MIMO); }
-        if (miso) { awpu->start(MISO); }
-        if (audio_port == port) awpu->play_audio();
+        if (miso && audio_port == port) { awpu->start(MISO); }
+        if (audio_port == port && !miso) { awpu->play_audio(); }
     }
 
     int awpu_count = awpus.size();

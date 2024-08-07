@@ -4,8 +4,8 @@
  * @date 2024-07-01
  */
 
-#ifndef BEAMFORMER_AUDIO_WRAPPER_H
-#define BEAMFORMER_AUDIO_WRAPPER_H
+#ifndef AUDIO_WRAPPER_H
+#define AUDIO_WRAPPER_H
 
 #include <lame/lame.h>
 #include <portaudio.h>
@@ -21,7 +21,7 @@
 #define MP3 true
 #define WAV true
 #define AUDIO_FILE true
-#define BUFFER_THRESHOLD 146484.0 //SAMPLE_RATE * 3, Flushing buffer every 3 seconds
+#define BUFFER_THRESHOLD 146484.0//SAMPLE_RATE * 3, Flushing buffer every 3 seconds
 #define DEBUG_AUDIO 1
 
 /**
@@ -112,7 +112,12 @@ public:
     */
     std::vector<float> *getAudioData();
 
-    float* getMISO() {return miso;};
+    /**
+     * @brief Fetches the audio buffer.
+     * 
+     * @return float* The uadio buffer.
+     */
+    float *getMISO() { return miso; };
 
     /**
     * @brief Starts the stream of audio.
@@ -135,4 +140,4 @@ public:
     ~AudioWrapper();
 };
 
-#endif //BEAMFORMER_AUDIO_WRAPPER_H
+#endif//AUDIO_WRAPPER_H
