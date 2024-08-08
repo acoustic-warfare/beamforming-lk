@@ -6,13 +6,15 @@ Read more and get started on the [Wiki](https://github.com/acoustic-warfare/beam
 A shotcut to installation and getting started can be found [here](https://github.com/acoustic-warfare/beamforming-lk/wiki/Getting-started).
 
 The library has the following features:
-* Receiving audio sampling from up to 4 FPGAS, each taking at most 4 microphone arrays. 
+* Receiving audio sampling from up to 4 FPGAS, each taking at most 4 microphone arrays.
+* Beamforming on data from 2 FPGAS, each taking at most 4 microphone arrays.
 * Offline usage for efficient testing (udpreplay).
 * Dynamic delay calculation and target directions to enhance signals from specific directions.
 * Realtime processing of audio signals.
 * Tools for visualizing beamforming results (heatmaps) and configurations.
 * Customization of beamforming parameters. 
 
+Current issues that may need to be taken into considiration is found in the [issues](https://github.com/acoustic-warfare/beamforming-lk/issues) tab.
 
 ## Documentation
 * Documentation for setting up, developers, tips and tricks as well as future workings can all be found on the [Wiki](https://github.com/acoustic-warfare/beamforming-lk/wiki).
