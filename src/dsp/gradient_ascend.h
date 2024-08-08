@@ -11,27 +11,31 @@
 #include "antenna.h"
 #include "delay.h"
 #include "geometry.h"
+#include "kf.h"
 #include "particle.h"
 #include "pipeline.h"
 #include "worker.h"
 
-// Hyperparams for gradient ascent
+/**
+ * @brief Hyperparams for gradient ascent
+ */
 #define SEEKER_RESET_COUNTER 128       ///< Number of iterations before jump
 #define SEEKER_SPREAD TO_RADIANS(7)    ///< Angle fov for seeker
 #define TRACKER_STEPS 5                ///< Number of individual steps for tracker
 #define TRACKER_SLOWDOWN 0.1           ///< How much slower tracker steps
-#define TRACKER_CLOSENESS TO_RADIANS(4)///< Angle between trackers before they are absorbed
-#define TRACKER_ERROR_THRESHOLD 5e-2   ///< Error before tracker dies
-#define TRACKER_MAX 5                  ///< Number of trackers
+#define TRACKER_CLOSENESS TO_RADIANS(5)///< Angle between trackers before they are absorbed
+#define TRACKER_ERROR_THRESHOLD 1      ///< Error before tracker dies
+#define TRACKER_MAX 10                 ///< Number of trackers
 #define TRACKER_SPREAD TO_RADIANS(2)   ///< Angle fov for tracker
-#define PARTICLE_RATE 5e-1             ///< Stepsize for particles
+#define TRACKER_OLDEST 0               ///< If should plot a cross over the oldest tracker
+#define PARTICLE_RATE 5e-4             ///< Stepsize for particles
+#define DEBUG_GRADIENT 0               ///< If should print debug output
+#define MONOPULSE_DIRECTIONS 4         ///< Quadrants
+#define USE_HORIZONTAL 0               ///< Horizontal or quadrant monopulse
+#define RELATIVE 1                     ///< If the gradient should be relatve
 
-#define DEBUG_GRADIENT 1
-#define MONOPULSE_DIRECTIONS 4///< Quadrants
-#define USE_HORIZONTAL 0      ///< Horizontal or quadrant monopulse
-
-/**
- * @brief Particle used in the gradient ascent algorithm.
+/** 
+ * @brief Monopulse gradient particle
  */
 struct GradientParticle : public Particle {
     /// Spread between the Monopulse angles
@@ -66,7 +70,7 @@ struct GradientParticle : public Particle {
      * guidance
      * @param rate The rate the step occurs.
      */
-    void step(const double rate);
+    void step(const double rate, const double reference);
 };
 
 
@@ -181,18 +185,29 @@ protected:
     void populateHeatmap(cv::Mat *heatmap) override;
 
 private:
-    double mean = 0.0;                    ///< Mean value used in the gradient descent process.
-    float fov;                            ///< Field of view for the search area.
-    int resetCount = 0;                   ///< Counter for the number of resets.
-    std::size_t n_trackers;               ///< Number of trackers.
-    std::size_t iterations;               ///< Number of iterations for the gradient descent process.
-    std::size_t swarm_size;               ///< Number of seekers in the swarm.
-    std::vector<GradientSeeker> seekers;  ///< List of seekers.
-    std::vector<GradientTracker> trackers;///< List of trackers.
+    /// @brief Filter for tracking position and predict future position
+    KalmanFilter3D kf = KalmanFilter3D(1.0 / 5);
 
-    /**
-     * @brief Initializes the particles (seekers and trackers).
-     */
+    /// @brief Mean power level for particles
+    double mean = 0.0;
+    /// @brief Field of view for particles
+    float fov;
+
+    /// @brief A counter used for resetting position of particles at set intervals
+    int resetCount = 0;
+
+    /// @brief Number of trackers
+    std::size_t n_trackers;
+
+    /// @brief Number of seekers
+    std::size_t swarm_size;
+
+    /// @brief Collection of seekers
+    std::vector<GradientSeeker> seekers;
+
+    /// @brief Collection of trackers
+    std::vector<GradientTracker> trackers;
+
     void initialize_particles();
 };
 

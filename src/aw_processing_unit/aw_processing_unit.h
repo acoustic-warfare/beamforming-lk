@@ -12,10 +12,11 @@
 #include "pso_seeker.h"
 #include "antenna.h"
 #include "audio_wrapper.h"
+#include "miso.h"
 #include "pipeline.h"
 #include "worker.h"
 
-#define FOV 63.0
+#define FOV 180.0
 #define MIMO_SIZE 256
 
 /**
@@ -59,6 +60,12 @@ public:
      * @return True if the worker started successfully, false otherwise.
      */
     bool start(const worker_t worker);
+
+    /**
+     * @brief Steer everything to a specific direction
+     * @param direction the direction to listen to
+     */
+    void steer(Spherical direction);
 
     /**
      * @brief Stops the processing unit with the specified worker.

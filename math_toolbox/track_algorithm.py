@@ -4,17 +4,17 @@ import matplotlib.pyplot as plt
 import math
 
 ## MAGIC NUMBERS START##
-intersection_grace_radius = 1  # meters between two vectors to find a intersect
+intersection_grace_radius = 0.5  # meters between two vectors to find a intersect
 
-min_track_distance = 1
-max_track_distance = 2
+min_track_distance = 0.2
+max_track_distance = 0.5
 track_distance_factor = 1  # factor to change the kill_time
 
-min_track_kill_time = 1  # min numger of second this is a baseline for new targets with very few hits
-max_track_kill_time = 2  # max number of seconds the kill_time can acheve for a target with many hits
+min_track_kill_time = 0.1  # min numger of second this is a baseline for new targets with very few hits
+max_track_kill_time = 0.4  # max number of seconds the kill_time can acheve for a target with many hits
 kill_time_factor = 1  # factor to change the kill_time
 
-plt_pause_on = False
+plt_pause_on = True  # True/False = 3d plot/no 3d plot, no 3d plot makes the program run faster
 plt_pause_factor = 0.1  # make the pauses shorter
 ## MAGIC NUMBERS END ##
 
@@ -67,16 +67,14 @@ def read_file(direction_1, direction_2, timestamps, file_name):
     return direction_1, direction_2, timestamps
 
 
-direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "tests/Targets2.txt")
+direction_1, direction_2, timestamps = read_file(direction_1, direction_2, timestamps, "math_toolbox/recorded_data/Targets_3m_dator.txt")
 
 
 def triangulatePoints(r1, e1, r2, e2):
     n = cross(e1, e2)
-    # print("n", n)
 
     t1 = dot(cross(e2, n), (r2 - r1)) / dot(n, n)
     t2 = dot(cross(e1, n), (r2 - r1)) / dot(n, n)
-    # print("t", t1, t2)
 
     p1 = r1 + t1 * e1
     p2 = r2 + t2 * e2
@@ -208,7 +206,7 @@ def plot_best_target(ax, colors, max_nr_colors, best_target, best_track_id):
 def plot_all_targets(ax, colors, max_nr_colors, target_list):
     targets = []
     for i, (track_point, time_since_last_hit, total_hits, timestamp) in enumerate(target_list):
-        if total_hits > 0:
+        if total_hits > 10:
             color = colors[i % max_nr_colors]
             targets.append(
                 ax.scatter(
@@ -265,16 +263,16 @@ for i in range(0, len(direction_1)):
     p = (p1 + p2) / 2
 
     current_time = timestamps[i]
-    if np.linalg.norm(p1 - p2) > intersection_grace_radius or p[2] < 0 or np.linalg.norm(p) > 20:
+    if np.linalg.norm(p1 - p2) > intersection_grace_radius or p[2] < 0 or np.linalg.norm(p) > 20 or p[2] < 1:
         p = np.zeros(3)
 
     if p.all() == 0:
         failed_intersect_count += 1
     else:
         if plt_pause_on:
-            print((current_time - last_hit_time) * 10**-9)
+            # print((current_time - last_hit_time) * 10**-9)
             plt.pause(
-                (current_time - last_hit_time) * 10**-9 * plt_pause_on * plt_pause_factor
+                (current_time - last_hit_time) * 10**-9 * plt_pause_on * plt_pause_factor + 0.000000001
             )  # Pause for a short time to update the plot
         last_hit_time = current_time
 

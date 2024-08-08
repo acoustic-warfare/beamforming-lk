@@ -73,11 +73,14 @@ bool AWProcessingUnit::start(const worker_t worker) {
         case MIMO:
             job = new MIMOWorker(pipeline, antennas[0], &running, small_res, small_res, fov);
             break;
+        case MISO:
+            job = new MISOWorker(pipeline, antennas[0], &running, fov);
+            break;
         case SOUND:
             job = nullptr;
             break;
         case GRADIENT:
-            job = new SphericalGradient(pipeline, antennas[0], &running, 50, 10, fov);
+            job = new SphericalGradient(pipeline, antennas[0], &running, 16, 10, fov);
             break;
         default:
             return false;
@@ -252,6 +255,12 @@ void AWProcessingUnit::draw(cv::Mat *compact, cv::Mat *normal) const {
         if (worker->get_type() != MIMO) {
             worker->draw(normal);
         }
+    }
+}
+
+void AWProcessingUnit::steer(Spherical direction) {
+    for (auto &worker: workers) {
+        worker->steer(direction);
     }
 }
 

@@ -13,6 +13,9 @@
 #include "streams.hpp"
 #include "worker.h"
 
+
+#define USE_BANDPASS 1 // If bandpass filter will be used
+
 /**
  * @brief Normalize a spherical direction with a given theta limit.
  * @param direction The spherical direction to normalize.
@@ -34,6 +37,11 @@ struct Particle {
     double thetaLimit;               ///< Field of view in theta.
     int offsetDelays[ELEMENTS];      ///< Delay offsets.
     float fractionalDelays[ELEMENTS];///< Fractional delays.
+
+    /**
+     * Output signal
+     */
+    float out[N_SAMPLES];
 
     /**
      * @brief Constructs a Particle object.
@@ -81,6 +89,16 @@ struct Particle {
      * @return The power of the beamformed signal.
      */
     double beam();
+    
+    /**
+     * Delay and sum used as API
+     */
+    void das(float *out);
+
+    /**
+     * Move the particle to a specific direction
+     */
+    void move(Spherical direction);
 
     /**
      * @brief Steer the particle beam to a specific direction.

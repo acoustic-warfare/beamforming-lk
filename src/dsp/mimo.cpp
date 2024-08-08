@@ -80,10 +80,10 @@ void MIMOWorker::populateHeatmap(cv::Mat *heatmap) {
         for (int c = 0; c < columns; c++) {
 #if USE_DB
             double db = pow((powerdB[i] - minV) / (maxV - minV), 3);
-            std::cout << db << std::endl;
+            //std::cout << db << std::endl;
             db = 20 * log10(db * 1e12);
 #else
-            double db = pow(powerdB[i] / maxV, 5);
+            double db = pow(powerdB[i] / maxV, 1);
 #endif
             db *= 255.0;
             db = clip(db, 0.0, 255.0);
@@ -95,7 +95,7 @@ void MIMOWorker::populateHeatmap(cv::Mat *heatmap) {
 }
 
 void MIMOWorker::update() {
-    const float norm = 1.0 / static_cast<float>(antenna.usable);//.usable;
+    const float norm = 1.0 / static_cast<float>(antenna.usable);
 
     float signals[ELEMENTS][N_ITEMS_BUFFER];
     for (int l = 0; l < antenna.usable; l++) {
@@ -104,17 +104,20 @@ void MIMOWorker::update() {
 
 #if USE_REFERENCE
     float reference = 0.0;
-    for (int l = 0; l < antenna.usable; l++) {
-        for (int i = 0; i < N_SAMPLES; i++) {
-            reference += powf(signals[antenna.index[l]][i + N_SAMPLES], 2);
-        }
+
+    float *out = &signals[antenna.index[0]][N_SAMPLES];
+    for (int i = 1; i < N_SAMPLES - 1; i++) {
+        float MA = out[i] * 0.5f - 0.25f * (out[i + 1] + out[i - 1]);
+        reference += powf(MA, 2);
     }
 
-    reference /= static_cast<float>(N_SAMPLES * antenna.usable);
+    reference /= static_cast<float>(N_SAMPLES - 2);
 #endif
 
+#if DEBUG_MIMO
     float powMax = 0.0;
     float powMin = 1000000.0;
+#endif
     for (int m = 0; m < maxIndex; m++) {
         float out[N_SAMPLES] = {0.0};
         int count = 0;
@@ -126,18 +129,28 @@ void MIMOWorker::update() {
             count++;
         }
         float power = 0.0;
-        for (int i = 0; i < N_SAMPLES; i++) {
-            power += powf(out[i], 2);
+        for (int i = 1; i < N_SAMPLES - 1; i++) {
+            float MA = out[i] * 0.5f - 0.25f * (out[i + 1] + out[i - 1]);
+            power += powf(MA, 2);
         }
 
         power /= static_cast<float>(N_SAMPLES * count);
 
+#if DEBUG_MIMO
+        if (power > powMax) powMax = power;
+        if (power < powMin) powMin = power;
+#endif
+
 #if USE_REFERENCE
-        if (power < reference * 10.0) {
+        if (power < reference) {
             power = 0.0;
         }
 #endif
 
         powerdB[m] = power;
     }
+
+#if DEBUG_MIMO
+    std::cout << powMax << " " << powMin << " " << reference << std::endl;
+#endif
 }

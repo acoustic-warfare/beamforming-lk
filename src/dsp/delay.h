@@ -16,6 +16,11 @@
 #endif
 
 #define SAFETY_CHECK 0
+#define USE_FILTER 1
+
+#if USE_FILTER
+#include "filter.h"
+#endif
 
 /**
  * @brief Applies a fractional delay to the input signal and stores the result in the output buffer.

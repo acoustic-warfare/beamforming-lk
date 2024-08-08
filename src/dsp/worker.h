@@ -56,10 +56,8 @@ struct Target {
      * @param other The target to compare with.
      * @return True if the targets have the same direction, false otherwise.
      */
-    Target(Spherical direction, float power, float probability, std::chrono::time_point<std::chrono::high_resolution_clock> start) : direction(direction),
-                                                                                                                                     power(power),
-                                                                                                                                     probability(probability),
-                                                                                                                                     start(start){};
+    Target(Spherical direction, float power, float probability, std::chrono::time_point<std::chrono::high_resolution_clock> start) : 
+    direction(direction), power(power), probability(probability), start(start){};
 };
 
 /**
@@ -69,6 +67,7 @@ enum worker_t {
     GENERIC,///< Generic worker type.
     PSO,    ///< Particle Swarm Optimization worker type.
     MIMO,   ///< Multiple Input Multiple Output worker type.
+    MISO,   ///< Multiple Input Single Output worker type.
     SOUND,  ///< Sound-based worker type.
     GRADIENT///< Gradient-based worker type.
 };
@@ -132,7 +131,7 @@ public:
 
     /**
      * @brief Gets the current targets being tracked by the worker.
-     * @return A vector of current targets.
+     * @return Current tracked targets (if any)
      */
     [[nodiscard]] std::vector<Target> getTargets() const {
         std::vector<Target> r_targets;
@@ -152,11 +151,19 @@ public:
         lock.unlock();
     };
 
+    /**
+     * @brief Steer the worker to a specific direction
+     */
+    virtual void steer(Spherical direction) {};
+
 protected:
     /// Current direction
     Spherical direction;
 
+    /// Incoming data
     Streams *streams;
+
+    /// @brief steerable antenna with valid sensors
     Antenna &antenna;
 
     /// Current tracking objects
@@ -217,7 +224,8 @@ protected:
     }
 
 private:
-    /// Start index for processing
+    /// Start index for processing 
+    /// Self check against pipeline to only operate on newest data
     int start;
 
     /// Lock to prevent multiple access from outside and inside

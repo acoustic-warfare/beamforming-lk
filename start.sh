@@ -69,6 +69,8 @@ docker run -it \
     -v $(pwd):/usr/src/app \
     -e DISPLAY=$DISPLAY  \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --privileged \
     $AUDIO_ARGS \
+    --device=/dev/video02  \
     beamformer bash
     

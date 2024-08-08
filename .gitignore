@@ -80,3 +80,6 @@ dkms.conf
 /udp/recorded
 /.env
 .idea/
+.venv
+
+math_toolbox/recorded_data
