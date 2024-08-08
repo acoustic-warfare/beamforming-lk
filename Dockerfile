@@ -20,7 +20,7 @@ ENV TZ=Europe \
     DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:0.0
 
-RUN apt-get update -y
+RUN apt-get update && apt-get install -y apt-transport-https
 
 # Setting up build environment
 RUN apt-get install -y \
