@@ -16,6 +16,8 @@
 #define APPLICATION_WIDTH 1024
 #define APPLICATION_HEIGHT 1024
 
+#define LK_HEADING 180// LK heading in degrees
+
 #define X_RES 1024
 #define Y_RES 1024
 
@@ -257,8 +259,8 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     int frameCount = 0;
 
     if (awpu_count > 1) {
-        targetHandler_.AddAWPU(awpus[0], {1, 0, 0})//TODO: hardcoded
-                .AddAWPU(awpus[1], {-1, 0, 0})     //TODO: hardcoded
+        targetHandler_.AddAWPU(awpus[0], {1, 0, 0})//1 = Distance of arrays relative GPS dongle, IMPORTANT!
+                .AddAWPU(awpus[1], {-1, 0, 0})     //-1 = Distance of arrays relative GPS dongle, IMPORTANT!
                 .Start();
     }
 
@@ -457,7 +459,7 @@ void AWControlUnit::publishData() {
         }
     }
 
-    client_.PublishMessage("sensor/heading", std::to_string(90.0));// Currently not a real value
+    client_.PublishMessage("sensor/heading", std::to_string(LK_HEADING));
     client_.PublishMessage("sensor/course", std::to_string(0));
     client_.PublishMessage("sensor/speed", std::to_string(0));
     client_.PublishMessage("sensor/camera_tags", "[ \"LJUDKRIGET\" ]");
@@ -466,7 +468,7 @@ void AWControlUnit::publishData() {
 AWControlUnit::AWControlUnit(bool use_waraps) : client_(WARAPS_NAME, WARAPS_ADDRESS,
                                                         std::getenv("MQTT_USERNAME") == nullptr ? "" : std::getenv("MQTT_USERNAME"),
                                                         std::getenv("MQTT_PASSWORD") == nullptr ? "" : std::getenv("MQTT_PASSWORD")),
-                                                targetHandler_(&gpsData_) {
+                                                targetHandler_(&gpsData_, LK_HEADING) {
     if (use_waraps) {
         int gpsError = gps_open(GPS_ADDRESS, std::to_string(GPS_PORT).c_str(), &gpsData_);
         gpsError |= gps_stream(&gpsData_, WATCH_ENABLE | WATCH_JSON, nullptr);

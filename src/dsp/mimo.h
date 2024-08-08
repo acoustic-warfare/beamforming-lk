@@ -1,7 +1,7 @@
 /** @file mimo.h
  * @author Irreq
- * @brief TODO:
-*/
+ * @brief Handles MIMO (multiple input, multiple output) beamforming algorithms.
+ * */
 
 #ifndef MIMO_H
 #define MIMO_H
@@ -20,33 +20,75 @@
 
 /** 
  * @class MIMOWorker
- * @brief TODO:
+ * @brief Handles the setup, updating, and heatmap population for MIMO processing.
 */
 class MIMOWorker : public Worker {
 public:
+    /**
+     * @brief Constructs a MIMOWorker object.
+     * @param pipeline Pointer to the pipeline object, audio data.
+     * @param antenna Reference to the antenna object.
+     * @param running Pointer to the running flag.
+     * @param rows Number of rows in the MIMO array.
+     * @param columns Number of columns in the MIMO array.
+     * @param fov Field of view for the MIMO processing, in degrees.
+     */
     MIMOWorker(Pipeline *pipeline, Antenna &antenna, bool *running, int rows, int columns, float fov);
-    ~MIMOWorker() {};
+
+    /**
+     * @brief Destructor, cleanups of resources.
+     */
+    ~MIMOWorker(){};
+
+    /**
+     * @brief Gets the type of the worker.
+     * @return The worker type, which is MIMO.
+     */
     worker_t get_type() {
         return worker_t::MIMO;
     };
 
 protected:
-    void reset() override {};
+    /**
+     * @brief Resets the worker's state.
+     */
+    void reset() override{};
+
+    /**
+     * @brief Updates the worker's state.
+     */
     void update() override;
+
+    /**
+     * @brief Populates the heatmap with the current state.
+     * @param heatmap Pointer to the heatmap matrix.
+     */
     void populateHeatmap(cv::Mat *heatmap) override;
-    void setup() override {};
+
+    /**
+     * @brief Sets up the worker before starting.
+     */
+    void setup() override{};
 
 private:
-    int index = 0;
-    int maxIndex;
-    const int columns;
-    const int rows;
-    const float fov;
-    float prevPower = 1.0;
+    int index = 0;        ///< Current index for processing.
+    int maxIndex;         ///< Maximum index value.
+    const int columns;    ///< Number of columns in the MIMO array.
+    const int rows;       ///< Number of rows in the MIMO array.
+    const float fov;      ///< Field of view for the MIMO processing.
+    float prevPower = 1.0;///< Previous power value for processing.
+
+    /**
+     * @brief Computes the delay lookup table for the MIMO processing.
+     */
     void computeDelayLUT();
+
+    /// Vector of offset delays.
     std::vector<std::vector<int>> offsetDelays;
+    /// Vector of fractional delays.
     std::vector<std::vector<float>> fractionalDelays;
+    /// Vector of power values in decibel scale.
     std::vector<float> powerdB;
 };
 
-#endif
+#endif//MIMO_H

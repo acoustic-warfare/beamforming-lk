@@ -5,8 +5,8 @@
  * We use the physics convention where theta in [0, pi/2] and phi in [0, 2*pi)
  */
 
-#ifndef BEAMFORMER_ANTENNA_H
-#define BEAMFORMER_ANTENNA_H
+#ifndef ANTENNA_H
+#define ANTENNA_H
 
 #include <Eigen/Dense>
 #include <cmath>
@@ -90,12 +90,9 @@ struct Antenna {
     float mean;                  ///< Pseudo valid metrics for checking the power level of antenna during auto calibration
     float median;
 
-
-    // TODO calculate angle correction
+    // TODO: calculate angle correction
     float *angle_correction_mask;///< How much to compensate for non-isotropic elements
     int angle_resolution;
-
-    //Sector sectors[4];
 
     ~Antenna() {
         if (usable > 0) {
@@ -103,12 +100,6 @@ struct Antenna {
             delete[] power_correction_mask;
         }
     }
-
-    //void setup_sectors() {
-    //  for (int i = 0; i < 4; i++) {
-    //    sectors[i].construct_sector(this->index, usable, i);
-    //  }
-    //}
 };
 
 /**
@@ -142,7 +133,6 @@ Antenna create_antenna(const Position &position, const int columns,
  * thought as a point cloud laying on the XY plane, the Z value will be the
  * distance to the target and is used to calculate the necessary delays to
  * accomodate for a planar wave.
- *
  * @param antenna The antenna that will be used to compute the delays
  * @return a 1D vector of time delays
  */
@@ -162,7 +152,6 @@ Eigen::VectorXf compute_delays(const Antenna &antenna);
  * @return The rotated antenna.
  */
 Antenna steer(const Antenna &antenna, const double theta, const double phi);
-
 
 /**
  * @brief Steer the antenna using horizontal angles. bore-sight is the x-axis and 
@@ -217,4 +206,4 @@ void generate_lookup_table(const Eigen::MatrixXf &dome, Eigen::MatrixXi &lookup_
 
 void test_lookup_table(const Eigen::MatrixXf &dome, const Eigen::MatrixXi &lookup_table);
 
-#endif//BEAMFORMER_ANTENNA_H
+#endif//ANTENNA_H
