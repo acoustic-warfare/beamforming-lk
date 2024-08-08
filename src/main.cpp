@@ -70,6 +70,16 @@ void setupArgumentParser(argparse::ArgumentParser& program) {
             .implicit_value(true)
             .help("Debug mode");
 
+    program.add_argument("--flipped")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Flip video");
+
+    program.add_argument("--aesthetic")
+            .default_value(false)
+            .implicit_value(true)
+            .help("Cool mode");
+
     program.add_argument("--port")
             .append()
             .scan<'i', int>()
@@ -113,6 +123,8 @@ int main(int argc, char* argv[]) {
     bool debug = program.get<bool>("--debug");
     bool use_waraps = program.get<bool>("--wara-ps");
     bool miso = program.get<bool>("--miso");
+    bool flipped = program.get<bool>("--flipped");
+    bool aesthetic = program.get<bool>("--aesthetic");
 
     if (verbose) {
         std::cout << "Camera: " << camera << std::endl;
@@ -135,7 +147,7 @@ int main(int argc, char* argv[]) {
     AWControlUnit awControlUnit(use_waraps);
     awControlUnit.Start(ports, ip_address, use_camera, camera, audio,
                         mimo, tracking, mimo_res, verbose, fov,
-                        use_fps, use_logo, debug, miso);
+                        use_fps, use_logo, debug, miso, flipped, aesthetic);
 
     return 0;
 }
