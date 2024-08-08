@@ -14,7 +14,7 @@
 # docker run -v $(pwd):/usr/src/app -e DISPLAY=$DISPLAY -it --network=host -v /tmp/.X11-unix:/tmp/.X11-unix -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native -v /run/dbus:/run/dbus --device /dev/snd beamformer bash
 #
 
-FROM ubuntu:22.04 AS deps
+FROM ubuntu:22.04
 
 ENV TZ=Europe \
     DEBIAN_FRONTEND=noninteractive \
@@ -71,8 +71,6 @@ RUN git submodule init \
     && cmake -Bbuild -H. -DPAHO_WITH_MQTT_C=ON -DPAHO_WITH_SSL=ON \
     && cmake --build build/ --target install
 
-FROM deps AS build
-
 WORKDIR /
 RUN git clone https://github.com/acoustic-warfare/WARA-PS-MQTT-Agent.git
 WORKDIR /WARA-PS-MQTT-Agent
@@ -101,3 +99,5 @@ WORKDIR /usr/src/app
 # Add configs for sound and start pulse audio
 COPY src/audio/daemon.conf /etc/pulse/daemon.conf
 RUN pulseaudio --start
+
+RUN mkdir -p build && cd build && cmake .. && make
