@@ -99,5 +99,3 @@ WORKDIR /usr/src/app
 # Add configs for sound and start pulse audio
 COPY src/audio/daemon.conf /etc/pulse/daemon.conf
 RUN pulseaudio --start
-
-RUN mkdir -p build && cd build && cmake .. && make
