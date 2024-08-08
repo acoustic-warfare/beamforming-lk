@@ -17,4 +17,3 @@ target_link_libraries(awcu PUBLIC
         targetHandler
         gps
 )
-

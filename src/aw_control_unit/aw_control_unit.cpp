@@ -168,7 +168,7 @@ void stopRecording(cv::VideoWriter& videoWriter) {
 }
 
 void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_address, bool use_camera, const std::string& camera,
-                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, bool record, float fov, bool use_fps,
+                          int audio_port, bool mimo, bool tracking, int mimo_res, bool verbose, float fov, bool use_fps,
                           bool use_logo, bool debug, bool miso, bool flipped, bool aesthetic) {
     cv::VideoCapture cap;
     cv::VideoWriter videoWriter;
@@ -179,7 +179,7 @@ void AWControlUnit::Start(const std::vector<int>& ports, const std::string& ip_a
     } else {
         colorMap = cv::COLORMAP_JET;
     }
- 
+
     bool running = true;
     bool recording = false;
 
