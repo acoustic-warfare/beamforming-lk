@@ -20,7 +20,7 @@ ENV TZ=Europe \
     DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:0.0
 
-RUN apt-get update -y
+RUN apt-get update && apt-get install -y apt-transport-https
 
 # Setting up build environment
 RUN apt-get install -y \
@@ -99,5 +99,3 @@ WORKDIR /usr/src/app
 # Add configs for sound and start pulse audio
 COPY src/audio/daemon.conf /etc/pulse/daemon.conf
 RUN pulseaudio --start
-
-RUN mkdir -p build && cd build && cmake .. && make
